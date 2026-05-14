@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "embedding-model-shootout"
+version = "0.0.1"
+description = "Reproducible empirical comparison of embedding models on a technical-docs corpus: recall@k, NDCG, cost per million tokens, latency, Pareto frontier."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "JT McHorse", email = "jmchorse.tech@gmail.com" }]
+keywords = ["llm", "embeddings", "benchmark", "rag", "retrieval"]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+
+# The corpus layer is intentionally dependency-free: it walks the local
+# Python interpreter's stdlib using `inspect` and emits JSONL. Embedder
+# providers (openai, voyageai, cohere, sentence-transformers, …) ship as
+# optional extras when issue #2 lands.
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=4.1",
+  "ruff>=0.5",
+]
+
+[project.urls]
+Repository = "https://github.com/jt-mchorse/embedding-model-shootout"
+Issues    = "https://github.com/jt-mchorse/embedding-model-shootout/issues"
+
+[project.scripts]
+emb-shootout = "emb_shootout.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["emb_shootout"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts   = "-ra -q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "PT"]
+ignore = ["E501"]
