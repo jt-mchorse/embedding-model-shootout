@@ -27,3 +27,39 @@
   reversibility: cheap
   related_issues: [1, 2]
   superseded_by: null
+
+- id: D-004
+  date: 2026-05-15
+  decision: embedder_is_single_method_protocol_parallel_to_portfolio_pattern
+  rationale: same_seam_as_rag_kit_eval_harness_cost_optimizer_chunking_lab_swappable_providers_via_one_method
+  alternatives_rejected: [hard_coded_openai_client, abstract_base_class, sklearn_style_estimator]
+  reversibility: cheap
+  related_issues: [2]
+  superseded_by: null
+
+- id: D-005
+  date: 2026-05-15
+  decision: queries_derived_from_corpus_at_sweep_time_deterministic_seed_not_pre_committed_fixture
+  rationale: corpus_evolves_as_python_does_committed_query_set_drifts_seeded_derivation_keeps_them_in_sync
+  alternatives_rejected: [pre_committed_query_jsonl, hand_curated_query_set_per_corpus_version]
+  reversibility: cheap
+  related_issues: [2]
+  superseded_by: null
+
+- id: D-006
+  date: 2026-05-15
+  decision: cost_per_million_tokens_is_operator_supplied_at_provider_construction_default_to_public_list_2026_05
+  rationale: pricing_changes_record_the_price_used_alongside_quality_numbers_so_historical_comparisons_remain_interpretable
+  alternatives_rejected: [hard_coded_in_provider_module, fetch_from_provider_pricing_api_at_runtime]
+  reversibility: cheap
+  related_issues: [2]
+  superseded_by: null
+
+- id: D-007
+  date: 2026-05-15
+  decision: per_provider_result_json_files_aggregator_merges_them_no_single_file_multiple_providers
+  rationale: avoid_concurrent_run_collisions_each_operator_run_writes_one_file_aggregator_is_pure_read
+  alternatives_rejected: [single_results_jsonl_appended_per_run, sqlite_results_db]
+  reversibility: cheap
+  related_issues: [2]
+  superseded_by: null

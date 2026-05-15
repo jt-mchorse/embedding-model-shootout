@@ -38,3 +38,56 @@ Strategic decisions for this repo, with reasoning. Append-only — superseded de
 **Reversibility:** Cheap. The chunk-emission logic is one function (`_iter_module_members`); changing the granularity is a localized edit, and the chunk shape's `kind` field already distinguishes module/class/function/method.
 
 **Related issues:** #1, #2.
+
+## D-004 — `Embedder` is a single-method Protocol (2026-05-15)
+**Decision:** `emb_shootout.sweep.Embedder` is a Protocol with `embed(texts) -> list[list[float]]` plus `name`, `dim`, `cost_per_million_tokens` properties. All six providers conform structurally.
+
+**Why:** Same single-method Protocol seam as the rest of the portfolio. One-line wrapper to swap providers in or out.
+
+**Alternatives considered:**
+- Hard-coded OpenAI client — rejected: vendor lock-in.
+- Abstract base class — rejected: ceremony.
+- sklearn-style estimator — rejected: no `fit`.
+
+**Reversibility:** Cheap.
+
+**Related issues:** #2
+
+## D-005 — Queries derived from corpus at sweep time, deterministic seed (2026-05-15)
+**Decision:** `build_queries(corpus, n=200, seed=42)` derives queries by picking random chunks (with replacement) and taking verbatim word-window snippets. Seed pins reproducibility.
+
+**Why:** Pre-committed query sets drift as the corpus changes. CPython's stdlib evolves between Python versions, which moves the corpus on every release. Derivation-at-sweep-time keeps corpus + queries always in sync.
+
+**Alternatives considered:**
+- Pre-committed `data/queries.jsonl` — rejected: drifts; needs re-curation per Python version.
+- Hand-curated query set per corpus version — rejected: doesn't scale.
+
+**Reversibility:** Cheap.
+
+**Related issues:** #2
+
+## D-006 — `cost_per_million_tokens` is operator-supplied at provider construction (2026-05-15)
+**Decision:** Each provider takes `cost_per_million_tokens` as a constructor arg, defaulting to public list price as of 2026-05. Recorded on `SweepResult` so historical comparisons capture the price the operator used at run time.
+
+**Why:** Embedding pricing changes. Hard-coding would mean recorded $/MTok drifts away from reality and historical results become uninterpretable. Operator-supplied + recorded means the JSON files are self-describing.
+
+**Alternatives considered:**
+- Hard-coded in provider module — rejected: drifts.
+- Fetch from provider pricing API at runtime — rejected: no public APIs; brittle.
+
+**Reversibility:** Cheap.
+
+**Related issues:** #2
+
+## D-007 — One result JSON per provider; aggregator merges them (2026-05-15)
+**Decision:** `emb-shootout sweep run --provider X --output results/X.json` writes one JSON per provider. `emb-shootout sweep aggregate` reads `results/*.json` and emits the markdown table.
+
+**Why:** Per-provider JSON files compose cleanly: parallel operator runs don't collide, partial state is recoverable, aggregator is pure-read. Single-file shapes invite concurrent-write bugs; SQLite would be overkill for tens of rows.
+
+**Alternatives considered:**
+- Single `results.jsonl` appended per run — rejected: concurrent runs collide.
+- SQLite results DB — rejected: dep for `n < 100` rows is overkill.
+
+**Reversibility:** Cheap.
+
+**Related issues:** #2
