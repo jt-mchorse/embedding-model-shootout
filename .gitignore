@@ -16,3 +16,8 @@ logs/
 htmlcov/
 *.egg-info/
 data/
+
+# Sweep results — operator-generated per provider. The hash-only baseline
+# is committed; real-provider results are operator-specific datasets.
+results/*
+!results/hash.json

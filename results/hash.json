@@ -1,0 +1,19 @@
+{
+  "cost_per_million_tokens": 0.0,
+  "embed_latency_ms": {
+    "corpus_total": 429.2312499601394,
+    "query_p50": 0.013478449545800686,
+    "query_p95": 0.017100194236263633
+  },
+  "embedder_dim": 128,
+  "embedder_name": "hash-embedder-128d-ngram2",
+  "n_corpus": 12010,
+  "n_queries": 50,
+  "ndcg_at_10": 0.4486406869414832,
+  "notes": [],
+  "recall_at_k": {
+    "1": 0.32,
+    "10": 0.62,
+    "5": 0.52
+  }
+}

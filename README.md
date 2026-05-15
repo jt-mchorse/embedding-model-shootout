@@ -34,15 +34,27 @@ benchmark code will hold to.
 
 ```
 emb_shootout/
-├── corpus.py   ← DEFAULT_MODULES + build_corpus(modules) + write_jsonl()
-└── cli.py      ← emb-shootout corpus build --out data/corpus.jsonl
+├── corpus.py     ← DEFAULT_MODULES + build_corpus(modules) + write_jsonl()
+├── queries.py    ← #2: deterministic verbatim-snippet queries from the corpus
+├── sweep.py      ← #2: Embedder Protocol + run_sweep + recall@k + NDCG + aggregator
+├── providers/    ← #2: HashEmbedder (default) + OpenAI, Voyage, Cohere, BGE, Nomic
+└── cli.py        ← emb-shootout corpus build / sweep run / sweep aggregate
 ```
 
-The loader walks each module via `inspect`, treats `__all__` as the
+The corpus loader walks each module via `inspect`, treats `__all__` as the
 authoritative re-export list, emits one `Chunk` per documented member
 (signature-then-docstring), deduplicates by qualname, and writes JSONL.
 See [`docs/corpus.md`](docs/corpus.md) for the full chunk shape,
 license, and provenance.
+
+The sweep harness (#2) is one `Embedder` Protocol (`embed(texts) -> list[list[float]]`
+plus `name`, `dim`, `cost_per_million_tokens`) and one `run_sweep(corpus,
+queries, embedder)` function that embeds corpus + queries, runs cosine
+top-k retrieval, and reports recall@1/5/10, NDCG@10, and embed-latency
+p50/p95. The dep-free `HashEmbedderProvider` ships in the base install for
+hermetic CI; the five real providers (OpenAI, Voyage, Cohere, BGE, Nomic)
+are lazy-imported behind their respective optional extras and wire to
+their SDKs via env vars.
 
 ## Quickstart
 
@@ -67,11 +79,38 @@ Tests, lint, format check:
 ruff check . && ruff format --check . && pytest
 ```
 
+## Sweep harness (#2 · this PR)
+
+```bash
+# Build the corpus.
+emb-shootout corpus build --out data/corpus.jsonl
+
+# Run a provider. Hash-only (dep-free, hermetic) baseline:
+emb-shootout sweep run --provider hash \
+  --corpus data/corpus.jsonl --queries 200 --output results/hash.json
+
+# Real providers each need their SDK + API key:
+pip install 'emb-shootout[openai]'
+OPENAI_API_KEY=sk-... emb-shootout sweep run --provider openai \
+  --corpus data/corpus.jsonl --queries 200 --output results/openai.json
+
+# Aggregate JSONs into the markdown table.
+emb-shootout sweep aggregate --results-dir results --out docs/benchmarks.md
+```
+
+Six providers wired (`hash`, `openai`, `voyage`, `cohere`, `bge`, `nomic`).
+The query set is derived deterministically from the corpus at sweep time
+(seed `42` by default), so all providers run against the same queries by
+construction — cross-provider rows are apples-to-apples.
+
 ## Benchmarks / Results
 
-*The model sweep (recall@k, NDCG, cost per million tokens, p95 latency,
-Pareto frontier) is pending issue [#2]. This PR locks the corpus + chunk
-shape so issue #2 has a stable contract to benchmark against.*
+See [`docs/benchmarks.md`](docs/benchmarks.md). The `hash` baseline is
+real (a real run on the 12010-chunk corpus); the five real providers'
+rows land when the operator runs them with their API keys + budgets and
+commits the resulting `results/<provider>.json`. Per the
+no-fabricated-benchmarks rule, this README does **not** carry placeholder
+numbers for those providers.
 
 ## Demo
 

@@ -26,6 +26,15 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
+# Provider extras for the model sweep (#2). Install per provider you want
+# to benchmark; the dep-free `hash` provider is always available.
+openai = ["openai>=1.40"]
+voyage = ["voyageai>=0.3"]
+cohere = ["cohere>=5.13"]
+sbert  = ["sentence-transformers>=3.0", "einops>=0.8"]   # einops needed by nomic
+all-providers = [
+  "emb-shootout[openai,voyage,cohere,sbert]",
+]
 dev = [
   "pytest>=8.0",
   "pytest-cov>=4.1",
