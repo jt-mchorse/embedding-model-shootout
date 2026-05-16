@@ -91,3 +91,17 @@ Strategic decisions for this repo, with reasoning. Append-only — superseded de
 **Reversibility:** Cheap.
 
 **Related issues:** #2
+
+## D-008 — Pareto axes are `cost_per_million_tokens` (x) and `recall@5` (y); frontier math is dep-free, matplotlib renderer behind a `[plot]` extra (2026-05-16)
+**Decision:** The Pareto plot plots cost on the x-axis and recall@5 on the y-axis, matching the acceptance criteria on issue #3. Frontier *selection* (`pareto_frontier`) is pure-stdlib Python in `emb_shootout.pareto` and ships in the base install. The matplotlib *renderer* (`emb_shootout.plot`) is lazy-imported behind a new `plot = ["matplotlib>=3.8"]` optional extra. The CLI subcommand `emb-shootout sweep plot` lazy-imports the renderer so the CLI loads without the extra installed.
+
+**Why:** The acceptance criteria explicitly names cost vs. recall@5 — that decision is already made by issue #3 and adding a latency axis would be scope creep. Splitting frontier math from rendering means the math gets exercised in the standard CI matrix (no extras) on every PR, which is where regressions tend to hide, while keeping the core package dep-free. This parallels D-004's provider-extras pattern: real work behind an opt-in install. A `plot` extra is the smallest new surface that still ships a publication-quality figure.
+
+**Alternatives considered:**
+- Add latency as a third axis or face a 2D NDCG vs. cost plot — rejected; not in the acceptance criteria, and a third axis is hard to read in a 2D PNG. Filing a separate issue is cheaper.
+- Put matplotlib in the base install — rejected; breaks the dep-free default and adds a heavy transitive (numpy, fonttools, etc.) to every CI run.
+- Hand-roll an SVG renderer to avoid the extra — rejected; gives up axis labels, legends, and standard styling that matplotlib provides for free.
+
+**Reversibility:** Cheap. The Pareto module is one file, the renderer is one file, the CLI subcommand is one function, the extra is one line in `pyproject.toml`.
+
+**Related issues:** #3

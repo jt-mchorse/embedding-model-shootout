@@ -44,3 +44,33 @@ context_for_next_session:
 decisions_made: [D-004, D-005, D-006, D-007]
 followups: []
 ---
+
+---
+session: 2026-05-16T23:15Z
+duration_min: 60
+issue: 3
+focus: pareto_frontier_plot_cost_vs_recall_at_5
+delta:
+  files_added: 4  # emb_shootout/pareto.py, emb_shootout/plot.py, tests/test_pareto.py, tests/test_plot.py
+  files_changed: 3  # emb_shootout/cli.py, pyproject.toml, README.md
+  files_committed: 2  # docs/pareto.png, docs/pareto.svg
+  tests_added: 26  # 15 pareto unit + 11 plot integration
+  test_pass_rate: "64/64"
+  benchmarks:
+    frontier_points_today: 1
+    frontier_member: "hash-embedder-128d-ngram2"
+    recall_at_5_hash_baseline: 0.520
+    cost_per_million_tokens_hash_baseline: 0.0
+context_for_next_session:
+  - pareto_frontier_computation_is_pure_python_in_emb_shootout_pareto_dep_free
+  - plot_renderer_in_emb_shootout_plot_lazy_imports_matplotlib_extra_named_plot
+  - cli_subcommand_emb_shootout_sweep_plot_results_dir_out_png_out_svg
+  - axes_locked_cost_per_million_tokens_x_recall_at_5_y_per_acceptance_criteria_d_008
+  - frontier_polyline_only_drawn_when_distinct_frontier_points_at_least_two_otherwise_title_says_so
+  - committed_docs_pareto_png_svg_show_single_hash_baseline_real_provider_runs_pending_operator
+  - identical_points_both_kept_on_frontier_dropping_ties_would_hide_co_located_providers
+  - tests_for_plot_use_pytest_importorskip_matplotlib_so_standard_ci_matrix_without_extras_still_passes
+  - readme_pareto_subsection_under_benchmarks_results_with_real_plot_and_honest_single_point_caveat
+decisions_made: [D-008]
+followups: []
+---

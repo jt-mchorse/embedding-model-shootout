@@ -63,3 +63,12 @@
   reversibility: cheap
   related_issues: [2]
   superseded_by: null
+
+- id: D-008
+  date: 2026-05-16
+  decision: pareto_axes_cost_per_million_tokens_x_recall_at_5_y_frontier_pure_python_renderer_behind_matplotlib_plot_extra
+  rationale: acceptance_criteria_specifies_cost_vs_recall_at_5_pareto_computation_is_dep_free_pure_python_so_it_tests_in_standard_ci_matrix_without_extras_matplotlib_only_needed_for_rendering_so_keeps_base_install_dep_free_same_pattern_as_d_004_provider_extras
+  alternatives_rejected: [latency_as_third_axis_not_in_acceptance_criteria, matplotlib_in_base_install_breaks_dep_free_default, hand_rolled_svg_renderer_avoids_extra_but_loses_quality_and_dev_velocity]
+  reversibility: cheap
+  related_issues: [3]
+  superseded_by: null
