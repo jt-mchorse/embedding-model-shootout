@@ -3,10 +3,12 @@
     emb-shootout corpus build [--out path] [--module M ...]
     emb-shootout sweep run --provider P --corpus PATH [--queries N --seed N --output PATH]
     emb-shootout sweep aggregate [--results-dir results] [--out docs/benchmarks.md]
+    emb-shootout sweep plot [--results-dir results] [--out-png PATH] [--out-svg PATH]
 
 Kept dep-free where possible (argparse only). The provider adapters are
 lazy-imported inside `_cmd_sweep_run` so the CLI loads without any of the
-optional extras installed.
+optional extras installed. The plot subcommand lazy-imports matplotlib so
+the base CLI keeps loading without the `[plot]` extra installed.
 """
 
 from __future__ import annotations
@@ -83,6 +85,46 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_sweep_plot(args: argparse.Namespace) -> int:
+    from .plot import render_pareto
+    from .sweep import SweepResult
+
+    results_dir = Path(args.results_dir)
+    if not results_dir.is_dir():
+        sys.stderr.write(f"{results_dir} is not a directory\n")
+        return 2
+    files = sorted(results_dir.glob("*.json"))
+    if not files:
+        sys.stderr.write(f"no result JSON files found under {results_dir}\n")
+        return 2
+    results = [SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))) for p in files]
+
+    if args.out_png is None and args.out_svg is None:
+        sys.stderr.write("must provide at least one of --out-png or --out-svg\n")
+        return 2
+
+    try:
+        frontier, png_path, svg_path = render_pareto(
+            results,
+            out_png=args.out_png,
+            out_svg=args.out_svg,
+            title=args.title,
+        )
+    except RuntimeError as exc:  # matplotlib missing
+        sys.stderr.write(f"{exc}\n")
+        return 3
+
+    summary = {
+        "results": len(results),
+        "frontier_size": len(frontier),
+        "frontier": [r.embedder_name for r in frontier],
+        "png": str(png_path) if png_path else None,
+        "svg": str(svg_path) if svg_path else None,
+    }
+    sys.stdout.write(json.dumps(summary, sort_keys=True) + "\n")
+    return 0
+
+
 def _read_corpus_jsonl(path: Path) -> list:
     """Read a corpus JSONL produced by `corpus build` and adapt to CorpusChunk."""
     from .sweep import CorpusChunk
@@ -140,6 +182,15 @@ def _build_parser() -> argparse.ArgumentParser:
         "--out", default="docs/benchmarks.md", help="Output markdown path (default: %(default)s)"
     )
     aggregate.set_defaults(func=_cmd_sweep_aggregate)
+
+    plot = sweep_sub.add_parser("plot", help="Render the cost-vs-recall@5 Pareto plot")
+    plot.add_argument(
+        "--results-dir", default="results", help="Directory of result JSONs (default: %(default)s)"
+    )
+    plot.add_argument("--out-png", help="Output PNG path (e.g. docs/pareto.png)")
+    plot.add_argument("--out-svg", help="Output SVG path (e.g. docs/pareto.svg)")
+    plot.add_argument("--title", help="Override the figure title (auto-chosen by default)")
+    plot.set_defaults(func=_cmd_sweep_plot)
 
     return parser
 

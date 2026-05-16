@@ -35,6 +35,10 @@ sbert  = ["sentence-transformers>=3.0", "einops>=0.8"]   # einops needed by nomi
 all-providers = [
   "emb-shootout[openai,voyage,cohere,sbert]",
 ]
+# Optional extra for rendering the cost-vs-recall@5 Pareto plot (#3). The
+# frontier *computation* is dep-free pure Python in `emb_shootout.pareto`;
+# only `emb-shootout sweep plot` needs matplotlib.
+plot = ["matplotlib>=3.8"]
 dev = [
   "pytest>=8.0",
   "pytest-cov>=4.1",

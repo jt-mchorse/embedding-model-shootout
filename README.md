@@ -112,6 +112,31 @@ commits the resulting `results/<provider>.json`. Per the
 no-fabricated-benchmarks rule, this README does **not** carry placeholder
 numbers for those providers.
 
+### Pareto frontier (cost vs. recall@5)
+
+![Pareto frontier — cost vs recall@5](docs/pareto.png)
+
+The plot above is generated from whatever lives in `results/` at commit
+time by `emb-shootout sweep plot`. Today that's the dep-free hash
+baseline only — one point, so the "frontier" is trivially itself and
+the figure title says so honestly (no polyline, no claimed shape).
+
+Once the operator commits `results/openai.json`, `results/voyage.json`,
+etc., this same image regenerates with multiple points: every provider
+plotted, the non-dominated subset highlighted in red, and a dashed
+polyline drawn through the frontier when ≥2 distinct points exist. The
+*frontier-selection* code (`emb_shootout.pareto.pareto_frontier`) is
+pure-stdlib Python and ships in the base install; the matplotlib
+*renderer* lives behind a `plot` extra (`pip install -e '.[plot]'`)
+to keep the dep-free posture of the core package intact (D-008).
+
+Regenerate locally:
+
+```bash
+emb-shootout sweep plot --results-dir results \
+  --out-png docs/pareto.png --out-svg docs/pareto.svg
+```
+
 ## Demo
 
 *60-second demo pending — depends on issue [#2].*
