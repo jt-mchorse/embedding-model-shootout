@@ -79,6 +79,21 @@ Tests, lint, format check:
 ruff check . && ruff format --check . && pytest
 ```
 
+Reproduce every committed number end-to-end (#5):
+
+```bash
+# Notebook form — open in Jupyter:
+jupyter notebook notebooks/reproduce.ipynb
+# Script form — runs the same steps without Jupyter, suitable for CI:
+python notebooks/_verify.py
+```
+
+The notebook walks corpus → queries → hash baseline sweep → markdown
+aggregation → Pareto frontier, with cell-level commentary explaining
+why each step is the contract. Output cells are committed empty so a
+clean re-run produces a meaningful diff. When real-provider result JSONs
+land in `results/`, the notebook re-runs unchanged and absorbs them.
+
 ## Sweep harness (#2 · this PR)
 
 ```bash
