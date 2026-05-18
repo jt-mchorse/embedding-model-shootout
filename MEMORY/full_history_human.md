@@ -82,3 +82,15 @@ sits cleanly on top of `data/corpus.jsonl`.
 **Open questions / blockers:** PR explicitly notes that direct Jupyter execution is *not* exercised in CI — the script form is the honest minimal contract; adding nbconvert+jupyter to dev deps to execute the notebook in CI would trade the dep-free posture for one test.
 
 **Next session:** With 9 issues fully closed tonight (plus 1 skipped + 1 partial), wrapping is the right call. The remaining backlog is the data-blocked #4 here and the larger 70-min mcp-server-cookbook #5 Python parity.
+
+## 2026-05-18 — Issue #5 (continuation): Unblock PR #9 lint
+**Duration:** ~10 min · **Branch:** `session/2026-05-18-issue-05` · **PR:** [#9](https://github.com/jt-mchorse/embedding-model-shootout/pull/9) (ready, awaiting CI re-run)
+
+- Added a `[tool.ruff.lint.per-file-ignores]` block to `pyproject.toml` that ignores E402 in `*.ipynb`. The five lint failures on PR #9 were all from `notebooks/reproduce.ipynb` cell 3 where the cell does `sys.path.insert(0, str(ROOT))` before the project imports — a standard notebook idiom for "make this runnable from a fresh clone", not a real smell. Production `.py` code still gets the E402 check.
+- All other CI jobs were already green (tests 3.11 + 3.12 + memory-check); this was the only blocker.
+
+**Why this work, this session:** Phase A auto-review left this PR commented with a clear lint blocker; rather than starting fresh work, the higher-leverage move was the small fix that gets a working PR over the merge line.
+
+**Open questions / blockers:** None — pending CI re-run on the workflow.
+
+**Next session:** Continue the multi-issue loop; next target is mcp-server-cookbook PRs #13 and #14 (both need rebase against main after this session's #12 merge).

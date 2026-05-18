@@ -93,3 +93,22 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-05-18T15:32Z
+duration_min: 10
+issue: 5
+focus: unblock_pr_9_lint_per_file_ignore_for_notebooks
+delta:
+  files_changed: 1  # pyproject.toml
+  files_added: 0
+  tests_added: 0
+  test_pass_rate: "73/73"
+context_for_next_session:
+  - tool_ruff_lint_per_file_ignores_added_for_ipynb_with_e402_ignored
+  - rationale_notebooks_start_with_path_shim_before_imports_is_standard_idiom_not_a_real_smell
+  - production_py_code_still_gets_e402_check
+  - this_branch_session_2026_05_18_issue_05_now_lint_clean_pending_ci_re_run
+decisions_made: []
+followups: []
+---
