@@ -74,3 +74,22 @@ context_for_next_session:
 decisions_made: [D-008]
 followups: []
 ---
+
+---
+session: 2026-05-18T05:25Z
+duration_min: 30
+issue: 5
+focus: reproduce_notebook_plus_verify_script_plus_shape_tests
+delta:
+  files_changed: 5
+  tests_added: 5
+context_for_next_session:
+  - notebooks_reproduce_ipynb_runs_top_to_bottom_no_jupyter_dep_needed_for_ci
+  - verify_py_is_the_executable_twin_pytest_runs_it_end_to_end
+  - build_notebook_py_emits_the_ipynb_from_static_cell_spec_diffable_in_source_review
+  - 5_shape_tests_pin_imports_no_cached_outputs_no_drift
+  - notebook_reads_results_glob_so_future_provider_jsons_slot_in_without_changes
+  - no_new_d_entry_pure_reproducibility_infrastructure
+decisions_made: []
+followups: []
+---

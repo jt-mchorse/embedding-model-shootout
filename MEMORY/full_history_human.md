@@ -67,3 +67,18 @@ sits cleanly on top of `data/corpus.jsonl`.
 **Open questions / blockers:** Plot has one point until real-provider runs land. The renderer is built and tested for the multi-point case; no further code change is needed when the operator commits e.g. `results/openai.json`.
 
 **Next session:** Loop to a different portfolio repo per the multi-issue session prompt. Remaining work in this repo is documentation-shaped (#4 narrative README, #5 reproducer notebook) and `priority:med`/`priority:low`, so a different repo's `priority:high` queue is the better next target.
+
+## 2026-05-18 — Issue #5: Reproduction notebook
+**Duration:** ~30 min · **Branch:** `session/2026-05-18-issue-05` · **PR:** #9
+
+- Shipped `notebooks/reproduce.ipynb`: top-to-bottom regeneration of every artifact currently committed in the repo (corpus → query set → hash baseline sweep → markdown table → Pareto frontier) with cell-level commentary linking each step to its D-NNN. Output cells committed empty so a clean re-run produces a meaningful diff.
+- Shipped `notebooks/_verify.py` (executable twin) and `notebooks/_build_notebook.py` (regenerates the `.ipynb` from a static Python cell spec so the notebook is diffable in code review, not as hand-edited JSON).
+- Five shape tests in `tests/test_reproduce_notebook.py`: valid Jupyter JSON, canonical imports present, ≥5 code cells, no cached outputs, `_verify.py` runs end-to-end. Suite total 69 (was 64).
+- README gains a Reproduce section under Quickstart pointing at both forms.
+- No new D-NNN — this is pure reproducibility infrastructure, no tradeoff worth recording.
+
+**Why this work, this session:** Low-priority backlog item, but ~30 minutes of contained work and a real value-add (the notebook was advertised as future work in the README). Closes one of the three remaining "open" items in the embedding-model-shootout repo.
+
+**Open questions / blockers:** PR explicitly notes that direct Jupyter execution is *not* exercised in CI — the script form is the honest minimal contract; adding nbconvert+jupyter to dev deps to execute the notebook in CI would trade the dep-free posture for one test.
+
+**Next session:** With 9 issues fully closed tonight (plus 1 skipped + 1 partial), wrapping is the right call. The remaining backlog is the data-blocked #4 here and the larger 70-min mcp-server-cookbook #5 Python parity.
