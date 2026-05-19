@@ -6,29 +6,94 @@
 
 ## What this is
 
-Picking an embedding model is one of the few choices in a RAG stack that
-*directly* moves recall numbers — and the only way to make it
+Picking an embedding model is one of the few choices in a RAG stack
+that *directly* moves recall numbers, and the only way to make it
 defensibly is to measure on a corpus that looks like yours. Most
 published shootouts hide their corpus, vary their k, or quietly use a
 held-out set the embedding provider trained on. This repo's bet is the
 opposite: a single, publicly-licensed corpus, the same query set across
 every model, and every number reproducible from a fresh clone.
 
-This PR ships the **corpus layer**: the curated module list, the
-deterministic loader, and the documentation that makes the corpus
-choice auditable. The corpus is one chunk per documented CPython
-standard-library member (function, class, method), regenerated from the
-running Python interpreter via `inspect` ([D-002] — not committed as
-data, reproduced from source). On CPython 3.14 the curated list yields
-**12,010 chunks**, comfortably above the ≥10k acceptance bar for stable
-metrics.
+The repo today ships four things, the four closed issues map to them:
 
-The actual model sweep — five providers, recall@k, NDCG, cost, latency,
-Pareto plot — lands in issue [#2]. The corpus's chunk shape and provenance
-fields (`chunk_id`, `qualname`, `kind`, `source`) are the contract the
-benchmark code will hold to.
+1. **Corpus** ([#1], [D-002], [D-003]) — CPython standard-library
+   docstrings, regenerated from `inspect` on a pinned Python version. On
+   CPython 3.14 the curated module list yields **12,010 chunks**,
+   comfortably above the ≥10k acceptance bar. Not committed as data;
+   pinning the Python version pins the corpus.
+2. **Sweep harness** ([#2], [D-004]–[D-007]) — one `Embedder` Protocol,
+   one `run_sweep` function, six provider implementations. The dep-free
+   `hash` baseline runs in standard CI; OpenAI / Voyage / Cohere / BGE /
+   Nomic are gated behind optional extras and operator-supplied API
+   keys.
+3. **Pareto frontier** ([#3], [D-008]) — pure-Python frontier
+   computation in `emb_shootout.pareto`, matplotlib renderer behind a
+   `plot` extra. Axes fixed to cost-per-million-tokens (x) and
+   recall@5 (y) per acceptance criteria.
+4. **Reproducer** ([#5]) — `notebooks/reproduce.ipynb` plus the
+   executable twin `notebooks/_verify.py` walk corpus → queries → hash
+   baseline sweep → markdown aggregation → Pareto plot end-to-end. Five
+   shape tests pin the notebook's import surface and assert no cached
+   outputs ship.
 
+What the repo does **not** yet have is a multi-provider results table.
+The harness is wired for it, the queries are constructed
+deterministically from the corpus at sweep time ([D-005]) so all
+providers run apples-to-apples, and the operator can populate the table
+in one command per provider; that's tracked in [#2]'s acceptance
+criteria, but the cost and quota live with the operator, not in CI.
+
+[#1]: https://github.com/jt-mchorse/embedding-model-shootout/issues/1
 [#2]: https://github.com/jt-mchorse/embedding-model-shootout/issues/2
+[#3]: https://github.com/jt-mchorse/embedding-model-shootout/issues/3
+[#5]: https://github.com/jt-mchorse/embedding-model-shootout/issues/5
+
+## Takeaways (so far)
+
+This section is locked to `results/hash.json` by `tests/test_readme_snapshot.py`;
+when more provider JSONs land in `results/`, this section gets rewritten with
+those numbers and the snapshot test moves with it. Until then, only the hash
+baseline is grounded by a real measurement and only its numbers are quoted.
+
+- **The retrieval task is non-trivial even for a known-bad embedder.** The
+  dep-free `hash-embedder-128d-ngram2` (a SHA-256 bag-of-character-bigrams
+  projection to 128 dimensions) scores **recall@1 = 0.320**, **recall@5 =
+  0.520**, **recall@10 = 0.620**, **NDCG@10 = 0.449** on the 12,010-chunk
+  corpus with 50 seeded queries. Those numbers are real — they are not
+  zero because the queries are verbatim snippets from each target chunk
+  ([D-005]), so any embedder that preserves character n-gram overlap can
+  recover roughly half of them at k=5. They are the **floor**, not a
+  finding about quality.
+- **What a real embedder must do to be interesting.** Recall@5 above the
+  ~0.52 hash floor on this corpus comes from semantics that bag-of-bigrams
+  cannot represent: paraphrase, synonymy, structural similarity. An
+  embedder that does not clear the floor by a meaningful margin is, on
+  this corpus, doing no better than character-overlap. That is the
+  contract the real-provider runs will be evaluated against, not against
+  each other in isolation.
+- **The cost and latency columns are not noise.** The hash baseline
+  reports a corpus embed time of **~429 ms** for all 12,010 chunks and a
+  per-query p95 of **0.017 ms**, both on a laptop, both with $0/M tokens.
+  Real provider runs will move those numbers by orders of magnitude; the
+  Pareto plot ([#3], `docs/pareto.png`) is the place where the
+  cost/quality tradeoff becomes visible — currently a single point
+  ([D-008] documents the honest no-frontier rendering until a second
+  point exists).
+- **Methodology choices that close common shootout escape hatches.** The
+  corpus is reproduced from source on a pinned Python version, not
+  fetched ([D-002]); the chunk shape is one stdlib member per chunk
+  ([D-003]) so chunking effects don't confound the embedding comparison;
+  the query set is derived from the corpus at sweep time with a fixed
+  seed ([D-005]), not pre-committed, so corpus and queries cannot drift;
+  cost-per-million-tokens is recorded alongside quality per run ([D-006])
+  so historical comparisons survive pricing updates; one JSON per
+  provider, aggregator merges ([D-007]), so concurrent runs don't
+  collide.
+
+What this section will not say until real-provider runs are committed:
+which provider wins, what the recall ceiling looks like on this corpus,
+or what the Pareto frontier shape is. Those claims need data, and the
+data is operator-supplied.
 
 ## Architecture
 
@@ -120,12 +185,14 @@ construction — cross-provider rows are apples-to-apples.
 
 ## Benchmarks / Results
 
-See [`docs/benchmarks.md`](docs/benchmarks.md). The `hash` baseline is
-real (a real run on the 12010-chunk corpus); the five real providers'
-rows land when the operator runs them with their API keys + budgets and
-commits the resulting `results/<provider>.json`. Per the
-no-fabricated-benchmarks rule, this README does **not** carry placeholder
-numbers for those providers.
+The aggregated markdown table lives at [`docs/benchmarks.md`](docs/benchmarks.md);
+the cited numbers in [Takeaways (so far)](#takeaways-so-far) are pulled
+from `results/hash.json` directly and locked to it by
+`tests/test_readme_snapshot.py`. Real-provider rows land when the
+operator runs them with their API keys and commits the resulting
+`results/<provider>.json`. Per the no-fabricated-benchmarks rule, this
+README does **not** carry placeholder numbers for providers that have not
+been measured.
 
 ### Pareto frontier (cost vs. recall@5)
 
@@ -170,3 +237,9 @@ licensed under the [Python Software Foundation License v2][psf]. See
 
 [psf]: https://docs.python.org/3/license.html
 [D-002]: MEMORY/core_decisions_human.md
+[D-003]: MEMORY/core_decisions_human.md
+[D-004]: MEMORY/core_decisions_human.md
+[D-005]: MEMORY/core_decisions_human.md
+[D-006]: MEMORY/core_decisions_human.md
+[D-007]: MEMORY/core_decisions_human.md
+[D-008]: MEMORY/core_decisions_human.md
