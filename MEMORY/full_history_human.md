@@ -4,6 +4,19 @@ Chronological log of work sessions. Most recent first below the divider.
 
 ---
 
+## 2026-05-19 — Issue #11: snapshot test for docs/benchmarks.md aggregator output
+**Duration:** ~20 min · **Branch:** `session/2026-05-19-1515-issue-11` · **PR:** #12
+
+- Added `tests/test_benchmarks_md_snapshot.py` (2 tests). Loads every `results/*.json` into `SweepResult` instances exactly as the CLI's aggregate subcommand does, calls `emb_shootout.sweep.aggregate_markdown(results)`, and asserts the produced header + separator + data block appears verbatim inside `docs/benchmarks.md`. A header-signature presence guard ensures the table can't be silently dropped from the file.
+- The committed `docs/benchmarks.md` numbers are already indirectly locked by `test_readme_snapshot.py` (via `results/hash.json`). This new test closes the orthogonal gap — **aggregator-format drift** — that would silently desync `docs/benchmarks.md` from the CLI's actual output if column order, decimal precision, sort key, or separator alignment ever changed.
+- Failure messages name the regen command (`emb-shootout sweep aggregate --results-dir results --out docs/benchmarks.md`) and a `git diff` hint. Tamper-verified by flipping `recall@5` `0.520 → 0.999` in `docs/benchmarks.md`; the substring assertion fires with the full aggregator output printed inline so the operator can copy-paste-fix.
+
+**Why this work, this session:** Third snapshot test in this repo's lineage (after the README snapshot and the rag-production-kit eval/rewriter snapshots), all enforcing the portfolio's "no fabricated benchmarks" rule structurally. `docs/benchmarks.md` is the operator-facing artifact that real-provider rows will land into, and its rendering needed the same protection the README already has on its prose quotes.
+
+**Open questions / blockers:** None — PR ready for review.
+
+**Next session:** Both this repo's documentation artifacts (README Takeaways + docs/benchmarks.md table) are now drift-locked. Continue the multi-issue loop into the next zero-issue repo (chunking-strategies-lab is next in §8).
+
 ## 2026-05-19 — Issue #4: honest narrative takeaway in README
 **Duration:** ~45 min · **Branch:** `session/2026-05-19-issue-04`
 

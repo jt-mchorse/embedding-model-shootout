@@ -134,3 +134,25 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-05-19T15:15Z
+duration_min: 20
+issue: 11
+focus: snapshot_test_locks_docs_benchmarks_md_to_aggregate_markdown_output
+delta:
+  files_added: 1   # tests/test_benchmarks_md_snapshot.py
+  files_changed: 0
+  tests_added: 2
+  test_pass_rate: "78/78"
+context_for_next_session:
+  - second_snapshot_test_in_this_repo_first_locks_readme_takeaways_numbers_second_locks_aggregator_format
+  - test_loads_every_results_star_json_into_sweepresult_calls_aggregate_markdown_asserts_block_appears_verbatim_in_docs_benchmarks_md
+  - second_test_is_header_signature_presence_guard_against_accidental_table_deletion
+  - failure_message_includes_full_aggregator_output_plus_regen_command_emb_shootout_sweep_aggregate
+  - tamper_verified_by_editing_recall_at_5_cell_0_520_to_0_999_fires_immediately_then_reverted
+  - gap_closed_is_orthogonal_to_readme_snapshot_numbers_locked_by_results_hash_json_via_readme_test_aggregator_format_drift_locked_here
+  - parallel_to_rag_kit_eval_bench_snapshot_landed_same_day_d_007_governs_aggregator_no_new_decision
+decisions_made: []
+followups: []
+---
