@@ -4,6 +4,19 @@ Chronological log of work sessions. Most recent first below the divider.
 
 ---
 
+## 2026-05-19 — Issue #4: honest narrative takeaway in README
+**Duration:** ~45 min · **Branch:** `session/2026-05-19-issue-04`
+
+- Rewrote `What this is` to drop the corpus-PR framing (issue #1 is closed and so are #2, #3, #5) and replace it with a present-tense four-bullet picture of what the repo actually ships today: corpus, sweep harness, Pareto frontier, reproducer.
+- Added a `Takeaways (so far)` section grounded only in `results/hash.json`. Quotes recall@1/5/10 = 0.320/0.520/0.620, NDCG@10 = 0.449, corpus embed ~429 ms, query p95 = 0.017 ms, 12,010 chunks × 50 seeded queries, $0/M tokens. Refuses to make any cross-provider winner claim until the operator commits real-provider JSONs.
+- Wired `tests/test_readme_snapshot.py` (7 tests) to lock the Takeaways quotes to `results/hash.json` so the prose can't drift from the measurement. Same hygiene pattern as the seven sister PRs landed across the portfolio on 2026-05-18.
+
+**Why this work, this session:** Issue #4 was the last open priority:med across the portfolio after the 2026-05-18 PR review pass merged four other repos' README cleanups; the build-sequence tie-break picked embedding-model-shootout (#5) over chunking-strategies-lab (#6).
+
+**Open questions / blockers:** None. The real-provider results table will arrive when the operator commits a `results/<provider>.json`; the harness is wired, the queries are deterministic, the snapshot test will fail until the README catches up.
+
+**Next session:** Either chunking-strategies-lab #11 (the snapshot test currently has a CI failure on PR #12 because `results/` is gitignored) or a demo-capture issue if the autonomous run can produce a usable asset.
+
 ## 2026-05-14 — Issue #1: pick corpus + ship reproducible loader
 **Duration:** ~50 min · **Branch:** `session/2026-05-14-1430-issue-01`
 

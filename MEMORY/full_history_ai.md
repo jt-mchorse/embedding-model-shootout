@@ -112,3 +112,25 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-05-19T03:30Z
+duration_min: 45
+issue: 4
+focus: honest_narrative_takeaway_plus_readme_snapshot_test
+delta:
+  files_changed: 1   # README.md
+  files_added: 1     # tests/test_readme_snapshot.py
+  tests_added: 7
+  test_pass_rate: "76/76"
+context_for_next_session:
+  - readme_what_this_is_rewritten_to_present_tense_four_shipped_pieces_drops_corpus_pr_framing
+  - takeaways_section_grounded_in_results_hash_json_only_real_measurement_today
+  - explicit_no_provider_winner_claim_until_operator_commits_real_provider_jsons
+  - readme_snapshot_test_locks_recall_at_k_ndcg_corpus_count_query_count_query_p95_corpus_embed_time
+  - same_snapshot_pattern_as_seven_sister_prs_across_portfolio_landed_2026_05_18
+  - tamper_verified_recall_at_5_substitution_fires_snapshot
+  - no_new_d_entry_pure_documentation_plus_drift_guard
+decisions_made: []
+followups: []
+---
