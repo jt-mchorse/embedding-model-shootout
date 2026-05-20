@@ -13,6 +13,8 @@ Public surface:
     )
 """
 
+__version__ = "0.0.1"  # mirror of pyproject.toml [project] version
+
 from .corpus import DEFAULT_MODULES, Chunk, build_corpus, write_jsonl
 from .providers import HashEmbedderProvider
 from .queries import build_queries
