@@ -156,3 +156,24 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-05-20T03:17Z
+duration_min: 25
+issue: 13
+focus: public_surface_snapshot_test_locks_emb_shootout_top_level_init
+delta:
+  files_added: 1   # tests/test_public_surface.py
+  files_changed: 1   # emb_shootout/__init__.py (+__version__)
+  tests_added: 8   # 4 standalone + 4 parametrized submodule anchors
+  test_pass_rate: "86/86"
+context_for_next_session:
+  - emb_shootout_now_publishes_dunder_version_str_0_0_1_mirror_of_pyproject
+  - top_level_surface_locked_only_corpus_providers_queries_sweep_re_exported_cli_pareto_plot_dotted_path_only
+  - readme_dotted_path_test_anchors_emb_shootout_pareto_pareto_frontier_line_210
+  - ast_parser_filters_on_level_geq_1_for_relative_imports
+  - tamper_verified_four_axes_bad_version_drop_chunk_rename_pareto_module_alias_rename_providers_anchor
+  - portable_pattern_fifth_strike_after_eval_harness_cost_optimizer_prompt_regression_rag_kit_remaining_targets_chunking_strategies_lab_python_async_llm_pipelines_mcp_python_example
+decisions_made: []
+followups: []
+---

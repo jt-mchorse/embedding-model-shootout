@@ -120,3 +120,16 @@ sits cleanly on top of `data/corpus.jsonl`.
 **Open questions / blockers:** None — pending CI re-run on the workflow.
 
 **Next session:** Continue the multi-issue loop; next target is mcp-server-cookbook PRs #13 and #14 (both need rebase against main after this session's #12 merge).
+
+## 2026-05-20 — Issue #13: lock emb_shootout public surface
+**Duration:** ~25 min · **Branch:** `session/2026-05-20-0317-issue-13`
+
+- Added `tests/test_public_surface.py` (4 standalone + 4 parametrized submodule anchors = 8 test items) and `__version__ = "0.0.1"` on the package. Locks five axes: `__version__` semver, every `__all__` entry bound and non-None, `__all__` ↔ AST-parsed `from .X import` bidirectional agreement (filter `level >= 1`), README's quoted `emb_shootout.pareto.pareto_frontier` dotted path resolves to a callable, and one anchor per *re-exported* submodule. `cli`/`pareto`/`plot` are intentionally excluded from the anchor list — they're dotted-path-only by design, and re-exporting them at the top level would expand the public surface without a deliberate decision.
+- Tamper-verified four of five axes locally: bad version → axis (1); drop `"Chunk"` from `__all__` → axis (3); rename `pareto.py` → `pareto_renamed.py` → axis (4) fires with `ModuleNotFoundError`; alias-rename `HashEmbedderProvider as HashEmbedderProviderV2` → axis (5)[providers].
+- Full suite 86/86 (was 78; +8 new).
+
+**Why this work, this session:** Fifth strike of the portfolio-wide public-surface hygiene pattern. Adapts cleanly to this repo's split between re-exported and dotted-path-only submodules — the README quotes one dotted path by name (`emb_shootout.pareto.pareto_frontier`), so locking it is the natural fourth axis here, replacing the "README quickstart imports" axis used in the four prior repos (this README's quickstart uses CLI commands instead of Python imports).
+
+**Open questions / blockers:** None — PR ready for review.
+
+**Next session:** Continue the loop into `chunking-strategies-lab`, then `python-async-llm-pipelines`, then the Python example in `mcp-server-cookbook`.
