@@ -221,7 +221,27 @@ emb-shootout sweep plot --results-dir results \
 
 ## Demo
 
-*60-second demo pending — depends on issue [#2].*
+```bash
+bash scripts/capture_demo.sh
+```
+
+The capture script ([#15], `scripts/capture_demo.sh`) drives three
+surfaces end-to-end on a fresh clone with no API key and no network:
+`corpus build` (`--module json`, the snappy single-stdlib-module
+variant), `sweep run --provider hash` against that corpus, and `sweep
+aggregate` rendering the same markdown table that `docs/benchmarks.md`
+ships. JT records the 60-second GIF/video over the script's stdout; CI
+runs it with `CAPTURE_PACE_SECONDS=0` (and pins the surface outputs in
+`tests/test_capture_demo_smoke.py`) so the demo can't bitrot.
+
+The single-module corpus is for tempo only — the full-corpus headline
+numbers stay in [Takeaways (so far)](#takeaways-so-far) and
+[`docs/benchmarks.md`](docs/benchmarks.md), both locked to
+`results/hash.json` by snapshot tests. Vary the recording across takes
+with `CAPTURE_DEMO_MODULE=os` (or any stdlib module) and
+`CAPTURE_DEMO_QUERIES=20`.
+
+[#15]: https://github.com/jt-mchorse/embedding-model-shootout/issues/15
 
 ## Why these decisions
 
