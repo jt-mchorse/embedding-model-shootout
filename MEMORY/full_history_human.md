@@ -133,3 +133,16 @@ sits cleanly on top of `data/corpus.jsonl`.
 **Open questions / blockers:** None — PR ready for review.
 
 **Next session:** Continue the loop into `chunking-strategies-lab`, then `python-async-llm-pipelines`, then the Python example in `mcp-server-cookbook`.
+
+## 2026-05-21 — Issue #15: 60-second demo capture script
+**Duration:** ~30 min · **Branch:** `session/2026-05-21-1910-issue-15` · **PR:** #16
+
+- Added `scripts/capture_demo.sh` driving the repo's three highest-leverage surfaces — `emb-shootout corpus build --module json` → `sweep run --provider hash` → `sweep aggregate --out <tmp>.md` then `cat` the rendered table — end-to-end on a fresh clone with no API key and no network. `CAPTURE_PACE_SECONDS` (default 2 for recording, 0 for CI), `CAPTURE_DEMO_MODULE`, and `CAPTURE_DEMO_QUERIES` env knobs let JT vary recordings across takes without editing the script. Per-run tempdir trapped on EXIT/INT/TERM so concurrent runs and the smoke test don't collide.
+- Added `tests/test_capture_demo_smoke.py` (4 tests) that runs the script with `PACE=0` in CI and asserts each surface's distinctive output line (corpus JSON summary keys, `recall@5=` line, aggregator markdown header), plus the executable bit + existence pin. The header assertion is belt-and-braces with `test_benchmarks_md_snapshot.py` — if the aggregator format drifts, both tests fire.
+- README "Demo" section replaces the `*60-second demo pending — depends on issue #2.*` placeholder with one paragraph framing the three surfaces plus the recording-vs-headline distinction (single-module corpus is for tempo; the floor numbers stay locked in `docs/benchmarks.md` and the Takeaways section). 90/90 tests pass, ruff clean.
+
+**Why this work, this session:** Sixth repo to land the `scripts/capture_demo.sh` pattern after the four sister-repo PRs landed today (llm-eval-harness, prompt-regression-suite, llm-cost-optimizer, rag-production-kit) — closing the README "Demo" gap that's the last unchecked item on the six-item v0.1 quality bar for this repo. The repo had zero open issues at session start, so the issue itself was filed against the §2 quality-bar gap before any code.
+
+**Open questions / blockers:** None. The capture is hermetic so it can be re-recorded any time without coordination.
+
+**Next session:** Pick the next stale repo per Phase A selection rules.

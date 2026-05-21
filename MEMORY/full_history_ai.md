@@ -177,3 +177,25 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-05-21T19:10Z
+duration_min: 30
+issue: 15
+focus: scripts_capture_demo_sh_three_surface_60s_driver_plus_smoke_test
+delta:
+  files_added: 2   # scripts/capture_demo.sh, tests/test_capture_demo_smoke.py
+  files_changed: 1 # README.md (Demo section pending placeholder → real invocation)
+  tests_added: 4
+  test_pass_rate: "90/90"
+context_for_next_session:
+  - sixth_repo_to_land_capture_demo_sh_after_llm_eval_harness_prompt_regression_llm_cost_optimizer_rag_production_kit_today_and_this_one
+  - three_surfaces_corpus_build_single_module_sweep_run_hash_aggregate_markdown_chosen_for_dep_free_no_network_no_api_key
+  - single_module_corpus_deliberate_for_tempo_full_corpus_numbers_stay_locked_in_docs_benchmarks_md_and_readme_takeaways_via_existing_snapshot_tests
+  - capture_pace_seconds_capture_demo_module_capture_demo_queries_env_knobs_smoke_test_uses_pace_0_and_defaults_for_module_queries
+  - smoke_test_pins_aggregator_markdown_header_signature_belt_and_braces_with_test_benchmarks_md_snapshot
+  - per_run_tempdir_via_mktemp_d_trap_exit_int_term_so_concurrent_recordings_or_smoke_runs_dont_collide
+  - no_new_d_entry_d_002_d_003_d_004_d_007_already_govern_the_surfaces_this_glues
+decisions_made: []
+followups: []
+---
