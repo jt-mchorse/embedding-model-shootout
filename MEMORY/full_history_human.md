@@ -146,3 +146,13 @@ sits cleanly on top of `data/corpus.jsonl`.
 **Open questions / blockers:** None. The capture is hermetic so it can be re-recorded any time without coordination.
 
 **Next session:** Pick the next stale repo per Phase A selection rules.
+
+## 2026-05-22 — Honesty fix: hash baseline is word-bigrams, not character-bigrams (#17)
+
+**Duration:** ~25 min. **Issue:** [#17](https://github.com/jt-mchorse/embedding-model-shootout/issues/17). **PR:** TBD.
+
+The README's `## Takeaways (so far)` section described the dep-free hash baseline three times as character-bigrams ("a SHA-256 bag-of-character-bigrams projection", "preserves character n-gram overlap", "doing no better than character-overlap"). The code in `emb_shootout/providers/hash_embedder.py` tokenizes on whitespace (`text.lower().split()`) and then joins n-gram-sized windows of those tokens — i.e. word-bigrams. For a research-flavored repo whose opening paragraph promises the opposite of "published shootouts hide their corpus, vary their k", a wrong description of the baseline is exactly the credibility leak the repo can't afford.
+
+I picked the cheap, reversible direction: fix the prose to match the code, not the other way around. The committed `results/hash.json` numbers, the existing snapshot tests (recall@k, NDCG, latency, corpus count, query count, methodology decision IDs), and the provider name (`hash-embedder-128d-ngram2`) all stand unchanged. To prevent the drift from recurring, `HashEmbedderProvider` now exposes a structured `self.tokenizer = "word"` attribute and validates the kwarg — any future character-n-gram variant has to ship as its own provider per D-007 (one JSON per provider, aggregator merges). A new snapshot test indexes into that attribute and asserts the Takeaways prose uses the matching descriptor: required "word-bigrams / word n-gram overlap / word-overlap", forbidden "character-bigrams / character n-gram overlap / character-overlap". If anyone re-introduces the wrong wording, the test fails before merge.
+
+Why prioritized: this is the first session after v0.1 reached "all twelve repos shipped" cadence. The portfolio's pending open issues are all `[demo]` priority:low waiting on real screencast capture; the protocol's Phase A step 5 fall-through for that case is "file one issue that fills in real README content, then work on it." A factual correction to the README's narrative qualifies and is hermetic. Open questions / followups: none. The same prose-vs-code drift could exist in any other repo whose README claims something its source code subtly doesn't do; a portfolio-wide audit pass is worth doing, but each repo's audit is its own ~20-min session, not bundled.

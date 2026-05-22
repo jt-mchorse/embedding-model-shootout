@@ -199,3 +199,24 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-05-22T03:14Z
+duration_min: 25
+issue: 17
+focus: fix_readme_character_bigram_misdescription_lock_against_drift
+delta:
+  files_changed: 2   # README.md, emb_shootout/providers/hash_embedder.py
+  files_added: 1     # tests/test_hash_baseline_description.py
+  tests_added: 2
+  test_pass_rate: "94/94"
+context_for_next_session:
+  - readme_called_hash_baseline_character_bigrams_three_places_l59_l64_l71_code_is_word_bigrams_str_lower_split_then_join_window
+  - chose_prose_fix_not_logic_change_results_hash_json_unchanged_existing_snapshot_locks_recall_ndcg_latency_corpus_count_query_count_decision_ids_still_pass
+  - added_self_tokenizer_word_literal_attr_to_hashembedderprovider_validates_kwarg_rejects_anything_else_so_char_variant_must_ship_as_separate_provider_per_d_007
+  - new_test_hash_baseline_description_indexes_into_self_tokenizer_required_patterns_word_bigram_word_n_gram_overlap_word_overlap_forbidden_patterns_character_bigram_character_n_gram_overlap_character_overlap
+  - test_slices_takeaways_section_only_not_whole_readme_so_a_d_007_mention_elsewhere_doesnt_false_positive
+  - portfolio_pattern_first_post_v0_1_improvement_issue_filed_and_shipped_in_same_session_per_phase_a_step_5_when_zero_open_priority_high_existed
+decisions_made: []
+followups: []
+---
