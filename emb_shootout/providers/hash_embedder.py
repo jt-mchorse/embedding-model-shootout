@@ -1,9 +1,10 @@
 """Dep-free hash embedder for hermetic CI.
 
-Bag-of-token-n-grams projected into a fixed-dim vector via SHA-256 hashing.
-Not a real embedder — present so the sweep flow exercises end-to-end without
-external services or API keys, and so the harness's metrics computation has
-something to score.
+Bag-of-word-n-grams projected into a fixed-dim vector via SHA-256 hashing.
+Tokenization is `str.lower().split()` — whitespace-separated words, lowercased —
+so `ngram=2` is word-bigrams. Not a real embedder; present so the sweep flow
+exercises end-to-end without external services or API keys, and so the
+harness's metrics computation has something to score.
 """
 
 from __future__ import annotations
@@ -11,18 +12,28 @@ from __future__ import annotations
 import hashlib
 import math
 from collections.abc import Sequence
+from typing import Literal
+
+Tokenizer = Literal["word"]
 
 
 class HashEmbedderProvider:
-    """Sweep-compatible Embedder backed by hash projection."""
+    """Sweep-compatible Embedder backed by hash projection over word n-grams."""
 
-    def __init__(self, *, dim: int = 128, ngram: int = 2) -> None:
+    def __init__(
+        self, *, dim: int = 128, ngram: int = 2, tokenizer: Tokenizer = "word"
+    ) -> None:
         if dim <= 0:
             raise ValueError(f"dim must be positive; got {dim}")
         if ngram < 1:
             raise ValueError(f"ngram must be >= 1; got {ngram}")
+        if tokenizer != "word":
+            raise ValueError(
+                f"unknown tokenizer {tokenizer!r}; only 'word' is supported by this provider"
+            )
         self.dim = dim
         self.ngram = ngram
+        self.tokenizer: Tokenizer = tokenizer
         self.name = f"hash-embedder-{dim}d-ngram{ngram}"
         # Hash embedder doesn't cost anything; record 0.0 so the SweepResult
         # column is filled in.

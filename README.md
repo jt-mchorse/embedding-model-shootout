@@ -56,19 +56,20 @@ those numbers and the snapshot test moves with it. Until then, only the hash
 baseline is grounded by a real measurement and only its numbers are quoted.
 
 - **The retrieval task is non-trivial even for a known-bad embedder.** The
-  dep-free `hash-embedder-128d-ngram2` (a SHA-256 bag-of-character-bigrams
-  projection to 128 dimensions) scores **recall@1 = 0.320**, **recall@5 =
-  0.520**, **recall@10 = 0.620**, **NDCG@10 = 0.449** on the 12,010-chunk
-  corpus with 50 seeded queries. Those numbers are real — they are not
-  zero because the queries are verbatim snippets from each target chunk
-  ([D-005]), so any embedder that preserves character n-gram overlap can
-  recover roughly half of them at k=5. They are the **floor**, not a
-  finding about quality.
+  dep-free `hash-embedder-128d-ngram2` (a SHA-256 bag-of-word-bigrams
+  projection to 128 dimensions; tokenizer is `str.lower().split()`, so
+  `ngram=2` is whitespace-separated word pairs) scores **recall@1 =
+  0.320**, **recall@5 = 0.520**, **recall@10 = 0.620**, **NDCG@10 =
+  0.449** on the 12,010-chunk corpus with 50 seeded queries. Those
+  numbers are real — they are not zero because the queries are verbatim
+  snippets from each target chunk ([D-005]), so any embedder that
+  preserves word n-gram overlap can recover roughly half of them at k=5.
+  They are the **floor**, not a finding about quality.
 - **What a real embedder must do to be interesting.** Recall@5 above the
   ~0.52 hash floor on this corpus comes from semantics that bag-of-bigrams
   cannot represent: paraphrase, synonymy, structural similarity. An
   embedder that does not clear the floor by a meaningful margin is, on
-  this corpus, doing no better than character-overlap. That is the
+  this corpus, doing no better than word-overlap. That is the
   contract the real-provider runs will be evaluated against, not against
   each other in isolation.
 - **The cost and latency columns are not noise.** The hash baseline
