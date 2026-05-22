@@ -20,9 +20,7 @@ Tokenizer = Literal["word"]
 class HashEmbedderProvider:
     """Sweep-compatible Embedder backed by hash projection over word n-grams."""
 
-    def __init__(
-        self, *, dim: int = 128, ngram: int = 2, tokenizer: Tokenizer = "word"
-    ) -> None:
+    def __init__(self, *, dim: int = 128, ngram: int = 2, tokenizer: Tokenizer = "word") -> None:
         if dim <= 0:
             raise ValueError(f"dim must be positive; got {dim}")
         if ngram < 1:
