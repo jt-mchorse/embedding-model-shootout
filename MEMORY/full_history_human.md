@@ -174,3 +174,15 @@ Twelfth post-v0.1 drift fix in the portfolio pattern, third architecture-doc loc
 **Open questions / blockers:** None — PR opened ready for review.
 
 **Next session:** Loop forward to another zero-issue repo missing an architecture-doc lock test; `chunking-strategies-lab` (build sequence position 6) is the natural next target if pace allows.
+
+## 2026-05-23 — Architecture-doc active-decision-range axis (#21)
+
+**Duration:** ~15 min. **Issue:** [#21](https://github.com/jt-mchorse/embedding-model-shootout/issues/21). **PR:** [#22](https://github.com/jt-mchorse/embedding-model-shootout/pull/22).
+
+Sixth of twelve repos to ship the active-decision-range upper-bound axis on its architecture-doc lock (sister to `llm-eval-harness` PR #32 earlier today + four repos this week). Today's `docs/architecture.md` cites D-002…D-008 in full, so the new test passes as a posture lock on first run with no drift to backfill — fast follow-on, hours not days. Tamper-verified three axes (D-099 in MEMORY, D-002 → D-XXX in doc, MIN constant flip).
+
+**Why this work, this session:** Second issue in today's multi-issue loop after llm-eval-harness PR #32. The pattern was missing in 8 of 12 arch-doc tests; this is fast extension work where the doc already happens to be in compliance.
+
+**Open questions / blockers:** none — PR ready for review.
+
+**Next session:** Apply same pattern to `vector-search-at-scale`, `prompt-regression-suite`, `agent-orchestration-platform` in the same loop.
