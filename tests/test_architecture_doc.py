@@ -5,7 +5,7 @@ Parallel to the existing `tests/test_readme_snapshot.py` (which locks the
 README's Takeaways numbers to `results/hash.json`) and to the cookbook /
 nextjs / ai-app architecture-doc checkers landed earlier this session.
 
-Three invariants pinned:
+Four invariants pinned:
 
 1. **Path-token reachability.** Every `emb_shootout/<module>`,
    `results/<file>`, `notebooks/<file>`, `scripts/<file>`, `data/<file>`,
@@ -18,7 +18,12 @@ Three invariants pinned:
    reverting the doc to its pre-#19 "everything pending except #1"
    state fires this assertion with the missing issues named.
 
-3. **Banned-phrase absence.** Phrases that characterized the pre-#19
+3. **Active-decision coverage.** Every non-superseded `D-NNN` in
+   `MEMORY/core_decisions_ai.md` whose numeric id is
+   `>= MIN_ACTIVE_DECISION_ID` is referenced at least once. The next
+   `D-NNN` landing without a doc update fails this test loud.
+
+4. **Banned-phrase absence.** Phrases that characterized the pre-#19
    drift are absent (case-insensitive). The phrases are pinned as a
    tuple so a future loose edit of the test that drops one
    fails the explicit hard-pin test below.
@@ -37,6 +42,12 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOC = REPO_ROOT / "docs" / "architecture.md"
+DECISIONS = REPO_ROOT / "MEMORY" / "core_decisions_ai.md"
+
+# D-001 is the scope baseline (handoff §2) and isn't tied to a shipped
+# code surface; it doesn't need to be cited in architecture.md. Every
+# active D-NNN with id >= MIN_ACTIVE_DECISION_ID does.
+MIN_ACTIVE_DECISION_ID = 2
 
 # Closed feature issues whose work the architecture doc should
 # enumerate. Issue numbers come from `gh issue list --state closed --json
@@ -79,6 +90,27 @@ RESOLVABLE_PREFIXES = (
 @pytest.fixture(scope="module")
 def doc_text() -> str:
     return DOC.read_text(encoding="utf-8")
+
+
+@pytest.fixture(scope="module")
+def active_decisions() -> tuple[int, ...]:
+    """Parse `MEMORY/core_decisions_ai.md` for non-superseded `D-NNN`
+    entries whose numeric id is `>= MIN_ACTIVE_DECISION_ID`.
+    """
+    text = DECISIONS.read_text(encoding="utf-8")
+    blocks = re.split(r"\n(?=- id:)", text)
+    active: list[int] = []
+    for block in blocks:
+        id_match = re.search(r"- id:\s*D-(\d+)", block)
+        if not id_match:
+            continue
+        sup_match = re.search(r"superseded_by:\s*(\S+)", block)
+        is_active = (sup_match is None) or (sup_match.group(1).strip().lower() == "null")
+        if is_active:
+            n = int(id_match.group(1))
+            if n >= MIN_ACTIVE_DECISION_ID:
+                active.append(n)
+    return tuple(sorted(active))
 
 
 def _extract_backtick_paths(text: str) -> set[str]:
@@ -124,6 +156,10 @@ def test_doc_exists() -> None:
     assert DOC.exists(), f"missing {DOC}"
 
 
+def test_decisions_file_exists() -> None:
+    assert DECISIONS.exists(), f"missing {DECISIONS}"
+
+
 def test_backtick_paths_resolve_on_disk(doc_text: str) -> None:
     tokens = _extract_backtick_paths(doc_text)
     unresolved = sorted(t for t in tokens if not _resolves_on_disk(t))
@@ -151,6 +187,19 @@ def test_every_shipped_issue_referenced(doc_text: str) -> None:
         + "\n".join(f"  - #{n}" for n in missing)
         + "\n(every shipped surface should have its origin issue annotated "
         "in the doc; add a `(#NN)` to the relevant component bullet or diagram node)"
+    )
+
+
+def test_every_active_decision_referenced(doc_text: str, active_decisions: tuple[int, ...]) -> None:
+    referenced = {int(m.group(1)) for m in re.finditer(r"\bD-0*(\d+)\b", doc_text)}
+    missing = sorted(set(active_decisions) - referenced)
+    assert not missing, (
+        "docs/architecture.md doesn't reference these active "
+        "(non-superseded) core decisions even once:\n"
+        + "\n".join(f"  - D-{n:03d}" for n in missing)
+        + "\n(every shipped layer / posture in MEMORY/core_decisions_ai.md "
+        "should be annotated in the doc where the relevant code lives; "
+        "add a `D-NNN` reference to the relevant bullet)"
     )
 
 
@@ -193,3 +242,7 @@ def test_resolvable_prefixes_hard_pin_set() -> None:
         "tests/",
         "docs/",
     )
+
+
+def test_min_active_decision_id_hard_pin() -> None:
+    assert MIN_ACTIVE_DECISION_ID == 2
