@@ -250,15 +250,19 @@ def run_sweep(
 # ----------------------------------------------------------------------
 
 
+def _aggregate_ks(results: Sequence[SweepResult]) -> list[int]:
+    """Union of `recall_at_k` keys across results, sorted ascending."""
+    k_set: set[int] = set()
+    for r in results:
+        k_set.update(r.recall_at_k.keys())
+    return sorted(k_set)
+
+
 def aggregate_markdown(results: Sequence[SweepResult]) -> str:
     """Render a markdown comparison table over multiple SweepResults."""
     if not results:
         return "_no results to aggregate_\n"
-    # Collect the union of k values seen.
-    k_set: set[int] = set()
-    for r in results:
-        k_set.update(r.recall_at_k.keys())
-    ks = sorted(k_set)
+    ks = _aggregate_ks(results)
     header_recall = " | ".join(f"recall@{k}" for k in ks)
     lines = [
         f"| embedder | dim | n_corpus | n_queries | {header_recall} | NDCG@10 | corpus embed (ms) | query p50 (ms) | query p95 (ms) | $/1M tokens |",
@@ -276,3 +280,30 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
             f"${r.cost_per_million_tokens:.3f} |"
         )
     return "\n".join(lines) + "\n"
+
+
+def aggregate_json(results: Sequence[SweepResult]) -> dict:
+    """JSON-shaped aggregation parallel to `aggregate_markdown`.
+
+    Returns ``{"results": [<one_dict_per_provider>], "ks": [<int>, ...]}``.
+    Rows sorted by ``embedder_name`` to match `aggregate_markdown`'s order,
+    so a downstream consumer can cross-check the two formats line-by-line.
+    """
+    ks = _aggregate_ks(results)
+    rows = []
+    for r in sorted(results, key=lambda x: x.embedder_name):
+        rows.append(
+            {
+                "embedder": r.embedder_name,
+                "dim": r.embedder_dim,
+                "n_corpus": r.n_corpus,
+                "n_queries": r.n_queries,
+                "recall": {str(k): r.recall_at_k.get(k, 0.0) for k in ks},
+                "ndcg_at_10": r.ndcg_at_10,
+                "corpus_embed_ms": r.embed_latency_ms.get("corpus_total", 0.0),
+                "query_p50_ms": r.embed_latency_ms.get("query_p50", 0.0),
+                "query_p95_ms": r.embed_latency_ms.get("query_p95", 0.0),
+                "cost_per_million_tokens": r.cost_per_million_tokens,
+            }
+        )
+    return {"results": rows, "ks": ks}

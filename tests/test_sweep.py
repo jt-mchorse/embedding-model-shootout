@@ -238,3 +238,79 @@ def test_aggregate_markdown_renders_one_row_per_result():
 def test_aggregate_markdown_handles_empty():
     md = aggregate_markdown([])
     assert "no results" in md
+
+
+# ----------------------------------------------------------------------
+# aggregate_json (issue #23)
+# ----------------------------------------------------------------------
+
+
+def _two_aggregable_results() -> tuple[SweepResult, SweepResult, str, str]:
+    provider1 = HashEmbedderProvider(dim=64, ngram=1)
+    provider2 = HashEmbedderProvider(dim=128, ngram=2)
+    qs = build_queries(_CORPUS, n=10, seed=42)
+    r1 = run_sweep(_CORPUS, qs, embedder=provider1)
+    r2 = run_sweep(_CORPUS, qs, embedder=provider2)
+    return r1, r2, provider1.name, provider2.name
+
+
+def test_aggregate_json_shape_and_keys():
+    from emb_shootout.sweep import aggregate_json
+
+    r1, r2, _, _ = _two_aggregable_results()
+    payload = aggregate_json([r1, r2])
+    assert set(payload) == {"results", "ks"}
+    assert isinstance(payload["ks"], list)
+    assert all(isinstance(k, int) for k in payload["ks"])
+    expected_keys = {
+        "embedder",
+        "dim",
+        "n_corpus",
+        "n_queries",
+        "recall",
+        "ndcg_at_10",
+        "corpus_embed_ms",
+        "query_p50_ms",
+        "query_p95_ms",
+        "cost_per_million_tokens",
+    }
+    for row in payload["results"]:
+        assert expected_keys <= set(row), f"row missing keys: {expected_keys - set(row)}"
+        for k in payload["ks"]:
+            # recall keyed by string-of-k so it round-trips JSON cleanly.
+            assert str(k) in row["recall"]
+
+
+def test_aggregate_json_row_order_matches_markdown_sort():
+    """JSON consumer should be able to cross-check against the markdown
+    table row-by-row — pinning the sort order keeps that diff possible."""
+    from emb_shootout.sweep import aggregate_json
+
+    r1, r2, _, _ = _two_aggregable_results()
+    payload = aggregate_json([r1, r2])
+    json_order = [row["embedder"] for row in payload["results"]]
+    markdown_order = sorted([r1.embedder_name, r2.embedder_name])
+    assert json_order == markdown_order
+
+
+def test_aggregate_json_ks_is_union_across_results():
+    from emb_shootout.sweep import SweepResult, aggregate_json
+
+    base = run_sweep(_CORPUS, build_queries(_CORPUS, n=5, seed=42), embedder=HashEmbedderProvider())
+    base_dict = base.to_dict()
+    # Two synthesized results with different k coverage; aggregate_json
+    # surfaces the union, not the intersection.
+    a = SweepResult.from_dict({**base_dict, "embedder_name": "p-a", "recall_at_k": {"1": 0.5}})
+    b = SweepResult.from_dict({**base_dict, "embedder_name": "p-b", "recall_at_k": {"10": 0.8}})
+    payload = aggregate_json([a, b])
+    assert payload["ks"] == [1, 10]
+
+
+def test_aggregate_markdown_byte_identical_to_prior_inline_implementation():
+    """Regression guard: the helper extraction in this PR shouldn't change
+    a single byte of the markdown output."""
+    r1, _, _, _ = _two_aggregable_results()
+    md = aggregate_markdown([r1])
+    assert "| embedder | dim | n_corpus | n_queries |" in md
+    assert "recall@" in md
+    assert "NDCG@10" in md

@@ -66,7 +66,7 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
 
 
 def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
-    from .sweep import SweepResult, aggregate_markdown
+    from .sweep import SweepResult, aggregate_json, aggregate_markdown
 
     results_dir = Path(args.results_dir)
     if not results_dir.is_dir():
@@ -77,10 +77,13 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
         sys.stderr.write(f"no result JSON files found under {results_dir}\n")
         return 2
     results = [SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))) for p in files]
-    md = aggregate_markdown(results)
+    if args.format == "json":
+        rendered = json.dumps(aggregate_json(results), indent=2, sort_keys=True) + "\n"
+    else:
+        rendered = aggregate_markdown(results)
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(md, encoding="utf-8")
+    out_path.write_text(rendered, encoding="utf-8")
     sys.stdout.write(f"aggregated {len(results)} results → {out_path}\n")
     return 0
 
@@ -174,12 +177,22 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--output", required=True, help="Output JSON path (e.g. results/openai.json)")
     run.set_defaults(func=_cmd_sweep_run)
 
-    aggregate = sweep_sub.add_parser("aggregate", help="Combine result JSONs into a markdown table")
+    aggregate = sweep_sub.add_parser(
+        "aggregate", help="Combine result JSONs into a markdown table or aggregated JSON"
+    )
     aggregate.add_argument(
         "--results-dir", default="results", help="Directory of result JSONs (default: %(default)s)"
     )
     aggregate.add_argument(
-        "--out", default="docs/benchmarks.md", help="Output markdown path (default: %(default)s)"
+        "--out",
+        default="docs/benchmarks.md",
+        help="Output path (default: %(default)s; switch with --format json).",
+    )
+    aggregate.add_argument(
+        "--format",
+        choices=("markdown", "json"),
+        default="markdown",
+        help="Output format (default: markdown). JSON is for programmatic CI consumers.",
     )
     aggregate.set_defaults(func=_cmd_sweep_aggregate)
 
