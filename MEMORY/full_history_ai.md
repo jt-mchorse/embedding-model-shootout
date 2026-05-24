@@ -327,3 +327,27 @@ context_for_next_session:
   - seventh_phase_bc_target_in_today_180_min_day_session_pattern_now_five_repos_in_a_row_construct_or_boundary_value_domain_uniformity
 followups: []
 ---
+
+---
+session: 2026-05-25T00:30Z
+duration_min: 20
+issue: 29
+focus: sweep_result_post_init_validates_cost_and_count_fields_no_sign_corrupting_pareto_axis
+delta:
+  files_changed: 1   # emb_shootout/sweep.py
+  files_added: 0
+  tests_added: 9  # 3 negative-cost param + 4 invalid-count param + 1 inclusive-zero + 1 from_dict round-trip
+  test_pass_rate: "124_passed"
+decisions_made: []
+context_for_next_session:
+  - sweep_result_frozen_dataclass_at_sweep_py_58_post_init_validates_cost_per_million_tokens_ge_zero_plus_embedder_dim_ge_one_plus_n_corpus_ge_zero_plus_n_queries_ge_zero
+  - harm_was_pareto_frontier_at_pareto_py_33_to_34_using_cost_as_load_bearing_x_axis_negative_cost_provider_silently_dominates_every_other_point_on_frontier_and_pareto_png_and_aggregate_markdown_table
+  - centralized_at_sweep_result_not_at_five_providers_byo_embedder_protocol_implementers_benefit_automatically_without_copying_validation_per_provider
+  - all_three_construction_paths_protected_run_sweep_production_path_from_dict_deserialization_round_trip_direct_test_fixtures
+  - d_006_cost_per_million_tokens_operator_supplied_at_provider_construction_extended_from_no_missing_to_no_sign_corrupting
+  - mirrors_sister_fixes_llm_cost_optimizer_34_pr_35_and_rag_production_kit_36_pr_37_same_day_session_three_cost_aware_repos_defended_consistently
+  - test_helper_valid_sweep_result_kwargs_pattern_centralizes_test_fixture_construction_each_test_only_mutates_the_field_under_test
+  - test_count_124_was_115_after_27_28_added_9_new_collected_cases
+  - fourth_phase_bc_target_in_180_min_day_session_after_phase_a_5_pr_merge_plus_three_prior_phase_bc_targets
+followups: []
+---

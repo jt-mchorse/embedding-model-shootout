@@ -231,3 +231,16 @@ Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy p
 **Open questions / blockers:** none — PR ready for review.
 
 **Next session:** Fifth iteration of today's day-session; within 15-min cleanup buffer of the 180-min cap. Stop after this iteration's PR and write the final report.
+
+## 2026-05-25 — Issue #29: SweepResult validates cost and count fields in __post_init__
+**Duration:** ~20 min · **Branch:** `session/2026-05-24-issue-29`
+
+- `SweepResult` at `emb_shootout/sweep.py:58` is a frozen dataclass with `cost_per_million_tokens: float`, `embedder_dim: int`, `n_corpus: int`, `n_queries: int`. No constructor validation. The cost field is the **load-bearing x-axis of the Pareto frontier** at `pareto.py:33-34` — a `SweepResult(cost_per_million_tokens=-1.0, ...)` silently dominates every other point on the frontier, in `docs/pareto.png`, and in the `aggregate_markdown` table's `$` column.
+- Added `__post_init__` raising `ValueError(f"{field} ...")` for: `cost_per_million_tokens < 0.0`, `embedder_dim < 1`, `n_corpus < 0`, `n_queries < 0`. Centralized at `SweepResult` (not at the five providers) so user-BYO Embedder protocol implementers benefit automatically without copying the validation per provider. All three construction paths protected: `run_sweep` (production), `from_dict` (deserialization round-trip), direct test fixtures.
+- Nine new collected cases in `tests/test_sweep.py` under a `#29` block: parametrized over 3 negative-cost values; parametrized over 4 (count-field × bad-value) combos covering `embedder_dim < 1`, `n_corpus < 0`, `n_queries < 0`; one inclusive-zero acceptance test; one round-trip-corrupt-JSON test that pins `from_dict` raises on tampered cost. `_valid_sweep_result_kwargs()` test helper centralizes the fixture so each negative test only mutates the field under test. Full suite 124/124 (was 115 after #27/#28).
+
+**Why this work, this session:** Mirror of today's `llm-cost-optimizer` PR #35 (`ModelPricing.__post_init__`) and `rag-production-kit` PR #37 (`ModelPrice.__post_init__`). The three cost-aware repos in the portfolio now defend their dashboards consistently against sign-corrupting values. D-006 anchors the contract — operator-supplied cost — extended from "no missing" to "no sign-corrupting".
+
+**Open questions / blockers:** none — PR ready for review.
+
+**Next session:** Fourth Phase B+C target of today's day session after `llm-eval-harness` #40, `llm-cost-optimizer` #34, `rag-production-kit` #36. Time remaining in the 180-min cap permits one more if a viable target surfaces in the remaining repos. Build sequence #6 (`chunking-strategies-lab`) is the natural next pickup.
