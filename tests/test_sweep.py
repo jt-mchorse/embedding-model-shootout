@@ -207,6 +207,52 @@ def test_run_sweep_validates_inputs():
 
 
 # ----------------------------------------------------------------------
+# k_values per-element guard (#27)
+# ----------------------------------------------------------------------
+# Non-positive `k` passes through list slicing (`retrieved_ids[:k]`) without
+# raising — k=0 silently produces a tautological recall@0=0; k<0 silently
+# miscounts ("all but the last N" entries). The guard surfaces every bad
+# value in one pass so operators don't chase them one at a time.
+
+
+def test_run_sweep_rejects_zero_in_k_values():
+    p = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=5, seed=1)
+    with pytest.raises(ValueError, match=r"every k in k_values must be positive; got \[0\]"):
+        run_sweep(_CORPUS, qs, embedder=p, k_values=(0, 5))
+
+
+def test_run_sweep_rejects_negative_in_k_values():
+    p = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=5, seed=1)
+    with pytest.raises(ValueError, match=r"every k in k_values must be positive; got \[-1\]"):
+        run_sweep(_CORPUS, qs, embedder=p, k_values=(-1, 5))
+
+
+def test_run_sweep_lists_all_bad_k_values_in_one_message():
+    # All offenders should appear in the error, not just the first — operators
+    # shouldn't have to fix-and-rerun N times.
+    p = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=5, seed=1)
+    with pytest.raises(ValueError, match=r"every k in k_values must be positive") as exc_info:
+        run_sweep(_CORPUS, qs, embedder=p, k_values=(-3, 0, 5))
+    msg = str(exc_info.value)
+    assert "-3" in msg
+    assert "0" in msg
+    # Sorted ascending; canonical form lets operators copy-paste the fix.
+    assert "[-3, 0]" in msg
+
+
+@pytest.mark.parametrize("ks", [(1,), (5, 10), (1, 5, 10, 20)])
+def test_run_sweep_accepts_positive_k_values(ks):
+    # Regression pin: positive k_values shapes still run cleanly.
+    p = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=3, seed=1)
+    result = run_sweep(_CORPUS, qs, embedder=p, k_values=ks)
+    assert set(result.recall_at_k.keys()) == set(ks)
+
+
+# ----------------------------------------------------------------------
 # Round-trip + aggregation
 # ----------------------------------------------------------------------
 

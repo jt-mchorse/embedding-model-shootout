@@ -191,6 +191,13 @@ def run_sweep(
         raise ValueError("queries must be non-empty")
     if not k_values:
         raise ValueError("k_values must be non-empty")
+    # Non-positive `k` passes through list slicing (`retrieved_ids[:k]`)
+    # without raising — `k=0` produces a tautological recall@0=0, `k<0`
+    # silently miscounts ("all but the last N" entries). Surface every
+    # bad value in one pass so operators don't chase them one at a time.
+    bad_k = sorted({k for k in k_values if k <= 0})
+    if bad_k:
+        raise ValueError(f"every k in k_values must be positive; got {bad_k}")
     max_k = max(k_values)
 
     # Embed corpus (single batch).
