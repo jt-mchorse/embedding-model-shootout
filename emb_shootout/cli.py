@@ -174,7 +174,17 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument(
         "--seed", type=int, default=42, help="Query-construction seed (default: %(default)s)"
     )
-    run.add_argument("--output", required=True, help="Output JSON path (e.g. results/openai.json)")
+    run.add_argument(
+        "--out",
+        "--output",
+        dest="output",
+        required=True,
+        help=(
+            "Output JSON path (e.g. results/openai.json). Accepts both `--out` "
+            "(cookbook convention used by `corpus build` and `sweep aggregate`) "
+            "and `--output` (the pre-#25 spelling, kept for back-compat)."
+        ),
+    )
     run.set_defaults(func=_cmd_sweep_run)
 
     aggregate = sweep_sub.add_parser(
