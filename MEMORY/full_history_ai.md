@@ -264,3 +264,24 @@ context_for_next_session:
   - pycache_gotcha_reconfirmed_constant_changes_need_rm_rf_pycache_to_take_effect
 followups: []
 ---
+
+---
+session: 2026-05-24T03:40Z
+duration_min: 20
+issue: 23
+focus: sweep_aggregate_format_markdown_or_json_for_programmatic_ci_consumers
+delta:
+  files_changed: 2   # emb_shootout/sweep.py, emb_shootout/cli.py
+  files_added: 0
+  tests_added: 4
+  test_pass_rate: "106/106"
+decisions_made: []
+context_for_next_session:
+  - sweep_aggregate_was_markdown_only_ci_that_wanted_to_assert_recall_at_5_had_to_parse_markdown_per_provider_results_jsons_had_no_aggregated_cross_provider_view
+  - new_aggregate_json_helper_returns_results_array_plus_ks_array_rows_sorted_by_embedder_name_so_json_row_order_matches_markdown_table_row_by_row
+  - extracted_aggregate_ks_union_into_shared_helper_so_both_paths_use_same_derivation_no_drift_between_them
+  - markdown_stays_default_no_existing_ci_or_readme_snapshot_affected
+  - regression_guard_test_pins_aggregate_markdown_output_bytes_unchanged
+  - fifth_in_night_session_loop_after_eval_harness_cost_optimizer_regression_suite_rag_kit
+followups: []
+---

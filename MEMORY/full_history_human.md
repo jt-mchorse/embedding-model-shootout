@@ -186,3 +186,19 @@ Sixth of twelve repos to ship the active-decision-range upper-bound axis on its 
 **Open questions / blockers:** none — PR ready for review.
 
 **Next session:** Apply same pattern to `vector-search-at-scale`, `prompt-regression-suite`, `agent-orchestration-platform` in the same loop.
+
+## 2026-05-24 — Issue #23: `sweep aggregate --format markdown|json`
+
+**Duration:** ~20 min. **Issue:** [#23](https://github.com/jt-mchorse/embedding-model-shootout/issues/23). **Branch:** `session/2026-05-24-0337-issue-23`.
+
+`emb-shootout sweep aggregate` only emitted a markdown table. CI consumers that wanted to assert `recall@5 >= 0.7` for a specific provider had to parse the markdown — the per-provider `results/*.json` files exist, but there was no aggregated cross-provider view that matched the markdown columns.
+
+Added an `aggregate_json()` helper mirroring `aggregate_markdown`'s column set: returns `{"results": [<row>...], "ks": [...]}`, rows sorted by `embedder_name` so the JSON order matches the markdown table row-by-row (downstream consumers can diff the two formats). Extracted the ks-union derivation into a shared `_aggregate_ks` helper so both renderers can't drift apart. CLI gains `--format markdown|json` with markdown as the default — existing CI, the README snapshot test, and the committed `docs/benchmarks.md` workflow are all untouched.
+
+Four new tests cover JSON shape + per-row keys, the markdown-matching row order, the union-not-intersection `ks` derivation across mismatched provider runs, and a regression guard that `aggregate_markdown`'s output bytes are unchanged after the ks helper extraction.
+
+**Why this work, this session:** Fifth issue in the night-session multi-issue loop. The pattern repeats — every repo had at least one CLI parity gap that surfaced from reading the dispatch surface against the README claims.
+
+**Open questions / blockers:** none — PR ready for review.
+
+**Next session:** Continue to build-sequence #6 (`chunking-strategies-lab`).
