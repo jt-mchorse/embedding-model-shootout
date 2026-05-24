@@ -285,3 +285,23 @@ context_for_next_session:
   - fifth_in_night_session_loop_after_eval_harness_cost_optimizer_regression_suite_rag_kit
 followups: []
 ---
+
+---
+session: 2026-05-24T15:40Z
+duration_min: 15
+issue: 25
+focus: sweep_run_out_flag_alias_for_output_uniform_cookbook_naming
+delta:
+  files_changed: 1   # emb_shootout/cli.py
+  files_added: 1     # tests/test_cli_sweep_run_out_alias.py
+  tests_added: 3
+  test_pass_rate: "109/109"
+decisions_made: []
+context_for_next_session:
+  - sweep_run_was_the_last_subcommand_using_output_instead_of_out_corpus_build_sweep_aggregate_sweep_plot_all_used_out
+  - argparse_two_flag_name_shape_add_argument_out_output_dest_output_required_true_makes_fix_purely_additive
+  - cmd_sweep_run_body_unchanged_args_output_attribute_preserved_so_existing_ci_makefile_callers_passing_output_keep_working
+  - argparse_native_help_message_renders_the_pair_as_out_output_cleanest_possible_signal_to_user_about_both_spellings
+  - portfolio_pattern_fourth_in_day_session_loop_after_eval_harness_37_prompt_regression_32_mcp_cookbook_31_all_naming_or_parity_polish_after_pr_review_pass_merged_10_prs
+followups: []
+---

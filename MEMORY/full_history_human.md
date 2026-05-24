@@ -202,3 +202,19 @@ Four new tests cover JSON shape + per-row keys, the markdown-matching row order,
 **Open questions / blockers:** none — PR ready for review.
 
 **Next session:** Continue to build-sequence #6 (`chunking-strategies-lab`).
+
+## 2026-05-24 — Issue #25: `sweep run` accepts `--out` as alias for `--output`
+
+**Duration:** ~15 min. **Issue:** [#25](https://github.com/jt-mchorse/embedding-model-shootout/issues/25). **Branch:** `session/2026-05-24-1532-issue-25`.
+
+`emb-shootout sweep run` was the last path-emitting subcommand in this CLI to use the older `--output` name while `corpus build`, `sweep aggregate`, and `sweep plot --out-png` / `--out-svg` all use `--out`. The asymmetry surfaced every time someone scripted the sweep — `--out` from muscle memory tripped the required-arg guard with `error: the following arguments are required: --output`. After this PR the cookbook's `--out` convention is uniform across every subcommand.
+
+argparse's `add_argument("--out", "--output", ..., dest="output", required=True)` shape makes the fix purely additive — both flag names bind to the same `args.output` destination, so `_cmd_sweep_run`'s body is unchanged and the existing CI / Makefile / shell scripts that already pass `--output` keep working. `--output` is not deprecated, only joined.
+
+Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy path producing the documented `RunResult` shape with parent dirs auto-created; `--output PATH` regression-pin so the existing callers stay green; neither-supplied exits 2 under argparse's required-arg machinery. argparse renders the error message as `--out/--output`, the cleanest possible signal to the user that both spellings are accepted.
+
+**Why this work, this session:** Fourth Phase B+C target of a 180-min day session. The earlier targets (`llm-eval-harness` #37, `prompt-regression-suite` #32, `mcp-server-cookbook` #31) were each closing a half-implemented capability — feature parity or observability surface. This one is naming parity: the same flag should mean the same thing across every subcommand of the same CLI.
+
+**Open questions / blockers:** none — PR ready for review.
+
+**Next session:** Continue the day-session loop. Strong candidates: `python-async-llm-pipelines` (#26's `timeout` kwarg landed but `__init__.py` docstring may still list pre-#26 signature); `chunking-strategies-lab` (run_matrix.py recently got `--strategy` filter — neighbors might have similar gaps); `agent-orchestration-platform` (recent retry-cap work; `withRetry` callback semantics could use a doc pin). 
