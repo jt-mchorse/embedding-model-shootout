@@ -69,6 +69,24 @@ class SweepResult:
     embed_latency_ms: dict[str, float]  # {"corpus_total": ..., "query_p50": ..., "query_p95": ...}
     notes: list[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        # D-006 makes `cost_per_million_tokens` operator-supplied at provider
+        # construction. A negative value silently inverts the Pareto-frontier
+        # comparator at pareto.py:33-34 (a negative-cost provider dominates
+        # every other point), so guard at the central construction site.
+        # Embedder Protocol-implementers also benefit from the centralized
+        # check without copying the validation per provider.
+        if self.cost_per_million_tokens < 0.0:
+            raise ValueError(
+                f"cost_per_million_tokens must be >= 0.0; got {self.cost_per_million_tokens}"
+            )
+        if self.embedder_dim < 1:
+            raise ValueError(f"embedder_dim must be >= 1; got {self.embedder_dim}")
+        if self.n_corpus < 0:
+            raise ValueError(f"n_corpus must be >= 0; got {self.n_corpus}")
+        if self.n_queries < 0:
+            raise ValueError(f"n_queries must be >= 0; got {self.n_queries}")
+
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         # JSON keys must be strings; recall_at_k uses int keys.

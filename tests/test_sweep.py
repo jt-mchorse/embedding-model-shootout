@@ -268,6 +268,77 @@ def test_sweep_result_round_trips_through_dict():
     assert restored.ndcg_at_10 == pytest.approx(original.ndcg_at_10)
 
 
+# Issue #29: SweepResult.__post_init__ rejects sign-corrupting fields. The
+# Pareto frontier comparator at pareto.py:33-34 uses cost as the load-bearing
+# x-axis; a negative-cost provider silently dominates every other point. The
+# centralized guard catches all construction paths (run_sweep, from_dict,
+# direct construction) without per-provider duplication.
+def _valid_sweep_result_kwargs() -> dict:
+    return dict(
+        embedder_name="x",
+        embedder_dim=128,
+        cost_per_million_tokens=0.02,
+        n_corpus=10,
+        n_queries=5,
+        recall_at_k={5: 0.8},
+        ndcg_at_10=0.7,
+        embed_latency_ms={"corpus_total": 1.0},
+    )
+
+
+@pytest.mark.parametrize("bad_cost", [-0.001, -1.0, -100.0])
+def test_sweep_result_rejects_negative_cost(bad_cost: float):
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs["cost_per_million_tokens"] = bad_cost
+    with pytest.raises(ValueError, match=r"cost_per_million_tokens must be >= 0\.0"):
+        SweepResult(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "field,bad_value,bound_pattern",
+    [
+        ("embedder_dim", 0, r"embedder_dim must be >= 1"),
+        ("embedder_dim", -1, r"embedder_dim must be >= 1"),
+        ("n_corpus", -1, r"n_corpus must be >= 0"),
+        ("n_queries", -1, r"n_queries must be >= 0"),
+    ],
+)
+def test_sweep_result_rejects_invalid_count_fields(
+    field: str, bad_value: int, bound_pattern: str
+):
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs[field] = bad_value
+    with pytest.raises(ValueError, match=bound_pattern):
+        SweepResult(**kwargs)
+
+
+def test_sweep_result_accepts_zero_cost_and_zero_counts():
+    # Zero cost: meaningful for a free local embedder (e.g., HashEmbedder).
+    # Zero counts: meaningful at the edge of an empty-input sweep (n_corpus=0
+    # is rejected upstream by run_sweep, but the dataclass itself should
+    # accept the boundary for tests that construct results directly).
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs["cost_per_million_tokens"] = 0.0
+    kwargs["n_corpus"] = 0
+    kwargs["n_queries"] = 0
+    result = SweepResult(**kwargs)
+    assert result.cost_per_million_tokens == 0.0
+    assert result.n_corpus == 0
+
+
+def test_sweep_result_from_dict_round_trip_rejects_corrupt_negative_cost():
+    # The round-trip path through from_dict is also protected by __post_init__.
+    # A hand-edited or tampered result JSON can't silently land on the
+    # Pareto plot with a negative cost.
+    provider = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=5, seed=1)
+    original = run_sweep(_CORPUS, qs, embedder=provider)
+    serialized = json.loads(json.dumps(original.to_dict()))
+    serialized["cost_per_million_tokens"] = -1.0
+    with pytest.raises(ValueError, match=r"cost_per_million_tokens must be >= 0\.0"):
+        SweepResult.from_dict(serialized)
+
+
 def test_aggregate_markdown_renders_one_row_per_result():
     provider1 = HashEmbedderProvider(dim=64, ngram=1)
     provider2 = HashEmbedderProvider(dim=128, ngram=2)
