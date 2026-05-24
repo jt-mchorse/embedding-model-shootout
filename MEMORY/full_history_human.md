@@ -218,3 +218,16 @@ Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy p
 **Open questions / blockers:** none — PR ready for review.
 
 **Next session:** Continue the day-session loop. Strong candidates: `python-async-llm-pipelines` (#26's `timeout` kwarg landed but `__init__.py` docstring may still list pre-#26 signature); `chunking-strategies-lab` (run_matrix.py recently got `--strategy` filter — neighbors might have similar gaps); `agent-orchestration-platform` (recent retry-cap work; `withRetry` callback semantics could use a doc pin). 
+
+## 2026-05-24 — Issue #27: run_sweep rejects non-positive k in k_values (full set in one pass)
+**Duration:** ~20 min · **Branch:** `session/2026-05-24-issue-27`
+
+- `run_sweep` validated that `k_values` was non-empty but didn't check each element. Non-positive `k` passed through `retrieved_ids[:k]` slicing without raising: `k=0` produced a tautological `recall@0=0` baked into the output, and `k<0` silently miscounted via "all but the last N" semantics. **The wrong number, not an absent number.**
+- Added a per-element guard that collects every offender in one pass, raises `ValueError(f"every k in k_values must be positive; got {sorted(bad_k)}")`. Operators see the full set of bad values in canonical sorted form so they can copy-paste the fix instead of running N rounds of fix-and-retry. `retrieve_top_k` and `ndcg_at_k` keep their own guards (each is also part of the public surface).
+- Six new tests in `tests/test_sweep.py` under a `#27` block: zero raises with `[0]`; negative raises with `[-1]`; mixed `(-3, 0, 5)` lists both bad values as `[-3, 0]` in the message (lints clean with the proper `match=` arg); parametrized positive acceptance over `(1,), (5, 10), (1, 5, 10, 20)` runs cleanly and produces `recall_at_k` keys exactly equal to the input set.
+
+**Why this work, this session:** `retrieve_top_k` and `ndcg_at_k` already raised on non-positive `k` — `k_values` was the one inlet flowing through to a permissive slicing operation. Sister to today's `rag-production-kit` #34 (Retriever k_rrf at construction), `llm-cost-optimizer` #32 (signal-name uniqueness), `llm-eval-harness` #38 (threshold_drop), `prompt-regression-suite` #33 (exception contract). Five repos in a row, same family — "the rest of the surface enforces this; one corner doesn't."
+
+**Open questions / blockers:** none — PR ready for review.
+
+**Next session:** Fifth iteration of today's day-session; within 15-min cleanup buffer of the 180-min cap. Stop after this iteration's PR and write the final report.

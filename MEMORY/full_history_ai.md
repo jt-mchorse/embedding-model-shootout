@@ -305,3 +305,25 @@ context_for_next_session:
   - portfolio_pattern_fourth_in_day_session_loop_after_eval_harness_37_prompt_regression_32_mcp_cookbook_31_all_naming_or_parity_polish_after_pr_review_pass_merged_10_prs
 followups: []
 ---
+
+---
+session: 2026-05-24T21:30Z
+duration_min: 20
+issue: 27
+focus: run_sweep_rejects_non_positive_k_in_k_values_full_set_in_one_pass
+delta:
+  files_changed: 1   # emb_shootout/sweep.py
+  files_added: 0
+  tests_added: 6
+  test_pass_rate: "115_passed"
+decisions_made: []
+context_for_next_session:
+  - run_sweep_validated_k_values_non_empty_but_each_element_passed_through_to_list_slicing_retrieved_ids_k_silent_wrongness
+  - k_eq_0_recall_at_0_always_zero_tautological_pseudo_metric_in_output
+  - k_lt_0_recall_miscounts_via_all_but_last_n_slice_semantics_silently_wrong_not_absent
+  - retrieve_top_k_and_ndcg_at_k_already_raise_on_k_le_0_so_k_values_was_one_inlet_flowing_through_unguarded
+  - guard_collects_all_offenders_one_pass_sorted_form_so_operator_copy_pastes_the_fix
+  - tests_pin_zero_negative_mixed_with_full_set_in_message_plus_parametrize_positive_acceptance
+  - seventh_phase_bc_target_in_today_180_min_day_session_pattern_now_five_repos_in_a_row_construct_or_boundary_value_domain_uniformity
+followups: []
+---
