@@ -23,6 +23,9 @@ class BGEProvider:
         batch_size: int = 64,
         device: str | None = None,
     ) -> None:
+        # Validate before lazy import; see CohereProvider for rationale (#33).
+        if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
+            raise ValueError(f"batch_size must be a positive integer; got {batch_size!r}")
         try:
             from sentence_transformers import SentenceTransformer  # type: ignore[import-not-found]
         except ImportError as e:
@@ -38,8 +41,6 @@ class BGEProvider:
         self.dim = dim
         self.name = f"bge/{model.split('/')[-1]}"
         self.cost_per_million_tokens = cost_per_million_tokens
-        if batch_size <= 0:
-            raise ValueError(f"batch_size must be positive; got {batch_size}")
         self.batch_size = batch_size
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:

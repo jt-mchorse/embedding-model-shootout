@@ -23,6 +23,9 @@ class VoyageProvider:
         batch_size: int = 32,
         api_key: str | None = None,
     ) -> None:
+        # Validate before lazy import; see CohereProvider for rationale (#33).
+        if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
+            raise ValueError(f"batch_size must be a positive integer; got {batch_size!r}")
         try:
             import voyageai  # type: ignore[import-not-found]
         except ImportError as e:
@@ -36,8 +39,6 @@ class VoyageProvider:
         self.dim = dim
         self.name = f"voyage/{model}"
         self.cost_per_million_tokens = cost_per_million_tokens
-        if batch_size <= 0:
-            raise ValueError(f"batch_size must be positive; got {batch_size}")
         self.batch_size = batch_size
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:

@@ -24,6 +24,12 @@ class CohereProvider:
         api_key: str | None = None,
         input_type: str = "search_document",
     ) -> None:
+        # Validate batch_size before the lazy import so a misconfigured caller
+        # gets a fast ValueError instead of a slow ImportError-then-network-init
+        # (and so the check is testable without the optional `cohere` extra
+        # installed; #33).
+        if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
+            raise ValueError(f"batch_size must be a positive integer; got {batch_size!r}")
         try:
             import cohere  # type: ignore[import-not-found]
         except ImportError as e:
@@ -37,8 +43,6 @@ class CohereProvider:
         self.dim = dim
         self.name = f"cohere/{model}"
         self.cost_per_million_tokens = cost_per_million_tokens
-        if batch_size <= 0:
-            raise ValueError(f"batch_size must be positive; got {batch_size}")
         self.batch_size = batch_size
         self.input_type = input_type
 
