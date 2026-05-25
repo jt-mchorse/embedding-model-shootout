@@ -21,10 +21,15 @@ class HashEmbedderProvider:
     """Sweep-compatible Embedder backed by hash projection over word n-grams."""
 
     def __init__(self, *, dim: int = 128, ngram: int = 2, tokenizer: Tokenizer = "word") -> None:
-        if dim <= 0:
-            raise ValueError(f"dim must be positive; got {dim}")
-        if ngram < 1:
-            raise ValueError(f"ngram must be >= 1; got {ngram}")
+        # Extend #34's sign-only contract to positive-int. Sign-only accepted
+        # bool (`dim=True` silently bound `self.dim = True`, `[0.0] * True`
+        # returned a 1-element list; `name` became `"...Trued-ngram2"`) and
+        # whole-float (`dim=128.0` slipped, then `[0.0] * 128.0` raised
+        # `TypeError: can't multiply sequence by non-int` far from the call site).
+        if not isinstance(dim, int) or isinstance(dim, bool) or dim <= 0:
+            raise ValueError(f"dim must be a positive integer; got {dim!r}")
+        if not isinstance(ngram, int) or isinstance(ngram, bool) or ngram <= 0:
+            raise ValueError(f"ngram must be a positive integer; got {ngram!r}")
         if tokenizer != "word":
             raise ValueError(
                 f"unknown tokenizer {tokenizer!r}; only 'word' is supported by this provider"

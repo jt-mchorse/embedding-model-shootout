@@ -160,7 +160,7 @@ def test_build_queries_assigns_expected_chunk_id_correctly():
 
 
 def test_build_queries_validates_inputs():
-    with pytest.raises(ValueError, match="n must be positive"):
+    with pytest.raises(ValueError, match="n must be a positive integer"):
         build_queries(_CORPUS, n=0)
     with pytest.raises(ValueError, match="corpus must be non-empty"):
         build_queries([], n=5)

@@ -39,10 +39,22 @@ def build_queries(
 
     Chunks too short for `min_words` are skipped.
     """
-    if n <= 0:
-        raise ValueError(f"n must be positive; got {n}")
-    if min_words <= 0 or max_words < min_words:
-        raise ValueError(f"need 0 < min_words <= max_words; got {min_words}, {max_words}")
+    # Extend #34's sign-only contract to positive-int. Each parameter
+    # checked independently first so the error message names the offending
+    # field; the paired `max_words >= min_words` invariant runs after.
+    # Pre-fix: `n=True` produced a 1-query set silently; `n=200.5` slipped
+    # to `range(n)` which raised TypeError far from the call site. Same
+    # shape for min_words/max_words → `rng.randint` TypeError later.
+    if not isinstance(n, int) or isinstance(n, bool) or n <= 0:
+        raise ValueError(f"n must be a positive integer; got {n!r}")
+    if not isinstance(min_words, int) or isinstance(min_words, bool) or min_words <= 0:
+        raise ValueError(f"min_words must be a positive integer; got {min_words!r}")
+    if not isinstance(max_words, int) or isinstance(max_words, bool) or max_words <= 0:
+        raise ValueError(f"max_words must be a positive integer; got {max_words!r}")
+    if max_words < min_words:
+        raise ValueError(
+            f"need min_words <= max_words; got min_words={min_words}, max_words={max_words}"
+        )
     if not corpus:
         raise ValueError("corpus must be non-empty")
 
