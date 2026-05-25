@@ -295,7 +295,7 @@ def test_sweep_result_rejects_negative_cost(bad_cost: float):
 
 
 @pytest.mark.parametrize(
-    "field,bad_value,bound_pattern",
+    ("field", "bad_value", "bound_pattern"),
     [
         ("embedder_dim", 0, r"embedder_dim must be >= 1"),
         ("embedder_dim", -1, r"embedder_dim must be >= 1"),
