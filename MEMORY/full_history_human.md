@@ -270,3 +270,16 @@ Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy p
 **Open questions / blockers:** none — PR ready for review.
 
 **Next session:** Pattern is now at three repos today (cost batch, rag retrieval, emb providers). If the trending workflow surfaces fresh topics, switch. Otherwise consider `chunking-strategies-lab` strategies sweep (chunk_chars/overlap_chars/max_chunk_chars across 5 strategy classes — same uniform shape as this PR).
+
+## 2026-05-26 — Issue #35: Close #34's deferred validation gaps (hash embedder + query gen)
+**Duration:** ~25 min · **Branch:** `session/2026-05-25-1800-issue-35`
+
+- `HashEmbedderProvider.dim` and `.ngram`: replaced sign-only checks with the portfolio positive-int contract. `dim=True` no longer silently produces a 1-element name-tagged provider; `dim=128.0` no longer surfaces as `TypeError: can't multiply sequence by non-int` deep inside `_embed_one`.
+- `build_queries.n`, `.min_words`, `.max_words`: each parameter now checked independently with the positive-int contract so the error message names the offending field; the paired `max_words >= min_words` invariant runs after both type contracts.
+- 71 new parametrize tests. Pre-existing `test_build_queries_validates_inputs` updated to the new message shape (`"n must be a positive integer"`). `test_hash_provider_validates_dim` used loose `match="dim"` and still passes unchanged. Full suite 192 → 263. Ruff clean.
+
+**Why this work, this session:** Third Phase B+C target in today's 180-min DAY session. PR #34 explicitly listed these five sites as the "Out of scope (file separately if needed)" follow-ups. Closing them keeps the contract uniform across all construction sites in the repo and finishes the portfolio-wide closure of named deferred-lists for the day.
+
+**Open questions / blockers:** PR ready for review. Note for documentation: #34's body called the function `synthesize_queries`; the actual name in `emb_shootout/queries.py` is `build_queries` — issue body documents the rename so future readers can grep both names.
+
+**Next session:** With the three explicit deferred-lists closed (`llm-eval-harness#45`, `rag-production-kit#43`, `embedding-model-shootout#36`), the next natural target is a survey-driven discovery pass on the remaining repos for boundary-validation gaps that match the same shape.

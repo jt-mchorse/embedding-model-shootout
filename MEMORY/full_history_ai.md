@@ -398,3 +398,27 @@ context_for_next_session:
   - pattern_now_at_three_repos_today_llm_cost_optimizer_batch_rag_production_kit_retrieval_emb_shootout_providers_all_use_same_validation_shape_with_repr_format_specifier
 followups: []
 ---
+
+---
+session: 2026-05-26T00:15Z
+duration_min: 25
+issue: 35
+focus: deferred_followups_from_34_hash_embedder_dim_ngram_and_build_queries_n_min_max_words
+delta:
+  files_changed: 3   # emb_shootout/providers/hash_embedder.py, emb_shootout/queries.py, tests/test_sweep.py
+  files_added: 1     # tests/test_deferred_validation_sweep.py
+  tests_added: 71
+  test_pass_rate: "263/263"
+decisions_made: []
+context_for_next_session:
+  - closed_34_deferred_list_five_sites_hash_embedder_dim_ngram_build_queries_n_min_words_max_words_all_positive_int_contract
+  - actual_function_name_is_build_queries_not_synthesize_queries_as_34_named_it_same_module_emb_shootout_queries_py_same_params_n_min_words_max_words
+  - paired_max_words_ge_min_words_check_now_runs_after_individual_type_contracts_so_each_param_error_names_its_field
+  - pre_existing_test_sweep_py_162_pinning_n_must_be_positive_updated_to_n_must_be_a_positive_integer
+  - pre_existing_test_hash_provider_validates_dim_186_used_loose_match_dim_still_passes_unchanged
+  - 71_new_parametrize_tests_test_pass_count_now_263_was_192_after_34
+  - third_phase_bc_target_in_today_180_min_day_session_after_llm_eval_harness_44_max_tokens_and_rag_production_kit_42_three_deferred_sites
+  - embedding_model_shootout_now_has_no_remaining_explicit_deferred_validation_followups_full_repo_contract_uniform
+  - portfolio_wide_today_day_session_three_repos_explicit_deferred_lists_now_closed_llm_eval_harness_judge_anthropic_max_tokens_rag_production_kit_generator_embedder_streaming_emb_shootout_hash_embedder_queries
+followups: []
+---
