@@ -244,3 +244,16 @@ Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy p
 **Open questions / blockers:** none — PR ready for review.
 
 **Next session:** Fourth Phase B+C target of today's day session after `llm-eval-harness` #40, `llm-cost-optimizer` #34, `rag-production-kit` #36. Time remaining in the 180-min cap permits one more if a viable target surfaces in the remaining repos. Build sequence #6 (`chunking-strategies-lab`) is the natural next pickup.
+
+## 2026-05-25 — Issue #31: SweepResult finiteness + integer guards
+**Duration:** ~25 min · **Branch:** `session/2026-05-24-issue-31`
+
+- Four sign-only checks let `NaN`/`+Infinity`/non-int through. `SweepResult.cost_per_million_tokens` accepted NaN which propagated into the Pareto frontier comparator at `pareto.py:33-34` where every NaN comparison is false → dominance check silently degrades. The three count fields (`embedder_dim`, `n_corpus`, `n_queries`) were typed `int` but accepted float/NaN at runtime — NaN dim makes `len(vec) == dim` always false; fractional dim truncates silently. `ndcg_at_k(k)` and `retrieve_top_k(k)` sign-only `<=0` accepted NaN (cryptic TypeError deep inside slicing) and fractional k (silent truncation).
+- Tightened `cost_per_million_tokens` to `math.isfinite + >= 0.0`. Tightened the three count fields to `isinstance(int)` (bool excluded explicitly since Python's bool subclasses int) + existing comparison. Tightened both math helpers `k` to `isinstance(int) + positive`. Existing tests with loose `"positive"` / `"must be"` matchers unchanged; three tests pinning the exact old message updated.
+- 12 new parametrized tests in `tests/test_sweep.py` under a `#31` block: rejection per field over `[NaN, +Infinity, -Infinity]` for cost; `[1.5, NaN, True, fractional]` for int fields; `[1.5, NaN, True, str]` for math helpers. Test count 148.
+
+**Why this work, this session:** Ninth (and final) Phase B+C target in the 360-min night session. Second PR in embedding-model-shootout tonight; the first was via the Phase A fixup-merge of #30 (sign-only `__post_init__` shipped in #29). The two together close the silent-zero → silent-negative → silent-NaN/Infinity arc on `SweepResult` and on the math helpers it depends on.
+
+**Open questions / blockers:** none — PR ready for review.
+
+**Next session:** Continue the loop across remaining unvisited-tonight-for-second-iteration repos: `chunking-strategies-lab`, `vector-search-at-scale`, `python-async-llm-pipelines`. Each had a fixup-merge today but no Phase B+C finiteness sweep yet.
