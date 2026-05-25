@@ -76,14 +76,31 @@ class SweepResult:
         # every other point), so guard at the central construction site.
         # Embedder Protocol-implementers also benefit from the centralized
         # check without copying the validation per provider.
-        if self.cost_per_million_tokens < 0.0:
+        # Finiteness guard (#31): a NaN cost_per_million_tokens propagates
+        # into the Pareto frontier comparator at pareto.py:33-34 where
+        # `a.cost < b.cost` and `a.cost <= b.cost` are both false for NaN —
+        # the dominance check silently degrades. Same harm class as #29's
+        # sign-only-rejects-negative, one step further along the
+        # "operator-supplied numeric silently corrupts comparator" arc.
+        if not math.isfinite(self.cost_per_million_tokens) or self.cost_per_million_tokens < 0.0:
             raise ValueError(
-                f"cost_per_million_tokens must be >= 0.0; got {self.cost_per_million_tokens}"
+                f"cost_per_million_tokens must be a finite number >= 0.0; "
+                f"got {self.cost_per_million_tokens}"
             )
+        # Integer guard (#31): the three count fields are typed `int` but the
+        # runtime can take floats. NaN/Infinity in dim makes `len(vec) == dim`
+        # always false; fractional dim silently truncates via int comparison.
+        # bool excluded explicitly (Python's bool subclasses int).
+        if not isinstance(self.embedder_dim, int) or isinstance(self.embedder_dim, bool):
+            raise ValueError(f"embedder_dim must be an int; got {self.embedder_dim!r}")
         if self.embedder_dim < 1:
             raise ValueError(f"embedder_dim must be >= 1; got {self.embedder_dim}")
+        if not isinstance(self.n_corpus, int) or isinstance(self.n_corpus, bool):
+            raise ValueError(f"n_corpus must be an int; got {self.n_corpus!r}")
         if self.n_corpus < 0:
             raise ValueError(f"n_corpus must be >= 0; got {self.n_corpus}")
+        if not isinstance(self.n_queries, int) or isinstance(self.n_queries, bool):
+            raise ValueError(f"n_queries must be an int; got {self.n_queries!r}")
         if self.n_queries < 0:
             raise ValueError(f"n_queries must be >= 0; got {self.n_queries}")
 
@@ -130,8 +147,11 @@ def ndcg_at_k(relevances: list[int], k: int) -> float:
     `relevances[i]` is 0 or 1; the list is in ranked order (most relevant
     first). NDCG is bounded in [0, 1] for binary relevance.
     """
-    if k <= 0:
-        raise ValueError(f"k must be positive; got {k}")
+    # Integer + positive guard (#31). NaN passes the sign-only `<= 0` check
+    # and then surfaces deep inside `relevances[:k]` as a cryptic TypeError;
+    # fractional silently truncates via the slicing-int coercion.
+    if not isinstance(k, int) or isinstance(k, bool) or k <= 0:
+        raise ValueError(f"k must be a positive integer; got {k!r}")
     if not relevances:
         return 0.0
 
@@ -170,8 +190,10 @@ def retrieve_top_k(
     k: int,
 ) -> list[tuple[str, float]]:
     """Return the top-k chunk ids by cosine similarity, descending."""
-    if k <= 0:
-        raise ValueError(f"k must be positive; got {k}")
+    # Integer + positive guard (#31). NaN passes sign-only; fractional k
+    # silently truncates via list slicing.
+    if not isinstance(k, int) or isinstance(k, bool) or k <= 0:
+        raise ValueError(f"k must be a positive integer; got {k!r}")
     if len(corpus_vectors) != len(chunk_ids):
         raise ValueError("corpus_vectors and chunk_ids must be the same length")
     sims = [

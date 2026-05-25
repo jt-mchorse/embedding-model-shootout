@@ -96,6 +96,21 @@ def test_retrieve_top_k_rejects_zero_k():
         retrieve_top_k([1.0], [[1.0]], ["a"], k=0)
 
 
+# Issue #31: extend ndcg_at_k and retrieve_top_k sign-only k checks to
+# require isinstance(int). NaN slipped past <=0 and surfaced as cryptic
+# TypeError deep inside slicing; fractional k truncated silently.
+@pytest.mark.parametrize("bad_k", [1.5, float("nan"), True, "5"])
+def test_ndcg_at_k_rejects_non_int_k(bad_k):
+    with pytest.raises(ValueError, match="k must be a positive integer"):
+        ndcg_at_k([1, 0], bad_k)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("bad_k", [1.5, float("nan"), True, "5"])
+def test_retrieve_top_k_rejects_non_int_k(bad_k):
+    with pytest.raises(ValueError, match="k must be a positive integer"):
+        retrieve_top_k([1.0], [[1.0]], ["a"], k=bad_k)  # type: ignore[arg-type]
+
+
 def test_retrieve_top_k_rejects_length_mismatch():
     with pytest.raises(ValueError, match="same length"):
         retrieve_top_k([1.0], [[1.0]], ["a", "b"], k=1)
@@ -290,7 +305,44 @@ def _valid_sweep_result_kwargs() -> dict:
 def test_sweep_result_rejects_negative_cost(bad_cost: float):
     kwargs = _valid_sweep_result_kwargs()
     kwargs["cost_per_million_tokens"] = bad_cost
-    with pytest.raises(ValueError, match=r"cost_per_million_tokens must be >= 0\.0"):
+    # Message tightened in #31 to "must be a finite number >= 0.0".
+    with pytest.raises(
+        ValueError, match=r"cost_per_million_tokens must be a finite number >= 0\.0"
+    ):
+        SweepResult(**kwargs)
+
+
+# Issue #31: extend sign-only checks to finiteness on cost (float) and to
+# isinstance(int) on the three count fields. NaN cost propagates into the
+# Pareto comparator at pareto.py:33-34 silently degrading dominance; NaN /
+# fractional / non-int counts propagate through length checks and arithmetic.
+@pytest.mark.parametrize(
+    "bad_cost",
+    [float("nan"), float("inf"), float("-inf")],
+)
+def test_sweep_result_rejects_non_finite_cost(bad_cost: float):
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs["cost_per_million_tokens"] = bad_cost
+    with pytest.raises(ValueError, match=r"cost_per_million_tokens must be a finite number"):
+        SweepResult(**kwargs)
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value"),
+    [
+        ("embedder_dim", 1.5),
+        ("embedder_dim", float("nan")),
+        ("embedder_dim", True),
+        ("n_corpus", 0.5),
+        ("n_corpus", float("nan")),
+        ("n_queries", 0.5),
+        ("n_queries", float("nan")),
+    ],
+)
+def test_sweep_result_rejects_non_int_count_fields(field: str, bad_value):
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs[field] = bad_value
+    with pytest.raises(ValueError, match=rf"{field} must be an int"):
         SweepResult(**kwargs)
 
 
@@ -333,7 +385,9 @@ def test_sweep_result_from_dict_round_trip_rejects_corrupt_negative_cost():
     original = run_sweep(_CORPUS, qs, embedder=provider)
     serialized = json.loads(json.dumps(original.to_dict()))
     serialized["cost_per_million_tokens"] = -1.0
-    with pytest.raises(ValueError, match=r"cost_per_million_tokens must be >= 0\.0"):
+    with pytest.raises(
+        ValueError, match=r"cost_per_million_tokens must be a finite number >= 0\.0"
+    ):
         SweepResult.from_dict(serialized)
 
 
