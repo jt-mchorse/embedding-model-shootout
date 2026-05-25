@@ -257,3 +257,16 @@ Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy p
 **Open questions / blockers:** none — PR ready for review.
 
 **Next session:** Continue the loop across remaining unvisited-tonight-for-second-iteration repos: `chunking-strategies-lab`, `vector-search-at-scale`, `python-async-llm-pipelines`. Each had a fixup-merge today but no Phase B+C finiteness sweep yet.
+
+## 2026-05-25 — Issue #33: provider batch_size sign-only sweep + hoist before lazy import
+**Duration:** ~25 min · **Branch:** `session/2026-05-25-1620-issue-33`
+
+- Five lazy-loaded API provider classes (CohereProvider, VoyageProvider, OpenAIProvider, BGEProvider, NomicProvider) shared the identical sign-only `batch_size <= 0` check. All five tightened to the portfolio-wide `isinstance(int) + reject bool + positive` pattern. Two failure modes closed: `Provider(batch_size=True)` constructed cleanly and embedded one item at a time, inflating API call count and cost telemetry; `Provider(batch_size=0.5)` constructed cleanly and crashed inside `range(0, len(items), self.batch_size)` with a far-from-the-call-site `TypeError`.
+- Structural change worth noting: validation is now hoisted ABOVE the lazy `import <provider-sdk>` block in each `__init__`. This makes the contract testable in CI without `cohere`, `voyageai`, `openai`, or `sentence-transformers` installed AND fail-fast on misconfig before slow client init. The behavior change is benign — bad input still raises; the error type just becomes `ValueError` (preferred) instead of `ImportError` (when extras missing) or post-client-init `ValueError` (when extras installed).
+- New test file `tests/test_provider_batch_size_validation.py` runs a 5 × 10 parametrize matrix (5 providers × 10 bad values) across all five classes with no provider extras installed; +50 net tests (142 → 192). Ruff clean.
+
+**Why this work, this session:** Fourth Phase B+C target in the 180-min day session. After mcp-cookbook README drift, llm-cost-optimizer batch __post_init__, and rag-production-kit retrieval-fusion sweep, embedding-model-shootout's 5-provider uniform pattern was a clean, well-scoped finisher. The hoist-before-lazy-import insight transfers to other repos with lazy-import constructors — file follow-up issues if relevant.
+
+**Open questions / blockers:** none — PR ready for review.
+
+**Next session:** Pattern is now at three repos today (cost batch, rag retrieval, emb providers). If the trending workflow surfaces fresh topics, switch. Otherwise consider `chunking-strategies-lab` strategies sweep (chunk_chars/overlap_chars/max_chunk_chars across 5 strategy classes — same uniform shape as this PR).
