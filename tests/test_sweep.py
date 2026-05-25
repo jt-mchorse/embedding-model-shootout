@@ -303,9 +303,7 @@ def test_sweep_result_rejects_negative_cost(bad_cost: float):
         ("n_queries", -1, r"n_queries must be >= 0"),
     ],
 )
-def test_sweep_result_rejects_invalid_count_fields(
-    field: str, bad_value: int, bound_pattern: str
-):
+def test_sweep_result_rejects_invalid_count_fields(field: str, bad_value: int, bound_pattern: str):
     kwargs = _valid_sweep_result_kwargs()
     kwargs[field] = bad_value
     with pytest.raises(ValueError, match=bound_pattern):
