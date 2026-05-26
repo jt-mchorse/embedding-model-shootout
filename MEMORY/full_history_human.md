@@ -296,3 +296,15 @@ Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy p
 **Open questions / blockers:** none — PR ready for review.
 
 **Next session:** Continue the multi-issue loop. Plausible next targets: (a) `agent-orchestration-platform` (TypeScript parallel of this PR — `src/bin/eval-runner.ts:72` `fs.writeFile` for eval output, `scripts/render-eval-snapshot.ts:25` for markdown render), (b) scan the remaining four repos for atomic-write gaps and close any found, (c) pivot to a different harm class entirely (input-trust on external API responses, resource leaks on error paths, test-determinism guarantees).
+
+## 2026-05-26 — Issue #39: README decision-range upper-bound lock
+**Duration:** ~7 min · **Branch:** `session/2026-05-26-2328-issue-39`
+
+- Added `tests/test_readme_decision_range.py`.
+- Added `D-002…D-009` citation in `## Why these decisions`.
+
+**Why this work, this session:** Propagation 5 of 10 of the cross-portfolio drift class authored in chunking-strategies-lab.
+
+**Open questions / blockers:** none.
+
+**Next session:** Continue propagation to vector-search-at-scale.

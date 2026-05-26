@@ -447,3 +447,19 @@ context_for_next_session:
   - revert_of_notebook_reproduce_ipynb_pre_existing_drift_em_dash_vs_unicode_escape_id_keys_missing_not_in_scope_of_this_pr
 followups: []
 ---
+
+---
+session: 2026-05-26T23:45Z
+duration_min: 7
+issue: 39
+focus: readme_decision_range_upper_bound_lock_propagation_5_of_10
+delta:
+  files_changed: 2
+  tests_added: 1
+context_for_next_session:
+  - readme_decision_range_lock_pattern_now_six_repos_chunking_lab_eval_harness_cost_optimizer_prompt_regression_rag_kit_emb_shootout
+  - six_more_repos_pending_vector_search_async_pipelines_agent_orch_mcp_cookbook_nextjs_streaming_ai_integration_tests
+  - emb_shootout_readme_had_no_range_citation_before_added_in_why_these_decisions_section
+decisions_made: []
+followups: []
+---
