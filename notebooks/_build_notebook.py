@@ -13,6 +13,12 @@ import json
 import sys
 from pathlib import Path
 
+# Add the repo root to sys.path so the script can import the package
+# helper without requiring `pip install -e .` first.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from emb_shootout.io_utils import atomic_write_text  # noqa: E402
+
 NOTEBOOK_PATH = Path(__file__).resolve().parent / "reproduce.ipynb"
 
 
@@ -237,7 +243,7 @@ def build() -> dict:
 
 
 def main() -> int:
-    NOTEBOOK_PATH.write_text(json.dumps(build(), indent=1) + "\n", encoding="utf-8")
+    atomic_write_text(NOTEBOOK_PATH, json.dumps(build(), indent=1) + "\n")
     print(
         f"wrote {NOTEBOOK_PATH.relative_to(NOTEBOOK_PATH.parent.parent)} ({NOTEBOOK_PATH.stat().st_size} bytes)"
     )

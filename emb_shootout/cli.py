@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 
 from .corpus import DEFAULT_MODULES, build_corpus, write_jsonl
+from .io_utils import atomic_write_text
 
 
 def _cmd_corpus_build(args: argparse.Namespace) -> int:
@@ -54,10 +55,7 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
     result = run_sweep(corpus, queries, embedder=embedder, k_values=(1, 5, 10))
 
     out_path = Path(args.output)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(
-        json.dumps(result.to_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    atomic_write_text(out_path, json.dumps(result.to_dict(), indent=2, sort_keys=True) + "\n")
     sys.stdout.write(
         f"{result.embedder_name}: recall@5={result.recall_at_k.get(5, 0.0):.3f} "
         f"NDCG@10={result.ndcg_at_10:.3f} → {out_path}\n"
@@ -82,8 +80,7 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
     else:
         rendered = aggregate_markdown(results)
     out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(rendered, encoding="utf-8")
+    atomic_write_text(out_path, rendered)
     sys.stdout.write(f"aggregated {len(results)} results → {out_path}\n")
     return 0
 

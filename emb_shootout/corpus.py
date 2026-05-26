@@ -26,7 +26,8 @@ import json
 from collections.abc import Iterable, Iterator
 from dataclasses import asdict, dataclass
 from os import PathLike
-from pathlib import Path
+
+from .io_utils import atomic_write_text
 
 # Curated module list. Chosen for breadth across the stdlib so the corpus
 # hits the ≥10k-chunk acceptance bar without scraping anything outside
@@ -315,18 +316,25 @@ def build_corpus(modules: Iterable[str] | None = None) -> Iterator[Chunk]:
 
 
 def write_jsonl(chunks: Iterable[Chunk], path: PathLike[str] | str) -> int:
-    """Write chunks to a JSONL file. Returns the count written.
+    """Write chunks to a JSONL file atomically. Returns the count written.
 
     Output is deterministic when the input order is deterministic — one
     JSON object per line, no trailing newlines beyond the per-line one,
     sort-stable keys via ``json.dumps(... , sort_keys=True)``.
+
+    Materializes all rows in memory before the single atomic write
+    (D-002 caps corpus size at "stdlib member = 1 chunk" which is on
+    the order of a few thousand rows; rendering in memory is well
+    within budget). Atomicity is load-bearing because the corpus is
+    row-oriented: a truncation at a row boundary passes the parser
+    silently, so downstream sweep quality numbers drift down without a
+    loud signal.
     """
-    p = Path(path)
-    p.parent.mkdir(parents=True, exist_ok=True)
+    rendered_lines: list[str] = []
     count = 0
-    with p.open("w", encoding="utf-8") as f:
-        for chunk in chunks:
-            f.write(json.dumps(asdict(chunk), sort_keys=True))
-            f.write("\n")
-            count += 1
+    for chunk in chunks:
+        rendered_lines.append(json.dumps(asdict(chunk), sort_keys=True))
+        count += 1
+    rendered = ("\n".join(rendered_lines) + "\n") if rendered_lines else ""
+    atomic_write_text(path, rendered)
     return count
