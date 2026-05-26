@@ -105,3 +105,17 @@ Strategic decisions for this repo, with reasoning. Append-only — superseded de
 **Reversibility:** Cheap. The Pareto module is one file, the renderer is one file, the CLI subcommand is one function, the extra is one line in `pyproject.toml`.
 
 **Related issues:** #3
+
+## D-009 — Atomic-write helpers live in package-level `io_utils` (2026-05-26)
+**Decision:** Atomic-write helpers in this repo live in a package-level module at `emb_shootout/io_utils.py`, exposing public `atomic_write_text(path, text, encoding="utf-8")`. The pattern mirrors `rag_kit/io_utils.atomic_write_text` from `rag-production-kit#44/#45` and `eval_harness/io_utils.atomic_write_text` from `llm-eval-harness#51` (D-015 there).
+
+**Why:** The 2026-05-26 atomic-write arc landed similar helpers across six other portfolio repos. Each repo that converged on a package-level helper kept the test surface clean (one `io_utils.os.replace` to monkey-patch), let every module in the package reach the helper without re-implementing the pattern, and stayed consistent with the cross-repo standard. File-private helpers (the shape `llm-eval-harness#49` originally landed and that D-015 superseded) fragment the test surface and prevent cross-module reuse. Re-implementing the pattern at each call site is the worst shape — every copy can drift, every needs its own tests.
+
+**Alternatives considered:**
+- File-private helper per module — rejected; the call sites are in three modules (`cli.py`, `corpus.py`, `notebooks/_build_notebook.py`) so this would mean three copies of the same 25 lines. The llm-eval-harness arc landed on D-015 specifically to retire this pattern.
+- Separate distribution package — rejected; over-engineering for a 25-line helper with one consumer.
+- In-place re-implementation at each call site — rejected; same drift hazard as per-module copies, and no central test surface.
+
+**Reversibility:** Cheap. The helper is two dozen lines and a stable API; any future evolution is a localized rewrite.
+
+**Related issues:** #37

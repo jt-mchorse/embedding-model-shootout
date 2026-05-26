@@ -72,3 +72,12 @@
   reversibility: cheap
   related_issues: [3]
   superseded_by: null
+
+- id: D-009
+  date: 2026-05-26
+  decision: atomic_write_helpers_live_in_package_level_io_utils_module_following_portfolio_standard_emerged_from_2026_05_26_atomic_write_arc
+  rationale: matches_rag_kit_io_utils_atomic_write_text_pr_44_45_eval_harness_io_utils_atomic_write_text_pr_51_d_015_one_helper_one_test_surface_per_repo_centralized_monkey_patch_target
+  alternatives_rejected: [file_private_helper_per_module, separate_distribution_package, in_place_re_implementation_at_each_call_site]
+  reversibility: cheap
+  related_issues: [#37]
+  superseded_by: null
