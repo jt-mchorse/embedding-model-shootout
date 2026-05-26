@@ -46,8 +46,7 @@ def test_decision_range_cites_latest_active() -> None:
     pattern = re.compile(r"D-0*2\s*(?:…|\.\.\.)\s*D-0*(\d+)")
     matches = pattern.findall(body)
     assert matches, (
-        "README.md must cite the active-decision range as "
-        "`D-002…D-NNN` somewhere. Not found."
+        "README.md must cite the active-decision range as `D-002…D-NNN` somewhere. Not found."
     )
     cited = max(int(m) for m in matches)
     latest = _max_active_decision_id()
