@@ -48,13 +48,13 @@ _CORPUS_FIXTURE = [
 @pytest.mark.parametrize(
     "bad_dim",
     [
-        True,           # bool: silently bound self.dim=True, [0.0]*True returned [0.0].
-        False,          # bool: caught by sign-only but masked type bug.
+        True,  # bool: silently bound self.dim=True, [0.0]*True returned [0.0].
+        False,  # bool: caught by sign-only but masked type bug.
         0,
         -1,
         -128,
         0.5,
-        128.0,          # whole float: [0.0]*128.0 raised TypeError later.
+        128.0,  # whole float: [0.0]*128.0 raised TypeError later.
         math.nan,
         math.inf,
         -math.inf,
@@ -81,13 +81,13 @@ def test_hash_provider_accepts_positive_int_dim(good_dim):
 @pytest.mark.parametrize(
     "bad_ngram",
     [
-        True,           # bool: silently treated as unigram; name="...-ngramTrue".
-        False,          # bool: would silently bypass sign as 0 == False.
-        0,              # original "ngram < 1" caught 0 too, but new shape is uniform.
+        True,  # bool: silently treated as unigram; name="...-ngramTrue".
+        False,  # bool: would silently bypass sign as 0 == False.
+        0,  # original "ngram < 1" caught 0 too, but new shape is uniform.
         -1,
         -2,
         0.5,
-        2.0,            # whole float: silently bound, then range() raised later.
+        2.0,  # whole float: silently bound, then range() raised later.
         math.nan,
         math.inf,
         -math.inf,
@@ -114,13 +114,13 @@ def test_hash_provider_accepts_positive_int_ngram(good_ngram):
 @pytest.mark.parametrize(
     "bad_n",
     [
-        True,           # bool: silently produced 1-query set.
+        True,  # bool: silently produced 1-query set.
         False,
         0,
         -1,
         0.5,
         200.5,
-        200.0,          # whole float: bypassed sign-only, range(n) raised TypeError.
+        200.0,  # whole float: bypassed sign-only, range(n) raised TypeError.
         math.nan,
         math.inf,
         -math.inf,
@@ -141,7 +141,17 @@ def test_build_queries_rejects_non_positive_int_n(bad_n):
 @pytest.mark.parametrize(
     "bad_min",
     [
-        True, False, 0, -1, 0.5, 6.0, math.nan, math.inf, -math.inf, None, "6",
+        True,
+        False,
+        0,
+        -1,
+        0.5,
+        6.0,
+        math.nan,
+        math.inf,
+        -math.inf,
+        None,
+        "6",
     ],
 )
 def test_build_queries_rejects_non_positive_int_min_words(bad_min):
@@ -152,7 +162,17 @@ def test_build_queries_rejects_non_positive_int_min_words(bad_min):
 @pytest.mark.parametrize(
     "bad_max",
     [
-        True, False, 0, -1, 0.5, 15.0, math.nan, math.inf, -math.inf, None, "15",
+        True,
+        False,
+        0,
+        -1,
+        0.5,
+        15.0,
+        math.nan,
+        math.inf,
+        -math.inf,
+        None,
+        "15",
     ],
 )
 def test_build_queries_rejects_non_positive_int_max_words(bad_max):
