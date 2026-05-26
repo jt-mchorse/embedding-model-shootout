@@ -114,4 +114,6 @@ embedding comparison), D-004 (provider extras gate dep weight on the
 default install), D-005 (queries derived from corpus at sweep time),
 D-006 (cost-per-million recorded alongside quality), D-007 (one JSON
 per provider, aggregator merges), D-008 (Pareto axes fixed to
-cost-per-million × recall@5).
+cost-per-million × recall@5), D-009 (atomic write helpers live in a
+package-level `emb_shootout.io_utils` module so `cli.py`, `corpus.py`,
+and the notebook builder share one tempfile-+-rename writer).
