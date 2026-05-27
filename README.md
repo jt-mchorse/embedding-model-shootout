@@ -160,7 +160,7 @@ why each step is the contract. Output cells are committed empty so a
 clean re-run produces a meaningful diff. When real-provider result JSONs
 land in `results/`, the notebook re-runs unchanged and absorbs them.
 
-## Sweep harness (#2 · this PR)
+## Sweep harness (#2)
 
 ```bash
 # Build the corpus.
