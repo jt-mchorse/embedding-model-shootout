@@ -322,3 +322,14 @@ Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy p
 **Open questions / blockers:** none — PR ready for review.
 
 **Next session:** `python-async-llm-pipelines` (2 hits) is the last known repo with this drift; loop continues.
+
+## 2026-05-27 — Issue #43: CONTRIBUTING.md cadence-wording propagation
+**Duration:** ~3 min · **PR:** #44
+
+- Replaced pre-D-008 `~60-minute session cap` line with D-008 (180/360 min, multi-issue loop) and D-004 (Phase A PR auto-merge) wording, matching the bootstrap template post-portfolio-ops#3.
+
+**Why this work, this session:** Iteration in the autonomous NIGHT session propagation arc for portfolio-ops#3.
+
+**Open questions / blockers:** none.
+
+**Next session:** continue portfolio propagation.
