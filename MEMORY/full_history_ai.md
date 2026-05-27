@@ -463,3 +463,19 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-05-27T03:45Z
+duration_min: 10
+issue: 41
+focus: drop_stale_this_pr_from_sweep_harness_header_plus_banned_phrase_lock
+delta:
+  files_changed: 2   # README.md, tests/test_readme_banned_phrases.py
+  tests_added: 3
+context_for_next_session:
+  - propagation_3_of_readme_banned_phrase_lock_pattern_first_authored_in_prompt_regression_suite_43_now_in_three_repos_prompt_regression_cost_optimizer_emb_shootout
+  - emb_shootout_only_had_one_stale_section_header_sweep_harness_2_smaller_diff_than_prompt_regression_or_cost_optimizer_but_same_lock_authored_for_future_drift_protection
+  - lock_test_3_of_3_pass_full_suite_277_of_277_pass
+decisions_made: []
+followups: []
+---

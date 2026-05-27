@@ -308,3 +308,17 @@ Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy p
 **Open questions / blockers:** none.
 
 **Next session:** Continue propagation to vector-search-at-scale.
+
+## 2026-05-27 — Issue #41: drop stale "· this PR" from sweep-harness header + banned-phrase lock
+**Duration:** ~10 min · **Branch:** `session/2026-05-27-0328-issue-41`
+
+- `README.md:163` carried PR-time framing ("· this PR") for the sweep harness — the repo's primary shipped surface, not a PR in flight. Same drift class `prompt-regression-suite#43` and `llm-cost-optimizer#46` just resolved.
+- Rewrote the header to steady-state form.
+- New lock: `tests/test_readme_banned_phrases.py` with `BANNED_PHRASES = ("this pr",)` + hard-pin tuple test. Mirrors the lock from `prompt-regression-suite#43`.
+- Smallest diff in the propagation arc so far (only one stale header here vs. four in the prior two repos), but the lock is identical and future-protects.
+
+**Why this work, this session:** Iteration 5 of an autonomous NIGHT session, third repo in the README banned-phrase lock propagation arc.
+
+**Open questions / blockers:** none — PR ready for review.
+
+**Next session:** `python-async-llm-pipelines` (2 hits) is the last known repo with this drift; loop continues.
