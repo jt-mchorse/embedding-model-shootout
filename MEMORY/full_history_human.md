@@ -333,3 +333,18 @@ Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy p
 **Open questions / blockers:** none.
 
 **Next session:** continue portfolio propagation.
+
+## 2026-06-01 — Issue #45: Corpus-JSONL collecting-mode validator
+**Duration:** ~13 min · **Branch:** `session/2026-06-01-2311-issue-45`
+
+- Shipped `emb_shootout.validate.validate_corpus(path)` — walks a corpus JSONL in collecting mode and returns a frozen `ValidationReport` with `n_rows`, `n_valid`, and a tuple of findings, each `(line_no, reason, code)`. Ten finding codes cover `json.loads` failures (`malformed_json`, `not_an_object`), schema gaps (`missing_chunk_id`, `missing_text`, `non_string_*`, `empty_*`), uniqueness (`duplicate_chunk_id`), and the empty-file case. Blank lines silently skipped so `validate` and `_read_corpus_jsonl` agree on row counts.
+- Wired `emb-shootout corpus validate <path> [--json]` into `cli.py`. Exit codes 0 clean / 1 findings / 2 I/O error — same as `eval-harness validate` and `prompt-snap validate` so consumers can chain validators uniformly.
+- Coverage: `tests/test_validate.py` is 21 cases — happy path, accumulating-errors (does not fail fast), one parametrized positive per finding code, duplicate detection (shadowed row not counted as valid), blank-line silent-skip, empty-file `empty` finding, `FileNotFoundError`, `to_dict` JSON shape, `frozen=True` dataclass shape lock, and three CLI end-to-end cases.
+- README "What this is" gains a fifth bullet and `[#45]` reference link. `docs/architecture.md` gains a `validate` module bullet and `corpus validate` to the CLI subcommand list with `(#45)` on each; `tests/test_architecture_doc.py` `KNOWN_SHIPPED_ISSUES` and its hard-pin tuple extended to include `#45`.
+- Live-tested against the real `data/corpus.jsonl` (12,010 CPython stdlib rows): exit 0 in one pass with `ok: ... rows=12010 valid=12010 findings=0`. Confirms no false positives on a healthy corpus. Full suite 298 / 298 pass, ruff clean.
+
+**Why this work, this session:** First iteration of a multi-issue day-session. Phase A merged four observability-parity PRs (one each in eval-harness, prompt-regression-suite, cost-optimizer, rag-kit) leaving every portfolio repo with zero open issues. The pattern that just shipped in two of those repos — collecting-mode validate as a pre-flight before fail-fast input readers — generalized cleanly to emb-shootout's `_read_corpus_jsonl`. Filed the issue, posted the plan, then shipped.
+
+**Open questions / blockers:** None — ready for review. Result-JSON validate (`sweep validate-results`) is a low-priority follow-up only if the pattern proves out further.
+
+**Next session:** Continue the day-session loop on another repo that hasn't been touched since 2026-05-27. `chunking-strategies-lab` is next in build-sequence order among the still-untouched repos and is the natural home for the next iteration.
