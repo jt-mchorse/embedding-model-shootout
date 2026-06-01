@@ -59,7 +59,7 @@ MIN_ACTIVE_DECISION_ID = 2
 #   - #4   README takeaways prose — narrative, not architecture
 #   - #16  GIF/video capture     — operator-supplied artifact only
 #   - #17  README phrasing fix   — locked separately by tests/test_hash_baseline_description.py
-KNOWN_SHIPPED_ISSUES = (1, 2, 3, 5, 11, 13, 15)
+KNOWN_SHIPPED_ISSUES = (1, 2, 3, 5, 11, 13, 15, 45)
 
 # Drift shapes specific to issue #19's pre-fix state. Lowercase
 # substring match (case-insensitive). Pinned in a tuple so a future
@@ -228,7 +228,7 @@ def test_banned_phrases_hard_pin_set() -> None:
 
 def test_known_shipped_issues_hard_pin_set() -> None:
     # Same belt-and-braces for the issue coverage list.
-    assert KNOWN_SHIPPED_ISSUES == (1, 2, 3, 5, 11, 13, 15)
+    assert KNOWN_SHIPPED_ISSUES == (1, 2, 3, 5, 11, 13, 15, 45)
 
 
 def test_resolvable_prefixes_hard_pin_set() -> None:

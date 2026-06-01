@@ -14,7 +14,7 @@ held-out set the embedding provider trained on. This repo's bet is the
 opposite: a single, publicly-licensed corpus, the same query set across
 every model, and every number reproducible from a fresh clone.
 
-The repo today ships four things, the four closed issues map to them:
+The repo today ships five things, the five closed issues map to them:
 
 1. **Corpus** ([#1], [D-002], [D-003]) — CPython standard-library
    docstrings, regenerated from `inspect` on a pinned Python version. On
@@ -35,6 +35,11 @@ The repo today ships four things, the four closed issues map to them:
    baseline sweep → markdown aggregation → Pareto plot end-to-end. Five
    shape tests pin the notebook's import surface and assert no cached
    outputs ship.
+5. **Corpus validator** ([#45]) — `emb-shootout corpus validate <path>`
+   walks a corpus JSONL in *collecting* mode and surfaces every
+   malformed row in one pass instead of the fail-fast read that `sweep
+   run` does. Same pattern as `eval-harness validate` and `prompt-snap
+   validate` in the sister repos; exit 0 clean / 1 findings / 2 I/O.
 
 What the repo does **not** yet have is a multi-provider results table.
 The harness is wired for it, the queries are constructed
@@ -47,6 +52,7 @@ criteria, but the cost and quota live with the operator, not in CI.
 [#2]: https://github.com/jt-mchorse/embedding-model-shootout/issues/2
 [#3]: https://github.com/jt-mchorse/embedding-model-shootout/issues/3
 [#5]: https://github.com/jt-mchorse/embedding-model-shootout/issues/5
+[#45]: https://github.com/jt-mchorse/embedding-model-shootout/issues/45
 
 ## Takeaways (so far)
 

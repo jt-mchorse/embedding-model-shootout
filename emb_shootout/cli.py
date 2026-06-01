@@ -1,6 +1,7 @@
 """CLI:
 
     emb-shootout corpus build [--out path] [--module M ...]
+    emb-shootout corpus validate <path> [--json]
     emb-shootout sweep run --provider P --corpus PATH [--queries N --seed N --output PATH]
     emb-shootout sweep aggregate [--results-dir results] [--out docs/benchmarks.md]
     emb-shootout sweep plot [--results-dir results] [--out-png PATH] [--out-svg PATH]
@@ -34,6 +35,41 @@ def _cmd_corpus_build(args: argparse.Namespace) -> int:
     }
     sys.stdout.write(json.dumps(summary, sort_keys=True) + "\n")
     return 0
+
+
+def _cmd_corpus_validate(args: argparse.Namespace) -> int:
+    """Lint a corpus JSONL; exit 0 clean / 1 findings / 2 I/O error (#45).
+
+    Collecting-mode walk: surfaces every malformed row in one pass instead
+    of failing fast like ``_read_corpus_jsonl`` (which is what ``sweep
+    run`` invokes). Exit-code shape matches ``eval-harness validate`` in
+    llm-eval-harness so consumers can chain validators uniformly. The
+    human summary prints one stderr line per finding and a one-line totals
+    row to stdout; ``--json`` emits the full ``ValidationReport`` dict.
+    """
+    from .validate import validate_corpus
+
+    try:
+        report = validate_corpus(args.corpus)
+    except FileNotFoundError as e:
+        sys.stderr.write(f"corpus not found: {e}\n")
+        return 2
+    except OSError as e:
+        sys.stderr.write(f"failed to read {args.corpus}: {e}\n")
+        return 2
+
+    if args.as_json:
+        sys.stdout.write(json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n")
+    else:
+        for finding in report.findings:
+            line_label = f"line {finding.line_no}" if finding.line_no else "file"
+            sys.stderr.write(f"{line_label} [{finding.code}]: {finding.reason}\n")
+        status = "ok" if report.ok else "fail"
+        sys.stdout.write(
+            f"{status}: {args.corpus} rows={report.n_rows} valid={report.n_valid} "
+            f"findings={len(report.findings)}\n"
+        )
+    return 0 if report.ok else 1
 
 
 def _cmd_sweep_run(args: argparse.Namespace) -> int:
@@ -156,6 +192,22 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Restrict to a single module (repeatable). Defaults to the curated list.",
     )
     build.set_defaults(func=_cmd_corpus_build)
+
+    validate = corpus_sub.add_parser(
+        "validate",
+        help=(
+            "Lint a corpus JSONL; report every malformed row in one pass "
+            "(exit 0 clean / 1 findings / 2 I/O error)."
+        ),
+    )
+    validate.add_argument("corpus", help="Corpus JSONL path (e.g. data/corpus.jsonl).")
+    validate.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="Emit the report as JSON instead of the human-readable summary.",
+    )
+    validate.set_defaults(func=_cmd_corpus_validate)
 
     sweep = sub.add_parser("sweep", help="Embedder sweep")
     sweep_sub = sweep.add_subparsers(dest="sweep_cmd", required=True)

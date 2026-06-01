@@ -62,11 +62,21 @@ until that second point exists).
 - **`emb_shootout.plot`** — matplotlib renderer behind the `plot`
   extra. Frontier computation is upstream of rendering; if `plot`
   isn't installed, the frontier is still computable as JSON.
-- **`emb-shootout`** — argparse CLI: `corpus build`, `sweep run`,
-  `sweep aggregate`, `pareto plot`. Each subcommand has a `--help`
-  surface; the public-surface lock (#13, `tests/test_public_surface.py`)
-  pins the top-level package's `__all__` and the CLI entry-point in
-  `pyproject.toml`.
+- **`emb-shootout`** — argparse CLI: `corpus build`, `corpus validate`
+  (#45), `sweep run`, `sweep aggregate`, `pareto plot`. Each subcommand
+  has a `--help` surface; the public-surface lock (#13,
+  `tests/test_public_surface.py`) pins the top-level package's `__all__`
+  and the CLI entry-point in `pyproject.toml`.
+- **`emb_shootout.validate`** — `validate_corpus(path)` walks a corpus
+  JSONL in collecting mode and returns a `ValidationReport` with one
+  `ValidationFinding` per malformed row (#45). Same pattern as
+  `eval_harness.dataset.validate_dataset` and `prompt_regression.validate`
+  in the sister repos: ten finding codes (`malformed_json`,
+  `not_an_object`, `missing_chunk_id`, `missing_text`,
+  `non_string_chunk_id`, `non_string_text`, `empty_chunk_id`,
+  `empty_text`, `duplicate_chunk_id`, `empty`), CLI exit codes 0 / 1 / 2
+  uniform with `eval-harness validate`. Pre-flight before `sweep run`
+  spends embed time on a broken corpus.
 - **`notebooks/reproduce.ipynb`** + **`notebooks/_verify.py`** —
   walk corpus → queries → hash baseline sweep → markdown aggregation
   → Pareto plot end-to-end (#5). Five shape tests pin the notebook's
