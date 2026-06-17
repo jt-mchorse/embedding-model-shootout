@@ -363,3 +363,16 @@ Three new tests in `tests/test_cli_sweep_run_out_alias.py`: `--out PATH` happy p
 **Open questions / blockers:** none — ready for review.
 
 **Next session:** Portfolio observability-parity arc is now fully saturated across all Python JSON-emitting repos at both package and script levels. Future iterations should pivot to either operator-blocked items or novel parity opportunities outside the asdict / to_dict arc.
+
+## 2026-06-17 — Issue #49: Workflow YAML-parseability lock
+**Duration:** ~8 min · **Branch:** `session/2026-06-17-1922-issue-49`
+
+Added `tests/test_workflows_yaml_parseable.py` (3 tests for `ci.yml`)
+and pulled `pyyaml>=6.0` into `dev` extras.
+
+**Why this work, this session:** Seventh hop of the `portfolio-ops#30`
+propagation arc.
+
+**Open questions / blockers:** none — PR #50 open.
+
+**Next session:** continue propagation to the remaining 5 repos.
