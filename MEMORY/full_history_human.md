@@ -376,3 +376,15 @@ propagation arc.
 **Open questions / blockers:** none — PR #50 open.
 
 **Next session:** continue propagation to the remaining 5 repos.
+
+## 2026-06-18 — Issue #51: timeout-minutes guard + lock test
+**Duration:** ~15 min · **Branch:** `session/2026-06-18-0324-issue-51`
+
+- Added `timeout-minutes: 15` to every job in `ci.yml` (`lint`, `test`, `memory-check`).
+- Added `tests/test_workflows_timeout_minutes.py` — 10 new tests (1 smoke + 3 jobs × 3 parametrized invariants).
+
+**Why this work, this session:** part of the portfolio-wide propagation of the timeout-minutes silent-rot lock. `llm-eval-harness` PR #63 shipped first; this is the fifth propagation hop. The portfolio-ops audit (#36) surfaces every unprotected repo weekly; this PR drops `embedding-model-shootout` from its findings.
+
+**Open questions / blockers:** none. Full pytest + ruff clean.
+
+**Next session:** continue propagation to the remaining 6 unprotected repos.

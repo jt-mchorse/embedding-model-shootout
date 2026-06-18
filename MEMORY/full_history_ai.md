@@ -557,3 +557,22 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-06-18T03:24Z
+duration_min: 15
+issue: 51
+focus: workflow_timeout_minutes_lock_propagation_hop_5
+phase: night_session_phase_b_iteration_4
+delta:
+  files_added: 1   # tests/test_workflows_timeout_minutes.py
+  files_changed: 1 # .github/workflows/ci.yml
+  tests_added: 10  # 1 smoke + 3 jobs * 3 invariants
+context_for_next_session:
+  - fifth_propagation_hop_of_timeout_minutes_lock_after_three_python_hops_eval_harness_rag_csl_plus_one_typescript_hop_nsap
+  - all_three_jobs_get_uniform_15_min_no_outliers_warranted_pure_python_ruff_pytest_memory_existence_checks_all_finish_in_lt_3_min_today
+  - test_file_modeled_on_csl_canonical_python_port_three_parametrized_invariants_split_so_each_failure_mode_surfaces_separately
+  - audit_phase_a_py_will_drop_embedding_model_shootout_from_missing_timeout_finding_set_after_this_pr_merges
+decisions_made: []
+followups: []
+---
