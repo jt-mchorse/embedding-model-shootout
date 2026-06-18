@@ -388,3 +388,16 @@ propagation arc.
 **Open questions / blockers:** none. Full pytest + ruff clean.
 
 **Next session:** continue propagation to the remaining 6 unprotected repos.
+
+## 2026-06-18 — Issue #53: concurrency guard + lock test
+**Duration:** ~8 min · **Branch:** `session/2026-06-18-1529-issue-53`
+
+- Added top-level `concurrency:` to `ci.yml`.
+- Copied lock test from llm-eval-harness; docstring origin updated.
+
+**Why this work, this session:** seventh per-repo hop in the
+concurrency-lock arc.
+
+**Open questions / blockers:** none. Test count 315 → 322.
+
+**Next session:** continue propagation to remaining 5 repos.
