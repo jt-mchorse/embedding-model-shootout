@@ -59,16 +59,24 @@ def _cmd_corpus_validate(args: argparse.Namespace) -> int:
         return 2
 
     if args.as_json:
-        sys.stdout.write(json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n")
+        rendered = json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n"
     else:
+        # Findings go to stderr regardless of --out so the operator's diagnostic
+        # channel is preserved even when stdout is captured to a file. Parity
+        # with llm-eval-harness validate (#66), chunking_lab.validate (#45), and
+        # prompt-snap validate (#59).
         for finding in report.findings:
             line_label = f"line {finding.line_no}" if finding.line_no else "file"
             sys.stderr.write(f"{line_label} [{finding.code}]: {finding.reason}\n")
         status = "ok" if report.ok else "fail"
-        sys.stdout.write(
+        rendered = (
             f"{status}: {args.corpus} rows={report.n_rows} valid={report.n_valid} "
             f"findings={len(report.findings)}\n"
         )
+    if args.out:
+        atomic_write_text(args.out, rendered)
+    else:
+        sys.stdout.write(rendered)
     return 0 if report.ok else 1
 
 
@@ -206,6 +214,18 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         dest="as_json",
         help="Emit the report as JSON instead of the human-readable summary.",
+    )
+    validate.add_argument(
+        "--out",
+        default=None,
+        help=(
+            "Write the rendered output to this path instead of stdout. Parent dirs "
+            "are auto-created via emb_shootout/io_utils.atomic_write_text. Parity "
+            "with llm-eval-harness validate --out (#66), chunking-strategies-lab "
+            "validate --out (#45), and prompt-snap validate --out (#59). Findings "
+            "still print to stderr in human-readable mode even when --out is set, "
+            "so the operator's diagnostic channel is preserved."
+        ),
     )
     validate.set_defaults(func=_cmd_corpus_validate)
 
