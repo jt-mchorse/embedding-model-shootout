@@ -401,3 +401,27 @@ concurrency-lock arc.
 **Open questions / blockers:** none. Test count 315 → 322.
 
 **Next session:** continue propagation to remaining 5 repos.
+
+## 2026-06-19 — Issue #55: emb-shootout corpus validate --out (close arc)
+**Duration:** ~22 min · **Branch:** `session/2026-06-19-0330-issue-55`
+
+- Added `--out PATH` to `emb-shootout corpus validate` (the last hop
+  in the four-repo validate-CLI sink-parity propagation arc).
+- `_cmd_corpus_validate` builds the rendered string once, routes
+  through `emb_shootout/io_utils.atomic_write_text` when `--out` is
+  set, else `sys.stdout.write(rendered)`. Findings continue to print
+  to stderr in human-readable mode regardless of `--out`.
+- 6 new tests; README unchanged.
+
+**Why this work, this session:** closing the arc. After this PR, all
+four Python validate CLIs in the portfolio share one shape — one
+atomic-write helper per repo, one operator workflow, one stderr
+findings contract.
+
+**Open questions / blockers:** none. 322 → 328 pytest passes. PR #56
+open and ready.
+
+**Next session:** consider extending the validate-CLI shape to a
+`--format` choice covering text/json/sarif so CI workflows can route
+shape uniformly across repos. Or close additional sibling propagation
+gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).

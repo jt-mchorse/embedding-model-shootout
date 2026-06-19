@@ -594,3 +594,24 @@ context_for_next_session:
 decisions_made: []
 followups: [#53]
 ---
+
+---
+session: 2026-06-19T04:50Z
+duration_min: 22
+issue: 55
+focus: emb_shootout_corpus_validate_out_flag_for_sink_parity_close_arc
+phase: night_session_phase_b_iteration_5
+delta:
+  files_changed: 2 # emb_shootout/cli.py + tests/test_validate.py
+  tests_added: 6   # 2 modes (human+json) + parent-dir + atomic-overwrite + stderr + exit-2
+context_for_next_session:
+  - fourth_and_final_hop_in_validate_cli_sink_parity_propagation_arc_arc_closed_across_llm_eval_harness_66_chunking_strategies_lab_45_prompt_regression_suite_59_emb_shootout_55
+  - validate_subparser_under_corpus_subcommand_so_full_invocation_is_emb_shootout_corpus_validate_path_out_destination_path_no_collision_with_corpus_build_out_different_subparser
+  - cmd_corpus_validate_routes_through_emb_shootout_io_utils_atomic_write_text_when_out_set_else_sys_stdout_write_rendered
+  - findings_still_print_to_stderr_in_human_mode_regardless_of_out_canonical_contract_across_all_four_validate_clis
+  - exit_2_file_not_found_or_io_error_path_raises_before_rendering_so_out_leaves_no_zero_byte_sentinel
+  - test_count_322_to_328_six_new_full_pytest_clean_ruff_check_plus_format_check_clean
+  - portfolio_now_has_one_validate_cli_shape_across_four_python_repos_one_atomic_write_helper_per_repo_one_operator_workflow
+decisions_made: []
+followups: []
+---
