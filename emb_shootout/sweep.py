@@ -253,6 +253,18 @@ def run_sweep(
     bad_k = sorted({k for k in k_values if k <= 0})
     if bad_k:
         raise ValueError(f"every k in k_values must be positive; got {bad_k}")
+    # Duplicate `k` silently miscounts: the per-query loop below iterates
+    # `k_values` directly and increments `hits_at_k[k]` once per occurrence,
+    # while `hits_at_k` (and the output `recall_at_k` dict) carry only one
+    # entry per distinct k. A k appearing N times therefore counts each hit N
+    # times and yields recall > 1.0 — a mathematically invalid number from a
+    # benchmark whose whole job is trustworthy retrieval scores. The output is
+    # keyed by k, so a duplicate carries no distinct meaning; reject it loud in
+    # the same one-pass style as the non-positive guard rather than silently
+    # collapsing operator input.
+    dup_k = sorted({k for k in k_values if list(k_values).count(k) > 1})
+    if dup_k:
+        raise ValueError(f"k_values must not contain duplicates; got duplicate {dup_k}")
     max_k = max(k_values)
 
     # Embed corpus (single batch).

@@ -268,6 +268,53 @@ def test_run_sweep_accepts_positive_k_values(ks):
 
 
 # ----------------------------------------------------------------------
+# k_values duplicate guard (#57)
+# ----------------------------------------------------------------------
+# A duplicate `k` silently miscounts: the per-query loop increments
+# `hits_at_k[k]` once per occurrence while the dict carries one entry per
+# distinct k, so a k appearing N times counts each hit N times and yields
+# recall > 1.0 — a mathematically invalid number. Reject it loud, in the same
+# one-pass style as the non-positive guard (#27).
+
+
+def test_run_sweep_rejects_duplicate_k_values():
+    p = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=5, seed=1)
+    with pytest.raises(
+        ValueError, match=r"k_values must not contain duplicates; got duplicate \[5\]"
+    ):
+        run_sweep(_CORPUS, qs, embedder=p, k_values=(5, 5))
+
+
+def test_run_sweep_lists_all_duplicate_k_values_in_one_message():
+    # Every duplicated value should appear once, sorted ascending — operators
+    # shouldn't have to fix-and-rerun for each repeat. Non-duplicated values
+    # (here, 10) must not be listed.
+    p = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=5, seed=1)
+    with pytest.raises(ValueError, match=r"k_values must not contain duplicates") as exc_info:
+        run_sweep(_CORPUS, qs, embedder=p, k_values=(5, 1, 5, 10, 1))
+    msg = str(exc_info.value)
+    # Canonical sorted form lets operators copy-paste the offenders.
+    assert "[1, 5]" in msg
+    assert "10" not in msg
+
+
+def test_run_sweep_duplicate_k_would_corrupt_recall_without_guard():
+    # Pins the actual bug the guard prevents: pre-#57, k_values=(5, 5) double-
+    # counted every hit and produced recall@5 = 2.0 (> 1.0, invalid). The guard
+    # must reject it rather than return a corrupt number.
+    p = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=10, seed=42)
+    # Sanity: the distinct-k baseline is a valid probability.
+    baseline = run_sweep(_CORPUS, qs, embedder=p, k_values=(5,))
+    assert 0.0 <= baseline.recall_at_k[5] <= 1.0
+    # The duplicate form must not reach the corrupt computation at all.
+    with pytest.raises(ValueError, match="duplicates"):
+        run_sweep(_CORPUS, qs, embedder=p, k_values=(5, 5))
+
+
+# ----------------------------------------------------------------------
 # Round-trip + aggregation
 # ----------------------------------------------------------------------
 
