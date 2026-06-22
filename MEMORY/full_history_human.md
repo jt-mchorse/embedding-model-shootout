@@ -425,3 +425,16 @@ open and ready.
 `--format` choice covering text/json/sarif so CI workflows can route
 shape uniformly across repos. Or close additional sibling propagation
 gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
+
+## 2026-06-22 — Issue #57: run_sweep — reject duplicate k_values
+**Duration:** ~25 min · **Branch:** `session/2026-06-22-1916-issue-57`
+
+- Found via a Phase A Explore-subagent sweep over the core package (sweep/pareto/corpus/queries/io_utils/validate/providers) — the only real bug in an otherwise-saturated repo, picked because emb-shootout was the staleest (>36h) at build-sequence position 5. `run_sweep`'s per-query loop iterates `k_values` directly and increments `hits_at_k[k]` once per occurrence, while `hits_at_k` and the output `recall_at_k` dict carry one entry per *distinct* k. So a k appearing N times counted each hit N times: `k_values=(5, 5)` produced `recall@5 = 2.0` — a mathematically invalid number from a benchmark whose whole job is trustworthy retrieval scores.
+- This is the sibling gap of the `#27` per-element k guard: `#27` rejects non-positive k fail-loud, but every `#27` test uses distinct k values, so the duplicate case fell through. Fix extends that same block to reject duplicates one-pass (every duplicated value surfaced once, sorted; non-duplicates omitted). Chose reject over silent de-dupe to match the adjacent fail-loud philosophy — a duplicate k in a sweep signals an operator mistake, and the result dict is keyed by k so a duplicate carries no distinct meaning.
+- 3 new tests (rejection, all-dupes-in-one-message, and a pin that the duplicate form never reaches the corrupt computation). Verified all 3 fail pre-fix. Suite 328 → 331, ruff clean. PR #58 ready.
+
+**Why this work, this session:** the repo had zero open issues; rather than a synthetic README fill, a dogfood sweep surfaced a real silent-corruption bug in the headline metric — strictly higher value.
+
+**Open questions / blockers:** none.
+
+**Next session:** the k_values guard is now complete on both the non-positive (#27) and duplicate (#57) axes. No specific lead remains in `sweep.py`; pareto/corpus/queries scanned clean this session.
