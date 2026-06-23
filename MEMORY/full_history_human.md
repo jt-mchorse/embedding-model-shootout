@@ -438,3 +438,15 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers:** none.
 
 **Next session:** the k_values guard is now complete on both the non-positive (#27) and duplicate (#57) axes. No specific lead remains in `sweep.py`; pareto/corpus/queries scanned clean this session.
+
+## 2026-06-23 — Issue #59: validate_corpus skipped the duplicate-chunk_id check on field-error rows
+**Duration:** ~20 min · **Branch:** `session/2026-06-23-1940-issue-59`
+
+- After fixing the same bug in `chunking-strategies-lab` (#60), a cross-repo propagation check found the shared collecting-mode validate pattern carried the bug here too: `validate_corpus` early-`continue`d on any field finding before the duplicate-chunk_id check, so a row that was both a duplicate and field-invalid reported only the field error, and the duplicated chunk_id was never recorded.
+- Mirrored the chunking fix: run the dup check independently, guarded on a valid `chunk_id`, register valid chunk_ids even on field-invalid rows, count `n_valid` only for fully-clean rows. Also audited `prompt-regression-suite`'s validator and confirmed it is not affected (its continue is structurally forced when the snapshot fails to load). Suite 331 → 333, ruff clean.
+
+**Why this work, this session:** fifth dogfood find of the DAY session, and the highest-leverage kind — a real silent-rot instance that had propagated across sibling repos with a shared pattern.
+
+**Open questions / blockers:** none.
+
+**Next session:** none specific to this issue.
