@@ -135,25 +135,38 @@ def validate_corpus(path: str | Path) -> ValidationReport:
                 continue
 
             row_findings = _validate_row(obj, line_no)
-            if row_findings:
-                findings.extend(row_findings)
-                continue
+            findings.extend(row_findings)
 
-            chunk_id = obj["chunk_id"]
-            if chunk_id in seen_ids:
-                findings.append(
-                    ValidationFinding(
-                        line_no=line_no,
-                        reason=(
-                            f"duplicate chunk_id {chunk_id!r}; first seen at line "
-                            f"{seen_ids[chunk_id]}; chunk_id must be unique within a corpus"
-                        ),
-                        code="duplicate_chunk_id",
+            # The duplicate-chunk_id check is independent of the other field
+            # checks: a duplicate is a real, separate finding even when the row
+            # also has (say) an empty text, and collecting mode must surface
+            # every finding in one pass. Run it whenever the chunk_id field is
+            # itself valid (present, string, non-empty) — a missing/empty/
+            # non-string chunk_id is already reported by `_validate_row`, so the
+            # guard avoids a KeyError and a junk `seen_ids` entry. A valid
+            # chunk_id is recorded even when the row has other errors, so a later
+            # row reusing it is still flagged.
+            row_has_duplicate = False
+            chunk_id = obj.get("chunk_id")
+            if isinstance(chunk_id, str) and chunk_id != "":
+                if chunk_id in seen_ids:
+                    row_has_duplicate = True
+                    findings.append(
+                        ValidationFinding(
+                            line_no=line_no,
+                            reason=(
+                                f"duplicate chunk_id {chunk_id!r}; first seen at line "
+                                f"{seen_ids[chunk_id]}; chunk_id must be unique within a corpus"
+                            ),
+                            code="duplicate_chunk_id",
+                        )
                     )
-                )
-                # Don't count the duplicate as a second valid row.
+                else:
+                    seen_ids[chunk_id] = line_no
+
+            # Only a fully clean row counts as valid.
+            if row_findings or row_has_duplicate:
                 continue
-            seen_ids[chunk_id] = line_no
             n_valid += 1
 
     if n_rows == 0 and not findings:
