@@ -450,3 +450,17 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers:** none.
 
 **Next session:** none specific to this issue.
+
+---
+## 2026-06-24 — Issue #61: SweepResult didn't validate recall@k / nDCG@10 values
+**Duration:** ~25 min · **Branch:** `session/2026-06-24-0407-issue-61`
+
+- `SweepResult.__post_init__` guarded cost (finite/≥0, #31), `embedder_dim`, and the counts — but not the metric values. recall@k and nDCG@10 are [0,1] proportions, yet a corrupt/hand-edited result (loaded via `from_dict`) with recall=1.5 or NaN was accepted, silently winning the Pareto dominance comparison and rendering nonsensical plot points.
+- Validated each `recall_at_k` value and `ndcg_at_10` are finite and in [0,1] with a descriptive ValueError, covering both direct construction and the `from_dict` read path. Same loader value-validation class as chunking #62.
+- 16 new tests (parametrized out-of-range/non-finite recall + ndcg, inclusive boundaries, from_dict tampered recall). Red via `git stash`, green after. Suite 333 → 349, ruff clean.
+
+**Why this work, this session:** embedding-model-shootout was next non-tier in build sequence; sweep/validate/corpus were saturated, so a dogfood sweep of the Pareto/metric path surfaced this asymmetry in the existing `__post_init__` guard chain.
+
+**Open questions / blockers:** none.
+
+**Next session:** pareto.py / plot.py / the provider modules remain the dogfood frontier; `embed_latency_ms` value validation is a small deferred follow-up.
