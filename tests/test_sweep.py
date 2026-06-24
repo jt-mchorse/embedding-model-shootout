@@ -438,6 +438,47 @@ def test_sweep_result_from_dict_round_trip_rejects_corrupt_negative_cost():
         SweepResult.from_dict(serialized)
 
 
+# Issue #61: __post_init__ guarded cost/dim/counts but not the metric values.
+# recall@k and nDCG@10 are proportions in [0, 1]; an out-of-range or non-finite
+# value silently corrupts the Pareto comparator and the plot. Now rejected.
+@pytest.mark.parametrize("bad", [1.5, 2.0, -0.2, -1.0, float("nan"), float("inf"), float("-inf")])
+def test_sweep_result_rejects_out_of_range_or_non_finite_recall(bad: float):
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs["recall_at_k"] = {5: bad}
+    with pytest.raises(ValueError, match=r"recall_at_k\[5\] must be a finite number in \[0, 1\]"):
+        SweepResult(**kwargs)
+
+
+@pytest.mark.parametrize("bad", [1.5, 2.0, -0.2, -1.0, float("nan"), float("inf"), float("-inf")])
+def test_sweep_result_rejects_out_of_range_or_non_finite_ndcg(bad: float):
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs["ndcg_at_10"] = bad
+    with pytest.raises(ValueError, match=r"ndcg_at_10 must be a finite number in \[0, 1\]"):
+        SweepResult(**kwargs)
+
+
+def test_sweep_result_accepts_inclusive_metric_boundaries():
+    # The [0, 1] check is inclusive: a perfect (1.0) or zero (0.0) metric is valid.
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs["recall_at_k"] = {1: 0.0, 5: 1.0}
+    kwargs["ndcg_at_10"] = 1.0
+    result = SweepResult(**kwargs)
+    assert result.recall_at_k == {1: 0.0, 5: 1.0}
+    assert result.ndcg_at_10 == 1.0
+
+
+def test_sweep_result_from_dict_round_trip_rejects_corrupt_recall():
+    # The from_dict read path is also protected: a tampered result JSON with an
+    # impossible recall can't silently land on the Pareto frontier.
+    provider = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=5, seed=1)
+    original = run_sweep(_CORPUS, qs, embedder=provider)
+    serialized = json.loads(json.dumps(original.to_dict()))
+    serialized["recall_at_k"] = {"5": 1.5}
+    with pytest.raises(ValueError, match=r"recall_at_k\[5\] must be a finite number in \[0, 1\]"):
+        SweepResult.from_dict(serialized)
+
+
 def test_aggregate_markdown_renders_one_row_per_result():
     provider1 = HashEmbedderProvider(dim=64, ngram=1)
     provider2 = HashEmbedderProvider(dim=128, ngram=2)

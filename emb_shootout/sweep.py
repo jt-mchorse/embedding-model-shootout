@@ -103,6 +103,23 @@ class SweepResult:
             raise ValueError(f"n_queries must be an int; got {self.n_queries!r}")
         if self.n_queries < 0:
             raise ValueError(f"n_queries must be >= 0; got {self.n_queries}")
+        # recall@k and nDCG@10 are proportions in [0, 1]. The guards above
+        # cover cost/dim/counts but not these metric values, so a corrupt or
+        # hand-edited result (loaded via `from_dict`) carrying recall=1.5 or a
+        # NaN would silently win the Pareto-frontier comparison (pareto.py) and
+        # render nonsensical points in the plot. Same "numeric silently corrupts
+        # comparator" class as the cost guard above (#29/#31), on the metric axis.
+        for k, v in self.recall_at_k.items():
+            if not isinstance(v, (int, float)) or isinstance(v, bool):
+                raise ValueError(f"recall_at_k[{k}] must be a number; got {v!r}")
+            if not math.isfinite(v) or not 0.0 <= v <= 1.0:
+                raise ValueError(f"recall_at_k[{k}] must be a finite number in [0, 1]; got {v!r}")
+        if not isinstance(self.ndcg_at_10, (int, float)) or isinstance(self.ndcg_at_10, bool):
+            raise ValueError(f"ndcg_at_10 must be a number; got {self.ndcg_at_10!r}")
+        if not math.isfinite(self.ndcg_at_10) or not 0.0 <= self.ndcg_at_10 <= 1.0:
+            raise ValueError(
+                f"ndcg_at_10 must be a finite number in [0, 1]; got {self.ndcg_at_10!r}"
+            )
 
     def to_dict(self) -> dict[str, Any]:
         # Explicit nine-field contract (#47) — no `asdict(self)`. A
