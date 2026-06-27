@@ -59,17 +59,23 @@ def build_queries(
         raise ValueError("corpus must be non-empty")
 
     rng = random.Random(seed)
-    eligible = [(c, _words_of(c.text)) for c in corpus if len(_words_of(c.text)) >= min_words]
+    eligible = [(c, _word_spans(c.text)) for c in corpus if len(_word_spans(c.text)) >= min_words]
     if not eligible:
         raise ValueError(f"no corpus chunks have >= {min_words} words")
 
     queries: list[Query] = []
     for i in range(n):
-        chunk, words = rng.choice(eligible)
-        max_for_chunk = min(max_words, len(words))
+        chunk, spans = rng.choice(eligible)
+        max_for_chunk = min(max_words, len(spans))
         window = rng.randint(min_words, max_for_chunk)
-        start = rng.randint(0, len(words) - window)
-        snippet = " ".join(words[start : start + window])
+        start = rng.randint(0, len(spans) - window)
+        # Slice the source between the first word's start and the last word's
+        # end so the snippet is a *verbatim* substring (original whitespace —
+        # newlines, tabs, multi-space gaps — preserved). Rejoining tokens with
+        # " ".join collapsed every separator, so a window straddling a non-
+        # single-space boundary was no longer a substring of its source chunk,
+        # breaking the docstring's verbatim contract (#67).
+        snippet = chunk.text[spans[start][0] : spans[start + window - 1][1]]
         queries.append(
             Query(
                 query_id=f"q-{i:05d}",
@@ -83,5 +89,11 @@ def build_queries(
 _WORD_RE = re.compile(r"\S+")
 
 
-def _words_of(text: str) -> list[str]:
-    return _WORD_RE.findall(text)
+def _word_spans(text: str) -> list[tuple[int, int]]:
+    """(start, end) character spans of each whitespace-delimited word.
+
+    Used instead of the bare token list so `build_queries` can slice the
+    source text verbatim (preserving original whitespace) rather than
+    rejoining tokens with single spaces.
+    """
+    return [(m.start(), m.end()) for m in _WORD_RE.finditer(text)]
