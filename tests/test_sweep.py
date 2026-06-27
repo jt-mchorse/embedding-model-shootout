@@ -159,6 +159,33 @@ def test_build_queries_assigns_expected_chunk_id_correctly():
         assert q.text in chunk_id_to_text[q.expected_chunk_id]
 
 
+def test_build_queries_snippets_are_verbatim_substrings_of_multiline_chunks():
+    # #67: build_queries rejoined tokens with " ".join, collapsing newlines /
+    # tabs / multi-space gaps — so a snippet straddling a non-single-space
+    # boundary was NOT a substring of its source chunk. The real corpus
+    # (signature + "\n\n" + docstring) is full of such boundaries; the
+    # single-line _CORPUS fixture above masked it. Use realistic multi-line
+    # chunks and assert every snippet is a verbatim substring.
+    multiline = [
+        CorpusChunk(
+            chunk_id="m-001",
+            text="heappush(heap, item)\n\nPush item onto heap,\nmaintaining the heap  invariant for the queue.",
+        ),
+        CorpusChunk(
+            chunk_id="m-002",
+            text="json.loads(s)\n\nDeserialize s (a str, bytes or bytearray\ninstance) to a Python object using this conversion table.",
+        ),
+    ]
+    queries = build_queries(multiline, n=50, seed=7, min_words=4, max_words=10)
+    by_id = {c.chunk_id: c.text for c in multiline}
+    for q in queries:
+        assert q.text in by_id[q.expected_chunk_id], repr(q.text)
+    # And at least one snippet actually contains an original non-space
+    # separator (newline or double space), proving the verbatim path is
+    # exercised rather than all windows landing inside single-space runs.
+    assert any(("\n" in q.text or "  " in q.text) for q in queries)
+
+
 def test_build_queries_validates_inputs():
     with pytest.raises(ValueError, match="n must be a positive integer"):
         build_queries(_CORPUS, n=0)
