@@ -477,3 +477,15 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers:** none.
 
 **Next session:** the non-finite hardening arc now covers comparator inputs through to output metrics; `embed`-latency finiteness was considered and deferred (different domain — latency, not a [0,1] rate).
+
+## 2026-06-27 — Issue #67: build_queries snippets weren't verbatim substrings
+**Duration:** ~25 min · **Branch:** `session/2026-06-27-0327-issue-67`
+
+- `build_queries` tokenized each chunk with `\S+` (dropping whitespace) and rebuilt the snippet via `" ".join(...)`, collapsing newlines/tabs/multi-space gaps to single spaces. The real corpus is `"{signature}\n\n{docstring}"` — full of newlines — so **173/200** generated queries were *not* substrings of their source chunk, breaking the module's documented "verbatim contiguous-word snippet → perfect retriever returns that chunk first" contract. The existing `test_build_queries_assigns_expected_chunk_id_correctly` passed only because its `_CORPUS` fixtures are single-line single-space strings.
+- Fixed by capturing each word's `(start, end)` char span via `_WORD_RE.finditer` and slicing the source verbatim (`chunk.text[spans[start][0] : spans[start+window-1][1]]`). The RNG call sequence is identical (`len(spans) == len(words)`), so determinism and the window-length distribution are unchanged — only the snippet *text* is now verbatim. Post-fix: 200/200 verbatim. Added a regression test using realistic multi-line chunks. Suite 361 → 362, ruff clean; benchmark snapshot unaffected (hash embedder collapses whitespace identically).
+
+**Why this work, this session:** third issue of a multi-issue NIGHT run, surfaced by a parallel dogfood agent with a deterministic 173/200-violation repro on the real corpus.
+
+**Open questions / blockers:** none.
+
+**Next session:** the verbatim contract now holds for whitespace-sensitive (real-provider) embedders; the single-line `_CORPUS` fixture remains but the new multi-line test is the targeted guard.
