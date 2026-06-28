@@ -489,3 +489,15 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers:** none.
 
 **Next session:** the verbatim contract now holds for whitespace-sensitive (real-provider) embedders; the single-line `_CORPUS` fixture remains but the new multi-line test is the targeted guard.
+
+## 2026-06-28 — Issue #69: Pareto plot highlighted dominated points by name collision
+**Duration:** ~25 min · **Branch:** `session/2026-06-28-1604-issue-69`
+
+- `render_pareto` chose each scatter point's color by matching the *string* `embedder_name` against the frontier's names. When two distinct `SweepResult`s share a provider name — realistic per D-007 (one file per run, so running the same provider twice yields two same-named results, one Pareto-dominated) — the dominated point was painted in the frontier highlight color (`#d62728`) instead of muted (`#7f7f7f`). The chart then visually asserts a dominated configuration is on the frontier — the exact wrong comparison the plot exists to communicate. The connecting polyline was already frontier-object-based, so only the per-point coloring was wrong.
+- Fixed by matching on object identity (`frontier_ids = {id(r) for r in frontier}`; `if id(r) in frontier_ids:`); `pareto_frontier` returns the actual input objects, so identity is exact. Added a regression test that intercepts `_import_matplotlib` with a small recording-stub `plt` and asserts the dominated same-named point is muted — no SVG parsing, no display. Proven to fail pre-fix; suite 362 → 363, ruff clean.
+
+**Why this work, this session:** fourth substantive issue of a multi-issue DAY run, and the second real bug found by dogfood after three consecutive clean passes (rag-production-kit, python-async-llm-pipelines, vector-search-at-scale) — a genuine correctness defect in what the chart visually claims, not a cosmetic nit.
+
+**Open questions / blockers:** none.
+
+**Next session:** continue the loop if time remains.
