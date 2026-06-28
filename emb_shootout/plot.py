@@ -60,7 +60,12 @@ def render_pareto(
     plt = _import_matplotlib()
 
     frontier = pareto_frontier(results)
-    frontier_names = {r.embedder_name for r in frontier}
+    # Match frontier membership by object identity, not `embedder_name`:
+    # `pareto_frontier` returns the actual input objects, and two distinct
+    # results can share a name (D-007 writes one file per run, so the same
+    # provider run twice yields two same-named results). Name-matching would
+    # paint a dominated run with the frontier highlight (#69).
+    frontier_ids = {id(r) for r in frontier}
 
     fig, ax = plt.subplots(figsize=(8.0, 5.5))
 
@@ -68,7 +73,7 @@ def render_pareto(
     for r in results:
         x = r.cost_per_million_tokens
         y = float(r.recall_at_k.get(5, 0.0))
-        if r.embedder_name in frontier_names:
+        if id(r) in frontier_ids:
             ax.scatter(x, y, s=90, color="#d62728", zorder=3, edgecolor="black", linewidth=0.5)
         else:
             ax.scatter(x, y, s=70, color="#7f7f7f", zorder=2, edgecolor="black", linewidth=0.3)

@@ -94,6 +94,62 @@ def test_render_with_dominated_point_keeps_only_frontier_red(tmp_path: Path):
     assert [r.embedder_name for r in frontier] == ["cheap_good"]
 
 
+_FRONTIER_COLOR = "#d62728"
+_MUTED_COLOR = "#7f7f7f"
+
+
+class _RecordingAx:
+    """Captures (x, y, color) of every scatter call; no-ops everything else."""
+
+    def __init__(self) -> None:
+        self.scatter_calls: list[tuple[float, float, str]] = []
+
+    def scatter(self, x, y, **kw):  # noqa: ANN001
+        self.scatter_calls.append((x, y, kw.get("color")))
+
+    def __getattr__(self, _name):  # plot/annotate/set_*/grid -> no-op
+        return lambda *a, **k: None
+
+
+class _RecordingFig:
+    def tight_layout(self, *a, **k):
+        pass
+
+    def savefig(self, *a, **k):
+        pass
+
+
+class _RecordingPlt:
+    def __init__(self, ax: _RecordingAx) -> None:
+        self._ax = ax
+
+    def subplots(self, *a, **k):
+        return _RecordingFig(), self._ax
+
+    def close(self, *a, **k):
+        pass
+
+
+def test_dominated_point_sharing_a_frontier_name_is_not_highlighted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """A dominated run that shares its `embedder_name` with a frontier run must
+    be drawn muted, not in the frontier highlight color (#69). Pre-fix the
+    name-based membership test painted it red."""
+    ax = _RecordingAx()
+    monkeypatch.setattr("emb_shootout.plot._import_matplotlib", lambda: _RecordingPlt(ax))
+
+    # Same name, but `expensive` is Pareto-dominated by `cheap`.
+    cheap = _make("openai", cost=0.1, recall_at_5=0.9)
+    expensive = _make("openai", cost=10.0, recall_at_5=0.3)
+    frontier, _png, _svg = render_pareto([cheap, expensive], out_png=tmp_path / "dup.png")
+
+    assert [id(r) for r in frontier] == [id(cheap)], "only the cheap run is on the frontier"
+    colors_by_cost = {x: color for (x, _y, color) in ax.scatter_calls}
+    assert colors_by_cost[0.1] == _FRONTIER_COLOR, "frontier point is highlighted"
+    assert colors_by_cost[10.0] == _MUTED_COLOR, "dominated same-named point is muted"
+
+
 def test_cli_plot_subcommand_writes_files(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
     results_dir = tmp_path / "results"
     results_dir.mkdir()
