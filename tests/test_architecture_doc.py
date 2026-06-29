@@ -170,6 +170,38 @@ def test_backtick_paths_resolve_on_disk(doc_text: str) -> None:
     )
 
 
+def test_dotted_symbol_refs_resolve(doc_text: str) -> None:
+    """Every `emb_shootout.<module>.<symbol>` reference resolves to a real
+    package attribute.
+
+    ``test_backtick_paths_resolve_on_disk`` only validates slash-path tokens
+    (``RESOLVABLE_PREFIXES``); a *dotted* symbol reference — including those in
+    Mermaid ``[...]`` nodes and prose — was unguarded. That let the doc name
+    ``emb_shootout.pareto.compute_frontier()`` (which never existed; the real
+    symbol is ``pareto_frontier``) while the suite stayed green (#71). This
+    closes that drift class: import each referenced module and assert the
+    symbol exists on it.
+    """
+    import importlib
+
+    refs = set(re.findall(r"emb_shootout\.([a-z_]+)\.([A-Za-z_][A-Za-z0-9_]*)", doc_text))
+    assert refs, "expected at least one dotted emb_shootout.<module>.<symbol> reference in the doc"
+    unresolved: list[str] = []
+    for module_name, symbol in sorted(refs):
+        try:
+            module = importlib.import_module(f"emb_shootout.{module_name}")
+        except ModuleNotFoundError:
+            unresolved.append(f"emb_shootout.{module_name} (module not importable)")
+            continue
+        if not hasattr(module, symbol):
+            unresolved.append(f"emb_shootout.{module_name}.{symbol}")
+    assert not unresolved, (
+        "docs/architecture.md names dotted symbols that don't exist in the package:\n"
+        + "\n".join(f"  - {u}" for u in unresolved)
+        + "\n(fix the doc to match the shipped symbol, or update the rename that orphaned it)"
+    )
+
+
 def test_every_shipped_issue_referenced(doc_text: str) -> None:
     # Match `#NN` tokens — the pattern the doc uses to annotate each
     # surface with its origin issue. The whole-word boundary keeps

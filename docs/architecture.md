@@ -21,7 +21,7 @@ flowchart LR
     Real --> Agg
     Agg --> Bench[("docs/benchmarks.md")]:::shipped
 
-    Hash --> Pareto["Pareto frontier<br/>emb_shootout.pareto.compute_frontier()<br/>(#3, D-008)"]:::shipped
+    Hash --> Pareto["Pareto frontier<br/>emb_shootout.pareto.pareto_frontier()<br/>(#3, D-008)"]:::shipped
     Real --> Pareto
     Pareto --> Plot["Matplotlib renderer<br/>emb_shootout.plot<br/>(behind [plot] extra)"]:::opkey
     Plot --> PNG[("docs/pareto.png<br/>(committed when ≥2 points exist)")]:::opkey
@@ -46,8 +46,8 @@ until that second point exists).
 - **`emb_shootout.queries`** — derives the held-out query set from the
   corpus at sweep time with a fixed seed (D-005). No pre-committed
   queries; corpus and queries cannot drift apart.
-- **`emb_shootout.sweep`** — `Embedder` Protocol, `run_sweep(provider,
-  corpus, queries)`, `aggregate_markdown(results_dir)`. One JSON per
+- **`emb_shootout.sweep`** — `Embedder` Protocol, `run_sweep(corpus,
+  queries, *, embedder)`, `aggregate_markdown(results_dir)`. One JSON per
   provider (D-007), aggregator is pure-read so concurrent operator runs
   don't collide.
 - **`emb_shootout.providers`** — six implementations: the dep-free
@@ -56,7 +56,7 @@ until that second point exists).
   (D-004). Each is exercised by its own unit test against a stub HTTP
   response shape, so the wire format is locked even when no API key is
   configured.
-- **`emb_shootout.pareto`** — pure-Python `compute_frontier(points)`
+- **`emb_shootout.pareto`** — pure-Python `pareto_frontier(results)`
   over (cost-per-million, recall@5) pairs (D-008). The frontier
   computation is dep-free so it runs in the standard CI matrix.
 - **`emb_shootout.plot`** — matplotlib renderer behind the `plot`

@@ -501,3 +501,15 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers:** none.
 
 **Next session:** continue the loop if time remains.
+
+## 2026-06-29 — Issue #71: architecture.md named a nonexistent function (compute_frontier)
+**Duration:** ~18 min · **Branch:** `session/2026-06-29-0342-arch-doc-drift`
+
+- `docs/architecture.md` named `emb_shootout.pareto.compute_frontier()` (Mermaid node + bullet), but no such symbol exists — the real, tested function is `pareto_frontier` (the README already uses it, locked by `test_public_surface`). The same doc also documented `run_sweep(provider, corpus, queries)` while the real signature is `run_sweep(corpus, queries, *, embedder)`.
+- Fixed both references and added `test_dotted_symbol_refs_resolve`, which imports each `emb_shootout.<module>` referenced in the doc and asserts the symbol exists — closing the drift class the existing slash-path-only check missed (verified it fails on the old name, passes on the fix).
+
+**Why this work, this session:** fifth issue of the night run. A parallel audit subagent swept this repo, found no logic bug (mature, 363 tests, Pareto/metric code correct), and surfaced this dotted-symbol doc drift — same class as python-async #68 and rag-production-kit #100.
+
+**Open questions / blockers:** none.
+
+**Next session:** dotted `emb_shootout.module.symbol` references in architecture.md are now lock-tested against the real package surface.
