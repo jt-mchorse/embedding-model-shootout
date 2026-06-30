@@ -146,6 +146,43 @@ def test_sweep_aggregate_malformed_result_json_exits_two(
     assert "Traceback" not in err
 
 
+def test_sweep_plot_malformed_result_json_exits_two(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    # #77: the plot path parsed results with a bare comprehension, so a
+    # malformed result file raised a raw JSONDecodeError at exit 1 — sibling
+    # gap to the #75 aggregate fix. The malformed check fires before
+    # render_pareto, so this is hermetic regardless of whether matplotlib is
+    # installed. Confirmed failing pre-fix.
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "good.json").write_text(json.dumps(_valid_result_dict("bge")), encoding="utf-8")
+    (results / "bad.json").write_text("{truncated", encoding="utf-8")
+    rc = main(
+        ["sweep", "plot", "--results-dir", str(results), "--out-png", str(tmp_path / "p.png")]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "bad.json" in err
+    assert "Traceback" not in err
+
+
+def test_sweep_plot_unreadable_result_exits_two(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    # The OSError arm of the same guard: a result path that cannot be read
+    # exits 2 with `failed to read`, not a raw traceback. Use a directory named
+    # like a result file so read_text raises OSError (IsADirectoryError).
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "adir.json").mkdir()
+    rc = main(
+        ["sweep", "plot", "--results-dir", str(results), "--out-png", str(tmp_path / "p.png")]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "failed to read" in err
+    assert "Traceback" not in err
+
+
 def test_sweep_aggregate_unwritable_out_exits_two(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ):
