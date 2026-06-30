@@ -513,3 +513,15 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers:** none.
 
 **Next session:** dotted `emb_shootout.module.symbol` references in architecture.md are now lock-tested against the real package surface.
+
+## 2026-06-30 — Issue #73: retrieve_top_k broke cosine ties by corpus order, making recall@k non-deterministic
+**Duration:** ~20 min · **Branch:** `session/2026-06-30-1555-issue-73`
+
+- `retrieve_top_k` (`sweep.py:271`) sorted by similarity with `reverse=True`; Python's stable sort left tied cosine similarities in corpus-read order, so recall@k / NDCG at a top-k boundary depended on how the corpus was passed in — not the (similarity, chunk) set. Verified firsthand: the same query + embedder + corpus *set*, reordered, gave recall@1 of 1.0 vs 0.0.
+- Fixed by sorting on `(-similarity, chunk_id)` so the ranking is a pure function of the data; similarities are guaranteed finite upstream so negation is safe. Same determinism class as chunking-strategies-lab #68 and this repo's #69. +3 tests (retrieve invariance, run_sweep invariance — the end-to-end repro, fails pre-fix — and a non-tied over-rejection guard). Suite 364 → 367, ruff clean.
+
+**Why this work, this session:** sixth issue of a DAY multi-issue run, second non-tier repo (after prompt-regression-suite #93), per build sequence. Zero open issues → dogfood-and-file: I reviewed pareto/sweep/io_utils myself (found this in sweep.py) while an Explore hunter scanned cli/corpus/queries/validate/plot/providers — it surfaced a cluster of four cli.py exit-code-contract gaps, filed as **#75** for a future session.
+
+**Open questions / blockers:** none — ready for review.
+
+**Next session:** continue the loop; #75 (cli.py exit-2 cluster) is a clean follow-up.
