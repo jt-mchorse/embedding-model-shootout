@@ -194,7 +194,7 @@ def test_sweep_run_output_routes_through_atomic_helper(
 
 
 def test_sweep_aggregate_out_routes_through_atomic_helper(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """`emb-shootout sweep aggregate --out PATH` must route through the helper.
 
@@ -228,19 +228,26 @@ def test_sweep_aggregate_out_routes_through_atomic_helper(
         raise OSError("simulated rename failure")
 
     monkeypatch.setattr(io_utils_mod.os, "replace", boom)
-    with pytest.raises(OSError, match="simulated rename failure"):
-        cli_main(
-            [
-                "sweep",
-                "aggregate",
-                "--results-dir",
-                str(results_dir),
-                "--format",
-                "markdown",
-                "--out",
-                str(out),
-            ]
-        )
+    # The write still routes through atomic_write_text (the patched os.replace
+    # fires), but since #75 the resulting OSError is translated to a clean
+    # `error:` + exit 2 rather than escaping as a raw traceback.
+    rc = cli_main(
+        [
+            "sweep",
+            "aggregate",
+            "--results-dir",
+            str(results_dir),
+            "--format",
+            "markdown",
+            "--out",
+            str(out),
+        ]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "failed to write" in err
+    assert "simulated rename failure" in err  # proves the patched os.replace was reached
+    assert "Traceback" not in err
 
     assert not out.exists(), "sweep aggregate --out must not write destination on replace failure"
 

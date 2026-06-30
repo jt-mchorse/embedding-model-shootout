@@ -74,7 +74,13 @@ def _cmd_corpus_validate(args: argparse.Namespace) -> int:
             f"findings={len(report.findings)}\n"
         )
     if args.out:
-        atomic_write_text(args.out, rendered)
+        # An unwritable --out otherwise raised a raw OSError at exit 1 (#75),
+        # mirroring the FileNotFoundError/OSError handling on the read above.
+        try:
+            atomic_write_text(args.out, rendered)
+        except OSError as e:
+            sys.stderr.write(f"failed to write {args.out}: {e}\n")
+            return 2
     else:
         sys.stdout.write(rendered)
     return 0 if report.ok else 1
@@ -93,7 +99,14 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
         )
         return 2
 
-    corpus = _read_corpus_jsonl(Path(args.corpus))
+    try:
+        corpus = _read_corpus_jsonl(Path(args.corpus))
+    except FileNotFoundError as e:
+        sys.stderr.write(f"corpus not found: {e}\n")
+        return 2
+    except (OSError, ValueError) as e:
+        sys.stderr.write(f"failed to read {args.corpus}: {e}\n")
+        return 2
     queries = build_queries(corpus, n=args.queries, seed=args.seed)
     embedder = PROVIDER_REGISTRY[args.provider]()
     result = run_sweep(corpus, queries, embedder=embedder, k_values=(1, 5, 10))
@@ -118,13 +131,30 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
     if not files:
         sys.stderr.write(f"no result JSON files found under {results_dir}\n")
         return 2
-    results = [SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))) for p in files]
+    # A hand-edited/truncated result file otherwise raised a raw
+    # JSONDecodeError (or OSError) at exit 1 (#75) — name the bad file and
+    # exit 2 per the usage contract.
+    results = []
+    for p in files:
+        try:
+            results.append(SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))))
+        except json.JSONDecodeError as e:
+            sys.stderr.write(f"malformed result JSON in {p}: {e.msg}\n")
+            return 2
+        except OSError as e:
+            sys.stderr.write(f"failed to read {p}: {e}\n")
+            return 2
     if args.format == "json":
         rendered = json.dumps(aggregate_json(results), indent=2, sort_keys=True) + "\n"
     else:
         rendered = aggregate_markdown(results)
     out_path = Path(args.out)
-    atomic_write_text(out_path, rendered)
+    # An unwritable --out otherwise raised a raw OSError at exit 1 (#75).
+    try:
+        atomic_write_text(out_path, rendered)
+    except OSError as e:
+        sys.stderr.write(f"failed to write {out_path}: {e}\n")
+        return 2
     sys.stdout.write(f"aggregated {len(results)} results → {out_path}\n")
     return 0
 
@@ -175,11 +205,23 @@ def _read_corpus_jsonl(path: Path) -> list:
 
     chunks: list[CorpusChunk] = []
     with path.open("r", encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
+        for line_no, raw in enumerate(fh, start=1):
+            line = raw.strip()
             if not line:
                 continue
-            obj = json.loads(line)
+            # Fail-fast, but with line context instead of a raw
+            # JSONDecodeError/KeyError (#75): the `sweep run` path reads here
+            # without the collecting-mode `validate_corpus`, so a malformed row
+            # otherwise escaped as a traceback at exit 1. Callers translate this
+            # ValueError to a clean `error:` + exit 2.
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"{path}:{line_no}: invalid JSON: {e.msg}") from e
+            if not isinstance(obj, dict) or "chunk_id" not in obj or "text" not in obj:
+                raise ValueError(
+                    f"{path}:{line_no}: row must be a JSON object with chunk_id and text fields"
+                )
             chunks.append(CorpusChunk(chunk_id=obj["chunk_id"], text=obj["text"]))
     return chunks
 
