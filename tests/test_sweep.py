@@ -25,7 +25,7 @@ from emb_shootout import (
     ndcg_at_k,
     run_sweep,
 )
-from emb_shootout.sweep import percentile, retrieve_top_k
+from emb_shootout.sweep import Query, percentile, retrieve_top_k
 
 # ----------------------------------------------------------------------
 # Math
@@ -94,6 +94,52 @@ def test_retrieve_top_k_returns_highest_similarity_first():
 def test_retrieve_top_k_rejects_zero_k():
     with pytest.raises(ValueError, match="positive"):
         retrieve_top_k([1.0], [[1.0]], ["a"], k=0)
+
+
+# Issue #73: cosine ties must break on the stable chunk id, not corpus insertion
+# order, so the ranking (and recall@k / NDCG) is a pure function of the
+# (similarity, chunk_id) set — not of how the corpus was read.
+
+
+def test_retrieve_top_k_tie_break_is_corpus_order_independent():
+    # Two chunks with identical vectors → identical cosine to any query (a tie).
+    # The result must be the same regardless of the order they're passed in.
+    qv = [1.0, 0.0]
+    vecs = [[1.0, 1.0], [1.0, 1.0]]
+    a = retrieve_top_k(qv, vecs, ["expected", "other"], k=1)
+    b = retrieve_top_k(qv, vecs, ["other", "expected"], k=1)
+    assert a == b
+    # Deterministically the alphabetically-smaller id wins the tie.
+    assert a[0][0] == "expected"
+
+
+def test_run_sweep_recall_is_invariant_under_corpus_reordering_on_ties():
+    class _TieEmbedder:
+        name = "tie"
+        dim = 2
+        cost_per_million_tokens = 0.0
+
+        def embed(self, texts):
+            # All corpus chunks map to the same vector → ties; the query differs.
+            return [[1.0, 0.0] if t == "QUERY" else [1.0, 1.0] for t in texts]
+
+    def _q():
+        return Query(query_id="q1", text="QUERY", expected_chunk_id="expected")
+
+    ca = [CorpusChunk(chunk_id="expected", text="c1"), CorpusChunk(chunk_id="other", text="c2")]
+    cb = [CorpusChunk(chunk_id="other", text="c2"), CorpusChunk(chunk_id="expected", text="c1")]
+    ra = run_sweep(ca, [_q()], embedder=_TieEmbedder(), k_values=(1,)).recall_at_k
+    rb = run_sweep(cb, [_q()], embedder=_TieEmbedder(), k_values=(1,)).recall_at_k
+    assert ra == rb  # pre-fix: {1: 1.0} vs {1: 0.0} — corpus order leaked into recall
+
+
+def test_retrieve_top_k_non_tied_ranking_unchanged():
+    # Over-rejection guard: when similarities clearly differ, the score still
+    # dominates and the id tiebreak is inert.
+    corpus = [[1.0, 0.0], [0.0, 1.0], [0.7, 0.7]]
+    ids = ["a", "b", "c"]
+    out = retrieve_top_k([1.0, 0.0], corpus, ids, k=2)
+    assert [r[0] for r in out] == ["a", "c"]
 
 
 # Issue #31: extend ndcg_at_k and retrieve_top_k sign-only k checks to
