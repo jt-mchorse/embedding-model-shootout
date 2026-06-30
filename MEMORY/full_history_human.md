@@ -525,3 +525,17 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers:** none — ready for review.
 
 **Next session:** continue the loop; #75 (cli.py exit-2 cluster) is a clean follow-up.
+
+## 2026-06-30 — Issue #75: CLI seams leaked raw tracebacks (exit 1) instead of exit 2
+**Duration:** ~30 min · **Branch:** `session/2026-06-30-1946-issue-75`
+
+- Three `cli.py` seams broke the `0=clean / 1=findings / 2=I/O|usage` exit contract by leaking raw tracebacks at exit 1: (1) `_read_corpus_jsonl` (the sweep-run path, which skips `validate_corpus`) raised `KeyError`/`JSONDecodeError` on a malformed row; (2) `_cmd_sweep_aggregate` raised `JSONDecodeError` on a truncated result file; (3) `atomic_write_text` to an unwritable `--out` in `_cmd_corpus_validate` and `_cmd_sweep_aggregate` raised `OSError`. Fixed each → clean `error:` on stderr + exit 2: `_read_corpus_jsonl` now raises a `path:lineno`-tagged `ValueError` that `_cmd_sweep_run` catches; aggregate catches per-file decode/OS errors naming the bad file; both write sites catch `OSError`.
+- +6 lock tests (the 5 exit-2 cases fail pre-fix with the raw tracebacks; unwritable-`--out` is forced hermetically by pointing `--out` at an existing directory so `os.replace` raises `IsADirectoryError`) plus a happy-path guard. Updated one pre-existing test (`test_sweep_aggregate_out_routes_through_atomic_helper`) that asserted the *old* raw-`OSError` propagation — it now asserts the exit-2 translation while still proving the write routes through `atomic_write_text` (the monkeypatched `os.replace` still fires). Suite 367 → 373, ruff clean.
+
+**Why this work, this session:** fifth issue of a DAY multi-issue run and the first non-tier repo, after the priority tier's clean unblocked work was exhausted (D-009 rotate-to-non-tier). Picked as the highest-priority clean non-tier issue (med). Deferred `_cmd_sweep_run`'s own write guard (not in this 3-seam cluster) — noted in the PR as an adjacent parity item.
+
+**Process note:** I started editing `cli.py` on `main` before creating the branch or posting the plan — the same code-before-plan slip flagged previously. Caught it before any commit (stashed → branched → restored → posted the plan with an honest note). Recording it so the pattern stays visible.
+
+**Open questions / blockers:** none — ready for review.
+
+**Next session:** continue the loop.
