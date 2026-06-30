@@ -268,7 +268,16 @@ def retrieve_top_k(
     sims = [
         (chunk_ids[i], cosine(query_vector, corpus_vectors[i])) for i in range(len(corpus_vectors))
     ]
-    sims.sort(key=lambda pair: pair[1], reverse=True)
+    # Break similarity ties on the stable chunk id, not corpus insertion order.
+    # `reverse=True` on the score alone left tied chunks in their corpus-read
+    # order, so recall@k / NDCG at a top-k boundary depended on how the corpus
+    # was passed in — a benchmark whose job is trustworthy scores must rank as a
+    # pure function of the (similarity, chunk_id) set (#73). Negate the score for
+    # an ascending composite sort (reverse=True would also reverse the id
+    # tiebreak). Similarities are guaranteed finite (`_reject_non_finite_vectors`
+    # + zero-norm → 0.0 in `cosine`), so negation is safe — same shape as
+    # chunking-strategies-lab #68.
+    sims.sort(key=lambda pair: (-pair[1], pair[0]))
     return sims[:k]
 
 
