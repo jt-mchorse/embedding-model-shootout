@@ -539,3 +539,15 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers:** none — ready for review.
 
 **Next session:** continue the loop.
+
+## 2026-06-30 — Issue #77: `sweep plot` raised a raw traceback on a malformed result JSON
+**Duration:** ~20 min · **Branch:** `session/2026-06-30-2345-issue-77`
+
+- `_cmd_sweep_plot` (`cli.py:174`) parsed every result file with a bare list comprehension, so a hand-edited/truncated `*.json` in `--results-dir` raised an uncaught `JSONDecodeError` (or `OSError`) and exited 1 with a traceback. The sibling `_cmd_sweep_aggregate` was hardened in #75 to catch these per-file (name the bad file, exit 2 per the usage contract) — the plot path was missed by that sweep. Reproduced firsthand before acting. Fixed by applying the same per-file `try/except (json.JSONDecodeError, OSError)` loop; schema-shape errors stay out of scope to mirror #75 exactly.
+- +2 tests: a malformed-JSON case and an unreadable-file case (a directory named `adir.json` so `read_text` raises `IsADirectoryError`). Both fire before `render_pareto`, so they are hermetic regardless of whether matplotlib is installed; both fail pre-fix. Suite 373 → 375, ruff + format clean.
+
+**Why this work, this session:** third issue of a DAY multi-issue run (after chunking-strategies-lab #95 and llm-cost-optimizer #116). Found by dogfood bug-hunt in a saturated portfolio (no open priority:high/med code issues); this round ran parallel hunts on rag (telemetry/fusion) and embedding-model-shootout (metrics), and the emb hunt surfaced this exit-code sibling gap. Filed **#77** then fixed it in-session.
+
+**Open questions / blockers:** none — ready for review.
+
+**Next session:** continue the loop. The deferred `_cmd_sweep_run`'s own `atomic_write_text` (noted in #75) remains a separate future parity item.

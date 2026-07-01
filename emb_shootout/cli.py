@@ -171,7 +171,19 @@ def _cmd_sweep_plot(args: argparse.Namespace) -> int:
     if not files:
         sys.stderr.write(f"no result JSON files found under {results_dir}\n")
         return 2
-    results = [SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))) for p in files]
+    # A hand-edited/truncated result file otherwise raised a raw
+    # JSONDecodeError (or OSError) at exit 1 — name the bad file and exit 2 per
+    # the usage contract, matching _cmd_sweep_aggregate (#75).
+    results = []
+    for p in files:
+        try:
+            results.append(SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))))
+        except json.JSONDecodeError as e:
+            sys.stderr.write(f"malformed result JSON in {p}: {e.msg}\n")
+            return 2
+        except OSError as e:
+            sys.stderr.write(f"failed to read {p}: {e}\n")
+            return 2
 
     if args.out_png is None and args.out_svg is None:
         sys.stderr.write("must provide at least one of --out-png or --out-svg\n")
