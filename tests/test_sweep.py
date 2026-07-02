@@ -665,6 +665,33 @@ def test_aggregate_markdown_handles_empty():
     assert "no results" in md
 
 
+def test_aggregate_markdown_escapes_pipe_in_embedder_name_so_columns_dont_break():
+    # #79 (sibling to llm-eval-harness #134 / rag-kit comment #130): `embedder_name`
+    # is the one free-form GFM table cell (every other is a formatted number). It
+    # reaches `aggregate_markdown` with an arbitrary `|` via `from_dict` on an
+    # external result file, or a BYO Embedder whose `name` carries one. GFM splits
+    # table cells on unescaped pipes, so a piped name injects a spurious column and
+    # corrupts the table. The fix escapes `|` -> `\|`; the invariant is that the
+    # data row's unescaped-pipe count equals the header's. Fails pre-fix (14 vs 13).
+    import re
+
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs["embedder_name"] = "bge-small|v1.5"
+    md = aggregate_markdown([SweepResult(**kwargs)])
+    lines = md.splitlines()
+    header_line = lines[0]
+    row_line = next(line for line in lines if "bge-small" in line)
+
+    def unescaped_pipes(s: str) -> int:
+        # A `\|` renders as a literal pipe and does NOT split the cell; only a
+        # bare, unescaped `|` is a column delimiter.
+        return len(re.findall(r"(?<!\\)\|", s))
+
+    assert unescaped_pipes(row_line) == unescaped_pipes(header_line)
+    # The literal pipe is preserved (escaped), not dropped.
+    assert "bge-small\\|v1.5" in row_line
+
+
 # ----------------------------------------------------------------------
 # aggregate_json (issue #23)
 # ----------------------------------------------------------------------

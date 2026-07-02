@@ -551,3 +551,11 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers:** none — ready for review.
 
 **Next session:** continue the loop. The deferred `_cmd_sweep_run`'s own `atomic_write_text` (noted in #75) remains a separate future parity item.
+
+## 2026-07-02 — Issue #79: escape pipes in the benchmark comparison table (~15 min)
+
+**What got done.** `aggregate_markdown` renders the cross-provider benchmark table (written to the benchmark markdown by `sweep run`). It interpolated `embedder_name` into a GitHub-flavored table cell without escaping `|`, so a pipe in the name split the cell into extra columns and corrupted the table's alignment. `embedder_name` reaches it with a pipe via `SweepResult.from_dict` (external result files) or a BYO embedder with a config-tagged name. Escaped `|` → `\|` and added a lock test asserting the data row's unescaped-pipe count matches the header's. Verified it fails before the fix and passes after; full suite green, ruff clean.
+
+**Why prioritized.** This was the second issue of a multi-issue DAY run. After shipping the sibling fix in llm-eval-harness (#134) and finding the four other priority-tier repos either exhaustively hardened or blocked on JT decisions, I rotated to embedding-model-shootout and found this same GFM-table pipe-escaping gap in a benchmark-output path — the same bug class as rag-kit #130 and llm-eval-harness #134.
+
+**Open questions / blockers.** None for this issue. Note: GFM-table pipe escaping is now a confirmed recurring cross-repo class (three instances) — worth grepping other repos' markdown emitters for free-form cells interpolated without `.replace("|", ...)`.

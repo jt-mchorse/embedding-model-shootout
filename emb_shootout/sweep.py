@@ -411,8 +411,17 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
     ]
     for r in sorted(results, key=lambda x: x.embedder_name):
         recalls = " | ".join(f"{r.recall_at_k.get(k, 0.0):.3f}" for k in ks)
+        # `embedder_name` is the one free-form cell (every other is a formatted
+        # number). It reaches here with an arbitrary `|` via `from_dict` on an
+        # external/hand-edited result file, or a BYO `Embedder` whose `name`
+        # carries one. GFM splits table cells on unescaped pipes, so an unescaped
+        # `|` injects a spurious column and corrupts the whole benchmark table's
+        # alignment. Escape `|` -> `\|` (GitHub renders `\|` as a literal pipe,
+        # contributing zero column delimiters) — same fix as `comment._row_to_md`
+        # (rag-kit #130) and `calibration.render_report` (llm-eval-harness #134).
+        embedder_name = r.embedder_name.replace("|", "\\|")
         lines.append(
-            f"| {r.embedder_name} | {r.embedder_dim} | {r.n_corpus} | {r.n_queries} | {recalls} | "
+            f"| {embedder_name} | {r.embedder_dim} | {r.n_corpus} | {r.n_queries} | {recalls} | "
             f"{r.ndcg_at_10:.3f} | {r.embed_latency_ms.get('corpus_total', 0.0):.0f} | "
             f"{r.embed_latency_ms.get('query_p50', 0.0):.1f} | "
             f"{r.embed_latency_ms.get('query_p95', 0.0):.1f} | "
