@@ -130,6 +130,41 @@ def test_sweep_run_invalid_json_corpus_row_exits_two(
     assert "Traceback" not in err
 
 
+@pytest.mark.parametrize("bad_n", ["0", "-5"])
+def test_sweep_run_nonpositive_queries_exits_two(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], bad_n: str
+):
+    # #81: `build_queries`/`run_sweep` sit outside the corpus-read try/except,
+    # so a degenerate `--queries 0`/negative used to escape as a raw ValueError
+    # traceback at exit 1. It must translate to a clean `error:` + exit 2 like
+    # every other sweep CLI seam (#75/#77).
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text(
+        '{"chunk_id": "c-0", "text": "alpha beta gamma delta epsilon"}\n'
+        '{"chunk_id": "c-1", "text": "zeta eta theta iota kappa lambda"}\n',
+        encoding="utf-8",
+    )
+    rc = main(
+        [
+            "sweep",
+            "run",
+            "--provider",
+            "hash",
+            "--corpus",
+            str(corpus),
+            "--queries",
+            bad_n,
+            "--output",
+            str(tmp_path / "out.json"),
+        ]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "positive integer" in err
+    assert "Traceback" not in err
+    assert not (tmp_path / "out.json").exists(), "no output should be written on usage error"
+
+
 def test_sweep_aggregate_malformed_result_json_exits_two(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ):
