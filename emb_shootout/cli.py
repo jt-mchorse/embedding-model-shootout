@@ -107,9 +107,18 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
     except (OSError, ValueError) as e:
         sys.stderr.write(f"failed to read {args.corpus}: {e}\n")
         return 2
-    queries = build_queries(corpus, n=args.queries, seed=args.seed)
-    embedder = PROVIDER_REGISTRY[args.provider]()
-    result = run_sweep(corpus, queries, embedder=embedder, k_values=(1, 5, 10))
+    # `build_queries`/`run_sweep` raise ValueError on degenerate input — most
+    # reachably `--queries 0`/negative (argparse takes any int, positivity is
+    # enforced in `build_queries`). Left unguarded these escaped as a raw
+    # traceback at exit 1; translate to a clean `error:` + exit 2 like the
+    # corpus-read seam above and the aggregate/plot seams (#75/#77).
+    try:
+        queries = build_queries(corpus, n=args.queries, seed=args.seed)
+        embedder = PROVIDER_REGISTRY[args.provider]()
+        result = run_sweep(corpus, queries, embedder=embedder, k_values=(1, 5, 10))
+    except ValueError as e:
+        sys.stderr.write(f"error: {e}\n")
+        return 2
 
     out_path = Path(args.output)
     atomic_write_text(out_path, json.dumps(result.to_dict(), indent=2, sort_keys=True) + "\n")

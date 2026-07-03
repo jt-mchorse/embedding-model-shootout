@@ -559,3 +559,17 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Why prioritized.** This was the second issue of a multi-issue DAY run. After shipping the sibling fix in llm-eval-harness (#134) and finding the four other priority-tier repos either exhaustively hardened or blocked on JT decisions, I rotated to embedding-model-shootout and found this same GFM-table pipe-escaping gap in a benchmark-output path — the same bug class as rag-kit #130 and llm-eval-harness #134.
 
 **Open questions / blockers.** None for this issue. Note: GFM-table pipe escaping is now a confirmed recurring cross-repo class (three instances) — worth grepping other repos' markdown emitters for free-form cells interpolated without `.replace("|", ...)`.
+
+## 2026-07-03 — Issue #81: `sweep run --queries 0`/negative leaked a raw traceback instead of `error:` + exit 2
+**Duration:** ~20 min · **Branch:** `session/2026-07-03-0334-issue-cli`
+
+- `_cmd_sweep_run` (`emb_shootout/cli.py:110`) called `build_queries`/`run_sweep` **outside** the corpus-read try/except, so a degenerate `--queries 0`/negative raised `build_queries`'s `ValueError("n must be a positive integer")` as a **raw traceback at exit 1** — violating the CLI's exit-code contract (bad input → `error:` on stderr, exit 2) that #75/#77 established on every other sweep/corpus seam. Reproduced firsthand (traceback/exit 1 → `error: ...`/exit 2).
+- **Fix:** wrap the query/sweep calls in the same `except ValueError → error: + return 2` translation the sibling seams use. +2 parametrized regression tests (`--queries 0` and `-5` → exit 2, `positive integer` on stderr, no traceback, no output written). Suite 376 → 378, ruff + format clean.
+
+**Why this work, this session:** fourth issue of a NIGHT run. After the core metric code was hunted clean (and #79 pipe-escape shipped earlier), a peripheral-focused hunt on the CLI/scripts surface surfaced this. Same operator-facing CLI-robustness class as rag-production-kit #114.
+
+**Note (contrast):** llm-cost-optimizer's `bench_savings --n 0`/negative is an *explicitly tested and supported* empty-workload contract (exit 0), not a bug — different repos, different contracts; don't blindly port this finding.
+
+**Open questions / blockers:** none — ready for review.
+
+**Next session:** continue the loop. Portfolio deeply saturated.
