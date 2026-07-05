@@ -402,15 +402,26 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
     if not results:
         return "_no results to aggregate_\n"
     ks = _aggregate_ks(results)
-    header_recall = " | ".join(f"recall@{k}" for k in ks)
+    # Splice the per-k recall columns as ONE segment that contributes nothing —
+    # to the header, the separator, AND every data row — when `ks` is empty
+    # (every result carries an empty `recall_at_k`, reachable via `from_dict` on
+    # an external result file; the CLI pipeline validates `k_values` non-empty).
+    # The old `| {header_recall} |` wrapper always emitted a cell while the
+    # separator's `"|".join(... for _ in ks)` emitted nothing, so an empty `ks`
+    # left the header with a phantom column the separator lacked and produced a
+    # malformed GFM table (header 10 cols vs separator 9). Building each segment
+    # with a trailing `|` per column keeps the three rows column-aligned for any
+    # `ks`, and is byte-identical to the prior output when `ks` is non-empty (#83).
+    header_recall = "".join(f" recall@{k} |" for k in ks)
+    sep_recall = "".join("---:|" for _ in ks)
     lines = [
-        f"| embedder | dim | n_corpus | n_queries | {header_recall} | NDCG@10 | corpus embed (ms) | query p50 (ms) | query p95 (ms) | $/1M tokens |",
+        f"| embedder | dim | n_corpus | n_queries |{header_recall} NDCG@10 | corpus embed (ms) | query p50 (ms) | query p95 (ms) | $/1M tokens |",
         "|----------|----:|---------:|----------:|"
-        + "|".join("---:" for _ in ks)
-        + "|--------:|------------------:|---------------:|---------------:|------------:|",
+        + sep_recall
+        + "--------:|------------------:|---------------:|---------------:|------------:|",
     ]
     for r in sorted(results, key=lambda x: x.embedder_name):
-        recalls = " | ".join(f"{r.recall_at_k.get(k, 0.0):.3f}" for k in ks)
+        recalls = "".join(f" {r.recall_at_k.get(k, 0.0):.3f} |" for k in ks)
         # `embedder_name` is the one free-form cell (every other is a formatted
         # number). It reaches here with an arbitrary `|` via `from_dict` on an
         # external/hand-edited result file, or a BYO `Embedder` whose `name`
@@ -421,7 +432,7 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
         # (rag-kit #130) and `calibration.render_report` (llm-eval-harness #134).
         embedder_name = r.embedder_name.replace("|", "\\|")
         lines.append(
-            f"| {embedder_name} | {r.embedder_dim} | {r.n_corpus} | {r.n_queries} | {recalls} | "
+            f"| {embedder_name} | {r.embedder_dim} | {r.n_corpus} | {r.n_queries} |{recalls} "
             f"{r.ndcg_at_10:.3f} | {r.embed_latency_ms.get('corpus_total', 0.0):.0f} | "
             f"{r.embed_latency_ms.get('query_p50', 0.0):.1f} | "
             f"{r.embed_latency_ms.get('query_p95', 0.0):.1f} | "
