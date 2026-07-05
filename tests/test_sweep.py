@@ -665,6 +665,27 @@ def test_aggregate_markdown_handles_empty():
     assert "no results" in md
 
 
+def test_aggregate_markdown_valid_when_recall_at_k_empty():
+    # #83: the CLI pipeline validates `k_values` non-empty, but a SweepResult with
+    # `recall_at_k={}` constructs fine (`__post_init__` validates values, not
+    # non-emptiness) and loads via `from_dict` from an external result file — the
+    # same threat model #79 hardens against. When the union of recall keys is
+    # empty the recall column must vanish from ALL of header/separator/data-row,
+    # not just the separator, or GFM sees a phantom column (header 10 cols vs
+    # separator 9). Assert every row has the same column count. Fails pre-fix.
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs["recall_at_k"] = {}
+    md = aggregate_markdown([SweepResult(**kwargs)])
+    lines = [line for line in md.splitlines() if line.startswith("|")]
+    # A GFM row's column count is its number of `|` delimiters (all pipes here
+    # are unescaped — the numbers and the pipe-free name carry none).
+    counts = {line: line.count("|") for line in lines}
+    assert len(set(counts.values())) == 1, f"ragged columns: {counts}"
+    # No phantom empty cell: the header has no `recall@` column and no `||`.
+    assert "recall@" not in md
+    assert "||" not in md
+
+
 def test_aggregate_markdown_escapes_pipe_in_embedder_name_so_columns_dont_break():
     # #79 (sibling to llm-eval-harness #134 / rag-kit comment #130): `embedder_name`
     # is the one free-form GFM table cell (every other is a formatted number). It
