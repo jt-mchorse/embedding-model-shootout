@@ -573,3 +573,11 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers:** none — ready for review.
 
 **Next session:** continue the loop. Portfolio deeply saturated.
+
+## 2026-07-05 — Issue #83: align aggregate_markdown table when recall_at_k is empty (~15 min)
+
+**What got done.** `aggregate_markdown()` spliced the per-k recall columns asymmetrically — the header used a fixed `| {header_recall} |` wrapper that always emits a cell, while the separator's `"|".join(... for _ in ks)` emitted nothing when the recall-key union was empty. A set of results whose `recall_at_k` is empty on all of them (`ks == []`) therefore produced a header (and data rows) with a phantom empty column the separator lacked: header parsed to 10 columns, separator to 9, and GitHub rendered a broken table. Fixed by building the recall columns as one segment (a trailing `|` per column) that contributes nothing to header, separator, and every data row when `ks` is empty. Byte-identical output for the non-empty case (the byte-identical snapshot test still passes). Added a regression test asserting header/separator/data-row column counts all match with no phantom `||`. Full suite green (380 passed), ruff clean. PR #84.
+
+**Why prioritized.** Second issue of the night run, from a parallel dogfood bug-hunt across the not-yet-saturated repos. The CLI pipeline can't hit this (`k_values` validated non-empty), but `SweepResult.__post_init__` accepts `recall_at_k={}` and `from_dict` loads one from an external result file — the exact threat model the `embedder_name` pipe-escape fix (#79) already hardens. Reproduced firsthand before filing and fixing. Chose graceful rendering over rejecting empty recall in `__post_init__`, consistent with the function's existing empty-results and piped-name handling.
+
+**Open questions / blockers.** None — ready for review.
