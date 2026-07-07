@@ -156,17 +156,56 @@ class SweepResult:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> SweepResult:
-        return SweepResult(
-            embedder_name=d["embedder_name"],
-            embedder_dim=int(d["embedder_dim"]),
-            cost_per_million_tokens=float(d["cost_per_million_tokens"]),
-            n_corpus=int(d["n_corpus"]),
-            n_queries=int(d["n_queries"]),
-            recall_at_k={int(k): float(v) for k, v in d["recall_at_k"].items()},
-            ndcg_at_10=float(d["ndcg_at_10"]),
-            embed_latency_ms={k: float(v) for k, v in d["embed_latency_ms"].items()},
-            notes=list(d.get("notes", [])),
+        # `from_dict` is the single validation choke-point for result files, and
+        # hand-editing them is an explicitly invited workflow (#75). A result can
+        # be valid JSON yet structurally malformed: not an object, a missing
+        # required field, or a `recall_at_k`/`embed_latency_ms` of the wrong
+        # container type. Left raw, `d["k"]` / `int(...)` / `.items()` escaped as
+        # KeyError/TypeError/AttributeError at exit 1 — bypassing the "name the
+        # bad file and exit 2" contract the sweep CLI documents and that the
+        # numeric-range guards in `__post_init__` already honor via ValueError.
+        # Translate every structural failure to a ValueError naming the offending
+        # field, mirroring `_read_corpus_jsonl` in cli.py (#85).
+        if not isinstance(d, dict):
+            raise ValueError(f"result must be a JSON object; got {type(d).__name__}")
+        required = (
+            "embedder_name",
+            "embedder_dim",
+            "cost_per_million_tokens",
+            "n_corpus",
+            "n_queries",
+            "recall_at_k",
+            "ndcg_at_10",
+            "embed_latency_ms",
         )
+        missing = [k for k in required if k not in d]
+        if missing:
+            raise ValueError(f"result missing required field(s): {', '.join(missing)}")
+        for container_field in ("recall_at_k", "embed_latency_ms"):
+            if not isinstance(d[container_field], dict):
+                raise ValueError(
+                    f"{container_field} must be a JSON object; "
+                    f"got {type(d[container_field]).__name__}"
+                )
+        try:
+            return SweepResult(
+                embedder_name=d["embedder_name"],
+                embedder_dim=int(d["embedder_dim"]),
+                cost_per_million_tokens=float(d["cost_per_million_tokens"]),
+                n_corpus=int(d["n_corpus"]),
+                n_queries=int(d["n_queries"]),
+                recall_at_k={int(k): float(v) for k, v in d["recall_at_k"].items()},
+                ndcg_at_10=float(d["ndcg_at_10"]),
+                embed_latency_ms={k: float(v) for k, v in d["embed_latency_ms"].items()},
+                notes=list(d.get("notes", [])),
+            )
+        except TypeError as e:
+            # A required field present but of a non-coercible type (e.g.
+            # embedder_dim=[1] or a null cost) reaches int()/float() as a
+            # TypeError. Coercion ValueErrors (int("x")) and the __post_init__
+            # range ValueErrors already are ValueError and pass straight through
+            # to the CLI's exit-2 handler.
+            raise ValueError(f"result has a non-numeric field: {e}") from e
 
 
 # ----------------------------------------------------------------------
