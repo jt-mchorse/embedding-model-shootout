@@ -639,6 +639,45 @@ def test_sweep_result_from_dict_round_trip_rejects_corrupt_latency():
         SweepResult.from_dict(serialized)
 
 
+# #85: `from_dict` is the validation choke-point but only its numeric-range
+# guards raised the clean ValueError the CLI translates to exit 2. A valid-JSON-
+# but-structurally-malformed payload (non-object, missing field, wrong-typed
+# container, non-coercible scalar) escaped as a raw KeyError/TypeError/
+# AttributeError. Each shape must now be a ValueError naming the offending field.
+def _valid_result_serialized() -> dict:
+    provider = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=5, seed=1)
+    original = run_sweep(_CORPUS, qs, embedder=provider)
+    return json.loads(json.dumps(original.to_dict()))
+
+
+def test_sweep_result_from_dict_rejects_non_object():
+    for payload in ([1, 2, 3], "text", 42):
+        with pytest.raises(ValueError, match="result must be a JSON object"):
+            SweepResult.from_dict(payload)
+
+
+def test_sweep_result_from_dict_rejects_missing_required_field():
+    serialized = _valid_result_serialized()
+    del serialized["embedder_name"]
+    with pytest.raises(ValueError, match=r"missing required field\(s\): embedder_name"):
+        SweepResult.from_dict(serialized)
+
+
+def test_sweep_result_from_dict_rejects_wrong_typed_container():
+    serialized = _valid_result_serialized()
+    serialized["recall_at_k"] = "nope"
+    with pytest.raises(ValueError, match="recall_at_k must be a JSON object"):
+        SweepResult.from_dict(serialized)
+
+
+def test_sweep_result_from_dict_rejects_non_coercible_scalar():
+    serialized = _valid_result_serialized()
+    serialized["embedder_dim"] = [1]
+    with pytest.raises(ValueError, match="result has a non-numeric field"):
+        SweepResult.from_dict(serialized)
+
+
 def test_sweep_result_accepts_valid_latency_dict():
     # The clean path is unaffected: a finite, non-negative latency dict constructs.
     kwargs = _valid_sweep_result_kwargs()

@@ -142,13 +142,19 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
         return 2
     # A hand-edited/truncated result file otherwise raised a raw
     # JSONDecodeError (or OSError) at exit 1 (#75) — name the bad file and
-    # exit 2 per the usage contract.
+    # exit 2 per the usage contract. A valid-JSON-but-structurally-malformed
+    # file (missing/wrong-typed field, non-object) escaped `from_dict` as a raw
+    # KeyError/TypeError/AttributeError at exit 1; `from_dict` now raises a clean
+    # ValueError for those, caught here alongside JSONDecodeError (#85).
     results = []
     for p in files:
         try:
             results.append(SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))))
         except json.JSONDecodeError as e:
             sys.stderr.write(f"malformed result JSON in {p}: {e.msg}\n")
+            return 2
+        except ValueError as e:
+            sys.stderr.write(f"malformed result JSON in {p}: {e}\n")
             return 2
         except OSError as e:
             sys.stderr.write(f"failed to read {p}: {e}\n")
@@ -182,13 +188,19 @@ def _cmd_sweep_plot(args: argparse.Namespace) -> int:
         return 2
     # A hand-edited/truncated result file otherwise raised a raw
     # JSONDecodeError (or OSError) at exit 1 — name the bad file and exit 2 per
-    # the usage contract, matching _cmd_sweep_aggregate (#75).
+    # the usage contract, matching _cmd_sweep_aggregate (#75). A valid-JSON-but-
+    # structurally-malformed file now raises a clean ValueError from `from_dict`,
+    # caught here alongside JSONDecodeError instead of leaking a raw
+    # KeyError/TypeError/AttributeError at exit 1 (#85).
     results = []
     for p in files:
         try:
             results.append(SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))))
         except json.JSONDecodeError as e:
             sys.stderr.write(f"malformed result JSON in {p}: {e.msg}\n")
+            return 2
+        except ValueError as e:
+            sys.stderr.write(f"malformed result JSON in {p}: {e}\n")
             return 2
         except OSError as e:
             sys.stderr.write(f"failed to read {p}: {e}\n")

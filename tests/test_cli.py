@@ -259,3 +259,67 @@ def test_sweep_aggregate_happy_path_unaffected(tmp_path: Path, capsys: pytest.Ca
     assert rc == 0
     assert out.exists()
     assert "Traceback" not in capsys.readouterr().err
+
+
+# ----------------------------------------------------------------------
+# #85: a result file that is valid JSON but *structurally* malformed —
+# missing a required field, a bare list, or a wrong-typed container — escaped
+# `SweepResult.from_dict` as a raw KeyError/TypeError/AttributeError at exit 1,
+# bypassing the "name the bad file and exit 2" contract that the truncated-JSON
+# (#75) and plot (#77) paths already honor. `from_dict` now raises a clean
+# ValueError for these, caught by both sweep commands. Confirmed failing
+# pre-fix. Each shape is written as `bad.json` so we can assert the file is
+# named and no traceback leaks — the same assertions as the JSONDecodeError arm.
+# ----------------------------------------------------------------------
+
+
+def _malformed_result_payloads() -> list:
+    missing_field = _valid_result_dict("bge")
+    del missing_field["embedder_name"]
+    wrong_typed_container = _valid_result_dict("bge")
+    wrong_typed_container["recall_at_k"] = "nope"
+    non_numeric = _valid_result_dict("bge")
+    non_numeric["embedder_dim"] = [1]
+    return [
+        pytest.param(json.dumps(missing_field), id="missing-required-field"),
+        pytest.param("[1, 2, 3]", id="bare-list-not-object"),
+        pytest.param("42", id="bare-scalar-not-object"),
+        pytest.param(json.dumps(wrong_typed_container), id="recall-at-k-not-object"),
+        pytest.param(json.dumps(non_numeric), id="non-numeric-scalar-field"),
+    ]
+
+
+@pytest.mark.parametrize("payload", _malformed_result_payloads())
+def test_sweep_aggregate_structurally_malformed_result_exits_two(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], payload: str
+):
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "good.json").write_text(json.dumps(_valid_result_dict("hash")), encoding="utf-8")
+    (results / "bad.json").write_text(payload, encoding="utf-8")
+    rc = main(
+        ["sweep", "aggregate", "--results-dir", str(results), "--out", str(tmp_path / "agg.md")]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "bad.json" in err
+    assert "Traceback" not in err
+
+
+@pytest.mark.parametrize("payload", _malformed_result_payloads())
+def test_sweep_plot_structurally_malformed_result_exits_two(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], payload: str
+):
+    # The malformed check fires before render_pareto, so this is hermetic
+    # regardless of whether matplotlib is installed (mirrors #77).
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "good.json").write_text(json.dumps(_valid_result_dict("hash")), encoding="utf-8")
+    (results / "bad.json").write_text(payload, encoding="utf-8")
+    rc = main(
+        ["sweep", "plot", "--results-dir", str(results), "--out-png", str(tmp_path / "p.png")]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "bad.json" in err
+    assert "Traceback" not in err
