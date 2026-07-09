@@ -252,6 +252,31 @@ def test_sweep_aggregate_out_routes_through_atomic_helper(
     assert not out.exists(), "sweep aggregate --out must not write destination on replace failure"
 
 
+def test_corpus_build_out_unwritable_exits_2_not_traceback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`corpus build --out <unwritable>` must translate the OSError to a clean
+    stderr message + exit 2, not escape as a raw traceback at exit 1 (#87).
+
+    #75 hardened this write path for every sibling subcommand (corpus validate,
+    sweep aggregate, sweep plot) but never touched corpus build; main() has no
+    global handler, so the command must translate its own I/O error.
+    """
+    out = tmp_path / "corpus.jsonl"
+
+    def boom(*_args, **_kwargs):
+        raise OSError("simulated rename failure")
+
+    monkeypatch.setattr(io_utils_mod.os, "replace", boom)
+    rc = cli_main(["corpus", "build", "--out", str(out)])
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "failed to write" in err
+    assert "simulated rename failure" in err  # proves the patched os.replace was reached
+    assert "Traceback" not in err
+    assert not out.exists(), "corpus build --out must not write destination on replace failure"
+
+
 def test_corpus_write_jsonl_routes_through_atomic_helper(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
