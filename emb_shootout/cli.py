@@ -27,7 +27,16 @@ def _cmd_corpus_build(args: argparse.Namespace) -> int:
     modules = args.module or DEFAULT_MODULES
     out_path = Path(args.out)
     chunks = list(build_corpus(modules))
-    count = write_jsonl(chunks, out_path)
+    # An unwritable --out (a directory, read-only path, missing parent) otherwise
+    # raised a raw OSError at exit 1, escaping the documented 0/1/2 exit-code
+    # contract. #75 hardened this write path for the sibling subcommands
+    # (corpus validate, sweep aggregate, sweep plot) but never touched
+    # corpus build; main() has no global handler.
+    try:
+        count = write_jsonl(chunks, out_path)
+    except OSError as e:
+        sys.stderr.write(f"failed to write {out_path}: {e}\n")
+        return 2
     summary = {
         "out": str(out_path),
         "chunk_count": count,
