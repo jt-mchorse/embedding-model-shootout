@@ -591,3 +591,14 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers.** None — ready for review.
 
 **Next session:** ems `from_dict` is now hardened on the structural axis too (#29/#31/#47/#65/#79/#83/#85). Portfolio deeply saturated — four of five hunt lenses empty this run.
+
+## 2026-07-09 (PM) — Issue #87: corpus build unwritable --out raised raw traceback at exit 1
+**Duration:** ~20 min · **Branch:** `session/2026-07-09-1916-issue-87` · **PR:** (this run)
+
+**What got done.** `emb-shootout corpus build --out <path>` called `write_jsonl` with no error handling, so an unwritable `--out` (a directory, read-only path, or missing parent dir) escaped as a raw `OSError` traceback at exit 1 — violating the documented 0-clean / 1-findings / 2-I/O-error exit-code contract. #75 had hardened this exact write path for every sibling subcommand (corpus validate, sweep aggregate, sweep plot), each with the identical `try/except OSError → exit 2` pattern and a `# ...(#75)` comment, but never touched corpus build; `main()` is a bare `return args.func(args)` with no global handler. Wrapped the `write_jsonl` call in `try/except OSError` → clean `failed to write {path}: {e}` on stderr + `return 2`, mirroring the aggregate/validate handlers. Added a CLI-level regression test (monkeypatched `os.replace` boom) asserting exit 2, no traceback, and destination-absent — fails pre-fix. Full suite 394 pass, ruff clean.
+
+**Why prioritized.** Static issue queue exhausted; found via the sibling-incomplete-fix meta-lens (the highest-yield lens on this saturated portfolio). Reproduced firsthand (`corpus build --out <dir>` → `IsADirectoryError` traceback) before filing.
+
+**Open questions / blockers.** None — ready for review.
+
+**Next session:** ems CLI write paths are now fully swept for the exit-code contract (#75 validate/aggregate/plot + #85 from_dict structural + #87 corpus build). All CLI write sites translate OSError → exit 2. Don't re-sweep this class in ems.
