@@ -361,3 +361,73 @@ def test_sweep_plot_structurally_malformed_result_exits_two(
     err = capsys.readouterr().err
     assert "bad.json" in err
     assert "Traceback" not in err
+
+
+def test_sweep_plot_unwritable_out_exits_two(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    # The fourth write seam: render_pareto does p.parent.mkdir(...) + fig.savefig(...),
+    # and _cmd_sweep_plot caught only RuntimeError (matplotlib-missing -> exit 3),
+    # never OSError -> an unwritable --out-png leaked a raw traceback at exit 1,
+    # unlike the three sibling write seams (corpus build/validate, sweep aggregate).
+    # Needs a real render, so skip where matplotlib isn't installed (CI's .[dev]
+    # excludes the `plot` extra; there render_pareto short-circuits to exit 3).
+    pytest.importorskip("matplotlib")
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "good.json").write_text(json.dumps(_valid_result_dict("bge")), encoding="utf-8")
+    # --out-png whose parent is a FILE, not a dir: p.parent.mkdir raises OSError.
+    blocker = tmp_path / "blocker"
+    blocker.write_text("i am a file", encoding="utf-8")
+    rc = main(
+        [
+            "sweep",
+            "plot",
+            "--results-dir",
+            str(results),
+            "--out-png",
+            str(blocker / "pareto.png"),
+        ]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "failed to write plot" in err
+    assert "Traceback" not in err
+
+
+def test_sweep_plot_readonly_out_dir_exits_two(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    # The savefig arm of the same guard: mkdir succeeds (dir already exists) but
+    # the write into a read-only directory raises PermissionError inside savefig.
+    pytest.importorskip("matplotlib")
+    import os
+    import stat
+
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "good.json").write_text(json.dumps(_valid_result_dict("bge")), encoding="utf-8")
+    ro = tmp_path / "ro"
+    ro.mkdir()
+    os.chmod(ro, stat.S_IREAD | stat.S_IEXEC)
+    try:
+        if os.access(ro, os.W_OK):  # running as root ignores the mode; skip then
+            pytest.skip("filesystem permissions not enforced (root?)")
+        rc = main(
+            ["sweep", "plot", "--results-dir", str(results), "--out-png", str(ro / "pareto.png")]
+        )
+        assert rc == 2
+        err = capsys.readouterr().err
+        assert "failed to write plot" in err
+        assert "Traceback" not in err
+    finally:
+        os.chmod(ro, stat.S_IRWXU)
+
+
+def test_sweep_plot_valid_out_still_exits_zero(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    # Regression guard: a writable --out-png still renders and exits 0.
+    pytest.importorskip("matplotlib")
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "good.json").write_text(json.dumps(_valid_result_dict("bge")), encoding="utf-8")
+    out = tmp_path / "nested" / "pareto.png"
+    rc = main(["sweep", "plot", "--results-dir", str(results), "--out-png", str(out)])
+    assert rc == 0
+    assert out.exists()
+    assert "Traceback" not in capsys.readouterr().err

@@ -239,6 +239,16 @@ def _cmd_sweep_plot(args: argparse.Namespace) -> int:
     except RuntimeError as exc:  # matplotlib missing
         sys.stderr.write(f"{exc}\n")
         return 3
+    except OSError as exc:
+        # The fourth write seam: render_pareto does p.parent.mkdir(...) +
+        # fig.savefig(p, ...), either of which can raise OSError on an unwritable
+        # --out-png/--out-svg (parent is a file, a read-only dir, ...). The three
+        # sibling write seams (corpus build/validate, sweep aggregate) already
+        # translate OSError to exit 2 (#75/#77/#85/#87/#90); this one was skipped,
+        # so it leaked a raw traceback at exit 1 in violation of the documented
+        # 0 / 1 / 2 contract (docs/architecture.md).
+        sys.stderr.write(f"failed to write plot: {exc}\n")
+        return 2
 
     summary = {
         "results": len(results),
