@@ -602,3 +602,11 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Open questions / blockers.** None — ready for review.
 
 **Next session:** ems CLI write paths are now fully swept for the exit-code contract (#75 validate/aggregate/plot + #85 from_dict structural + #87 corpus build). All CLI write sites translate OSError → exit 2. Don't re-sweep this class in ems.
+
+## 2026-07-10 — Issue #89: sweep run bad-output exit-2 parity (~20 min, night)
+
+**What got done.** `sweep run` wrote its result JSON via a bare `atomic_write_text` (`cli.py:133`), so an unwritable `--output` (parent is a file, an existing dir, a read-only dir) leaked a raw `OSError` as a traceback at exit 1 — violating the documented 0/1/2 exit-code contract. #75 hardened the corpus-read and sweep-aggregate seams; #87 completed corpus build; but both missed `sweep run`, the primary documented workflow and the last bare write seam among the four write-capable subcommands. Wrapped the write in `try/except OSError` → `failed to write <path>` + exit 2, matching its three siblings. Added `test_sweep_run_unwritable_out_exits_two` (fails pre-fix) and updated the existing routing test — which asserted the OSError *propagates* — to assert the caught-and-translated exit 2 (the patched `os.replace` still fires), matching the sibling aggregate routing test. Full suite green, ruff clean.
+
+**Why prioritized.** Static priority:high queue globally exhausted; found via the sibling-incomplete-fix meta-lens (this portfolio's highest-yield lens). This closes the ems CLI exit-code-contract sweep: all four write paths now translate OSError to exit 2.
+
+**Open questions / blockers.** None — PR ready for review.
