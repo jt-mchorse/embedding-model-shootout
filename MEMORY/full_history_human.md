@@ -610,3 +610,13 @@ gaps that surfaced (e.g., bench-script `--out` in rag-production-kit).
 **Why prioritized.** Static priority:high queue globally exhausted; found via the sibling-incomplete-fix meta-lens (this portfolio's highest-yield lens). This closes the ems CLI exit-code-contract sweep: all four write paths now translate OSError to exit 2.
 
 **Open questions / blockers.** None — PR ready for review.
+
+## 2026-07-10 — Issue #91: sweep plot unwritable-output exit-2 (the 4th write seam) (~20 min, night)
+
+**What got done.** `_cmd_sweep_plot` caught only `RuntimeError` from `render_pareto` (matplotlib-missing → exit 3), never `OSError`. `render_pareto` does `p.parent.mkdir(...)` + `fig.savefig(...)`, either of which raises `OSError` on an unwritable `--out-png`/`--out-svg` (parent is a file, a read-only dir), so it leaked a raw traceback at exit 1 in violation of the documented `0 / 1 / 2` contract (`docs/architecture.md`). This is the **fourth** write seam: #90's message states the exit-2 write contract is honored by "the three sibling write seams (corpus build/validate, sweep aggregate)"; `sweep plot` writes PNG/SVG and was skipped by #75/#77/#85/#87/#90 — and unlike them had no unwritable-out test.
+
+Added an `except OSError → "failed to write plot" + return 2` arm, keeping the existing `RuntimeError → 3`. Three tests (parent-is-a-file mkdir arm, read-only-dir savefig arm with a root-skip guard, and a valid-out regression) — all `pytest.importorskip("matplotlib")` because CI's `.[dev]` excludes the optional `plot` extra, so the render path is unavailable there. Full suite (398) + ruff green. Verified the repro firsthand before/after.
+
+**Why prioritized.** Static priority:high queue globally exhausted; found via the sibling-incomplete-fix / exit-code-contract lens. The ems write-seam exit-code contract is now complete across all four write seams.
+
+**Open questions / blockers.** None — PR ready for review.
