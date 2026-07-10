@@ -234,6 +234,44 @@ def test_sweep_aggregate_unwritable_out_exits_two(
     assert "Traceback" not in err
 
 
+def test_sweep_run_unwritable_out_exits_two(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    # The one write seam #75/#87 never reached: sweep run wrote its result JSON
+    # via a bare atomic_write_text, so an unwritable --output leaked a raw OSError
+    # (traceback, exit 1). It must translate to `failed to write` + exit 2 like
+    # its siblings (corpus build/validate, sweep aggregate).
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text(
+        json.dumps({"chunk_id": "c1", "text": "the quick brown fox jumps over the lazy dog"})
+        + "\n"
+        + json.dumps({"chunk_id": "c2", "text": "a slow green turtle swims across the wide river"})
+        + "\n",
+        encoding="utf-8",
+    )
+    # --output is an existing directory: os.replace onto a dir raises OSError.
+    unwritable = tmp_path / "outdir"
+    unwritable.mkdir()
+    rc = main(
+        [
+            "sweep",
+            "run",
+            "--provider",
+            "hash",
+            "--corpus",
+            str(corpus),
+            "--queries",
+            "2",
+            "--seed",
+            "1",
+            "--output",
+            str(unwritable),
+        ]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "failed to write" in err
+    assert "Traceback" not in err
+
+
 def test_corpus_validate_unwritable_out_exits_two(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ):

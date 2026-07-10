@@ -156,7 +156,7 @@ def _make_corpus_for_sweep(tmp_path: Path) -> Path:
 
 
 def test_sweep_run_output_routes_through_atomic_helper(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """`emb-shootout sweep run --output PATH` must route through the helper.
 
@@ -164,6 +164,11 @@ def test_sweep_run_output_routes_through_atomic_helper(
     per-provider result either crashes the aggregator with a
     `JSONDecodeError` or, in the plot subcommand's silent-skip-on-bad-file
     path, vanishes a provider from the Pareto plot.
+
+    The write still routes through atomic_write_text (the patched os.replace
+    fires), but since #89 the resulting OSError is translated to a clean
+    `failed to write` + exit 2 rather than escaping as a raw traceback —
+    parity with the sibling sweep aggregate / corpus build/validate seams.
     """
     corpus = _make_corpus_for_sweep(tmp_path)
     out = tmp_path / "results" / "hash.json"
@@ -172,23 +177,27 @@ def test_sweep_run_output_routes_through_atomic_helper(
         raise OSError("simulated rename failure")
 
     monkeypatch.setattr(io_utils_mod.os, "replace", boom)
-    with pytest.raises(OSError, match="simulated rename failure"):
-        cli_main(
-            [
-                "sweep",
-                "run",
-                "--provider",
-                "hash",
-                "--corpus",
-                str(corpus),
-                "--queries",
-                "5",
-                "--seed",
-                "42",
-                "--output",
-                str(out),
-            ]
-        )
+    rc = cli_main(
+        [
+            "sweep",
+            "run",
+            "--provider",
+            "hash",
+            "--corpus",
+            str(corpus),
+            "--queries",
+            "5",
+            "--seed",
+            "42",
+            "--output",
+            str(out),
+        ]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "failed to write" in err
+    assert "simulated rename failure" in err  # proves the patched os.replace was reached
+    assert "Traceback" not in err
 
     assert not out.exists(), "sweep run --output must not write destination on replace failure"
 
