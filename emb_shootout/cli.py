@@ -130,7 +130,17 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
         return 2
 
     out_path = Path(args.output)
-    atomic_write_text(out_path, json.dumps(result.to_dict(), indent=2, sort_keys=True) + "\n")
+    # Translate an unwritable --output (parent is a file, an existing dir, a
+    # read-only dir) into a clean `failed to write` line + exit 2 instead of
+    # letting atomic_write_text's OSError escape as a raw traceback at exit 1.
+    # This is the one write seam #75/#87 never reached; the sibling seams
+    # (corpus build/validate, sweep aggregate) already honor the exit-2
+    # write-failure contract (docs/architecture.md CLI exit codes 0/1/2).
+    try:
+        atomic_write_text(out_path, json.dumps(result.to_dict(), indent=2, sort_keys=True) + "\n")
+    except OSError as e:
+        sys.stderr.write(f"failed to write {out_path}: {e}\n")
+        return 2
     sys.stdout.write(
         f"{result.embedder_name}: recall@5={result.recall_at_k.get(5, 0.0):.3f} "
         f"NDCG@10={result.ndcg_at_10:.3f} → {out_path}\n"
