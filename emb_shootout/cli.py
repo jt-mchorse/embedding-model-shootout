@@ -284,6 +284,23 @@ def _read_corpus_jsonl(path: Path) -> list:
                 raise ValueError(
                     f"{path}:{line_no}: row must be a JSON object with chunk_id and text fields"
                 )
+            # Mirror `validate_corpus`'s per-row schema (`validate._validate_row`,
+            # the `non_string_`/`empty_` codes): this fail-fast reader — the one
+            # `sweep run` uses instead of the collecting validator — checked only
+            # presence, so a non-string `text` reached `_word_spans`' regex and
+            # raised a raw `TypeError` at exit 1 (and a non-string `chunk_id`
+            # silently produced a wrong-typed id / could crash the retrieval sort
+            # tiebreak). Reject both here so the two loaders agree on a valid row
+            # and the exit-2 contract (#75) holds.
+            for corpus_field in ("chunk_id", "text"):
+                value = obj[corpus_field]
+                if not isinstance(value, str):
+                    raise ValueError(
+                        f"{path}:{line_no}: field {corpus_field!r} must be a string, "
+                        f"got {type(value).__name__}"
+                    )
+                if value == "":
+                    raise ValueError(f"{path}:{line_no}: field {corpus_field!r} must not be empty")
             chunks.append(CorpusChunk(chunk_id=obj["chunk_id"], text=obj["text"]))
     return chunks
 
