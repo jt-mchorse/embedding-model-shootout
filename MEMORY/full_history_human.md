@@ -620,3 +620,15 @@ Added an `except OSError → "failed to write plot" + return 2` arm, keeping the
 **Why prioritized.** Static priority:high queue globally exhausted; found via the sibling-incomplete-fix / exit-code-contract lens. The ems write-seam exit-code contract is now complete across all four write seams.
 
 **Open questions / blockers.** None — PR ready for review.
+
+## 2026-07-10 — Issue #93: non-string corpus field crashes sweep run at exit 1 (~18 min, night)
+
+**What got done.** `_read_corpus_jsonl` — the fail-fast corpus reader `sweep run` uses instead of the collecting `validate_corpus` — checked `isinstance(obj, dict)` + presence of `chunk_id`/`text` but not that those fields are non-empty strings. Its sibling `validate.py:_validate_row` already flags both via the `non_string_`/`empty_` codes, so the two loaders disagreed on what a valid row is. A non-string `text` (e.g. an int) reached `_word_spans`' `_WORD_RE.finditer(text)` and crashed with a raw `TypeError` at exit 1, violating the 0/1/2 exit-code contract #75 established for this reader. (A non-string `chunk_id` didn't reliably crash — it silently produced a wrong-typed id, or could crash the retrieval sort's `(-score, chunk_id)` tiebreak only on a score tie; the agent's finding overclaimed that branch, so verifying firsthand mattered.)
+
+Mirrored `_validate_row`'s required-pair schema in `_read_corpus_jsonl`: each of `chunk_id`/`text` must be a non-empty string, else raise the line-context `ValueError` the caller already maps to `error:` + exit 2. Four CLI-level parametrized tests (non-string text/chunk_id, empty text/chunk_id → exit 2, no traceback). Full suite green (402 passed); ruff clean. Reproduced firsthand before/after.
+
+**Gotcha.** Ruff `PT006` requires a multi-arg `parametrize` to use a tuple argname (`("row", "bad_field")`), not a comma-string — matched the repo convention in `test_provider_batch_size_validation.py`. Ruff format also collapsed a wrapped `ValueError`; the repo CI runs `ruff format --check`, so format before pushing.
+
+**Why prioritized.** Static priority:high queue globally exhausted; found via the sibling-incomplete-fix meta-lens (two-loader field-type parity). The fail-fast reader and the collecting validator now agree on a valid row (present + string + non-empty).
+
+**Open questions / blockers.** None — PR ready for review.
