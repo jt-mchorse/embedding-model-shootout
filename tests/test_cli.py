@@ -107,6 +107,45 @@ def test_sweep_run_missing_field_corpus_row_exits_two(
     assert "Traceback" not in err
 
 
+@pytest.mark.parametrize(
+    ("row", "bad_field"),
+    [
+        ('{"chunk_id": "c1", "text": 12345678}', "text"),  # non-string text
+        ('{"chunk_id": 123, "text": "hello world here"}', "chunk_id"),  # non-string id
+        ('{"chunk_id": "c1", "text": ""}', "text"),  # empty text
+        ('{"chunk_id": "", "text": "hello world here"}', "chunk_id"),  # empty id
+    ],
+)
+def test_sweep_run_non_string_or_empty_corpus_field_exits_two(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], row: str, bad_field: str
+):
+    # #93: `_read_corpus_jsonl` (the sweep-run reader) checked only presence, so a
+    # non-string `text` reached `_word_spans`' regex and crashed with a raw
+    # TypeError at exit 1, and a non-string `chunk_id` silently produced a
+    # wrong-typed id — while the sibling `validate_corpus` already flags both via
+    # its non_string_/empty_ codes. The reader must agree with that schema and
+    # honor the exit-2 contract for a malformed row.
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text(row + "\n", encoding="utf-8")
+    rc = main(
+        [
+            "sweep",
+            "run",
+            "--provider",
+            "hash",
+            "--corpus",
+            str(corpus),
+            "--output",
+            str(tmp_path / "out.json"),
+        ]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert bad_field in err
+    assert f"{corpus}:1" in err
+    assert "Traceback" not in err
+
+
 def test_sweep_run_invalid_json_corpus_row_exits_two(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ):
