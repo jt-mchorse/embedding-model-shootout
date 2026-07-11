@@ -632,3 +632,13 @@ Mirrored `_validate_row`'s required-pair schema in `_read_corpus_jsonl`: each of
 **Why prioritized.** Static priority:high queue globally exhausted; found via the sibling-incomplete-fix meta-lens (two-loader field-type parity). The fail-fast reader and the collecting validator now agree on a valid row (present + string + non-empty).
 
 **Open questions / blockers.** None — PR ready for review.
+
+## 2026-07-11 — Issue #95: validate embedder_name in SweepResult.from_dict (~18 min, night)
+
+**What got done.** `SweepResult.from_dict` is the documented single validation choke-point for result JSON (#85; hand-editing results is an invited workflow, #75) and guards every other required field, but `embedder_name` — the one required field with no coercion below it — was assigned raw. A present-but-non-string value (int/null from a hand-edited result) slipped past the `except TypeError` arm and only crashed later at exit 1: a raw `AttributeError` in `aggregate_markdown` (`.replace`, the default markdown path) and a `TypeError` when sorting a batch of mixed-type names — both bypassing the "name the bad file and exit 2" contract. This is the exact shape #94 closed for `chunk_id`/`text` in the corpus loader.
+
+Added the isinstance-str + non-empty guard in `from_dict` (raises `ValueError` naming the field; the CLI's `except ValueError` maps it to exit 2). Tests: `from_dict` rejects int/null/list/dict/empty names, and the shared `_malformed_result_payloads` fixture gains non-string + null cases so both the `sweep aggregate` and `sweep plot` end-to-end exit-2 tests cover it. Full suite + ruff green. Reproduced firsthand before/after (AttributeError exit 1 → clean `error:` exit 2).
+
+**Why prioritized.** Static priority:high queue globally exhausted; found via the sibling-incomplete-fix meta-lens on the 8 PRs merged in this run's Phase A (sibling of #94). Deferred a `__post_init__` programmatic guard — the run path always passes `embedder.name` (a str), and `from_dict` is the documented external-JSON choke-point, so filing that separately would be churn.
+
+**Open questions / blockers.** None — PR #96 ready for review.
