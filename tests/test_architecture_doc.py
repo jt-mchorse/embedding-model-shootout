@@ -278,3 +278,18 @@ def test_resolvable_prefixes_hard_pin_set() -> None:
 
 def test_min_active_decision_id_hard_pin() -> None:
     assert MIN_ACTIVE_DECISION_ID == 2
+
+
+def test_documented_plot_command_matches_cli(doc_text: str) -> None:
+    # architecture.md once listed `pareto plot`, but `plot` is registered under
+    # the `sweep` subparser (cli.py), so the real command is `sweep plot` (as the
+    # README uses). `emb-shootout pareto plot` failed with `invalid choice:
+    # 'pareto'` (#97). The path/symbol/decision/banned-phrase locks don't cover
+    # subcommand grouping — pin the doc's plot command to the CLI.
+    cli_src = (REPO_ROOT / "emb_shootout" / "cli.py").read_text(encoding="utf-8")
+    assert 'sweep_sub.add_parser("plot"' in cli_src, "plot is no longer under sweep_sub"
+    assert 'add_parser("pareto"' not in cli_src, "a pareto command now exists; update this lock"
+    assert "pareto plot" not in doc_text, (
+        "docs/architecture.md lists `pareto plot`; the real command is `sweep plot`"
+    )
+    assert "sweep plot" in doc_text
