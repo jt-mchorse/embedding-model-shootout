@@ -63,7 +63,7 @@ until that second point exists).
   extra. Frontier computation is upstream of rendering; if `plot`
   isn't installed, the frontier is still computable as JSON.
 - **`emb-shootout`** — argparse CLI: `corpus build`, `corpus validate`
-  (#45), `sweep run`, `sweep aggregate`, `pareto plot`. Each subcommand
+  (#45), `sweep run`, `sweep aggregate`, `sweep plot`. Each subcommand
   has a `--help` surface; the public-surface lock (#13,
   `tests/test_public_surface.py`) pins the top-level package's `__all__`
   and the CLI entry-point in `pyproject.toml`.
