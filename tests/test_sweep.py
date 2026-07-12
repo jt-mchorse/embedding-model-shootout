@@ -678,6 +678,28 @@ def test_sweep_result_from_dict_rejects_non_coercible_scalar():
         SweepResult.from_dict(serialized)
 
 
+# #95: `embedder_name` is the one required field with no coercion below, so a
+# present-but-non-string value slipped past the `except TypeError` and only
+# crashed later at exit 1 — a raw AttributeError in `aggregate_markdown`
+# (`.replace`) and a TypeError when sorting mixed-type names. The sibling of the
+# #94 corpus-loader `chunk_id`/`text` guard: reject it here as a ValueError.
+@pytest.mark.parametrize(
+    "bad_name", [123, None, ["x"], {"a": 1}], ids=["int", "null", "list", "dict"]
+)
+def test_sweep_result_from_dict_rejects_non_string_embedder_name(bad_name):
+    serialized = _valid_result_serialized()
+    serialized["embedder_name"] = bad_name
+    with pytest.raises(ValueError, match="embedder_name must be a non-empty string"):
+        SweepResult.from_dict(serialized)
+
+
+def test_sweep_result_from_dict_rejects_empty_embedder_name():
+    serialized = _valid_result_serialized()
+    serialized["embedder_name"] = ""
+    with pytest.raises(ValueError, match="embedder_name must be a non-empty string"):
+        SweepResult.from_dict(serialized)
+
+
 def test_sweep_result_accepts_valid_latency_dict():
     # The clean path is unaffected: a finite, non-negative latency dict constructs.
     kwargs = _valid_sweep_result_kwargs()

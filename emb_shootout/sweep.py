@@ -181,6 +181,18 @@ class SweepResult:
         missing = [k for k in required if k not in d]
         if missing:
             raise ValueError(f"result missing required field(s): {', '.join(missing)}")
+        # `embedder_name` is the one required field with no coercion below, so a
+        # present-but-non-string value (int/null from a hand-edited result) slips
+        # past the `except TypeError` and only crashes later at exit 1: a raw
+        # `AttributeError` in `aggregate_markdown` (`.replace("|", ...)`) and a
+        # `TypeError` when sorting a batch of mixed-type names. Guard it here with
+        # the isinstance-str + non-empty check, the sibling of the #94 corpus
+        # loader `chunk_id`/`text` fix, so the CLI maps it to exit 2.
+        if not isinstance(d["embedder_name"], str) or not d["embedder_name"]:
+            raise ValueError(
+                f"embedder_name must be a non-empty string; got {d['embedder_name']!r} "
+                f"({type(d['embedder_name']).__name__})"
+            )
         for container_field in ("recall_at_k", "embed_latency_ms"):
             if not isinstance(d[container_field], dict):
                 raise ValueError(

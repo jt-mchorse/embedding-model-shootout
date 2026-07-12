@@ -357,12 +357,18 @@ def _malformed_result_payloads() -> list:
     wrong_typed_container["recall_at_k"] = "nope"
     non_numeric = _valid_result_dict("bge")
     non_numeric["embedder_dim"] = [1]
+    non_string_name = _valid_result_dict("bge")
+    non_string_name["embedder_name"] = 123
+    null_name = _valid_result_dict("bge")
+    null_name["embedder_name"] = None
     return [
         pytest.param(json.dumps(missing_field), id="missing-required-field"),
         pytest.param("[1, 2, 3]", id="bare-list-not-object"),
         pytest.param("42", id="bare-scalar-not-object"),
         pytest.param(json.dumps(wrong_typed_container), id="recall-at-k-not-object"),
         pytest.param(json.dumps(non_numeric), id="non-numeric-scalar-field"),
+        pytest.param(json.dumps(non_string_name), id="non-string-embedder-name"),
+        pytest.param(json.dumps(null_name), id="null-embedder-name"),
     ]
 
 
