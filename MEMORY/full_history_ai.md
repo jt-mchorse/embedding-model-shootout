@@ -1050,3 +1050,21 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-07-12T09:52Z
+issue: 97
+duration_min: 12
+focus: architecture_md_listed_pareto_plot_subcommand_but_real_command_is_sweep_plot_broken_command_doc_drift
+phase: night_session_phase_b_issue_7
+delta:
+  files_changed: 2   # docs/architecture.md (pareto plot -> sweep plot) + tests/test_architecture_doc.py (1 lock test)
+  tests_added: 1     # documented plot command matches cli: plot under sweep_sub, no pareto command, doc uses sweep plot
+context_for_next_session:
+  - shipped_97_pr_ready_ems_architecture_md_65_66_listed_cli_subcommands_corpus_build_validate_sweep_run_aggregate_pareto_plot_but_no_pareto_subcommand_plot_registered_under_sweep_sub_cli_py_399_real_command_sweep_plot_readme_209_225_correct_operator_emb_shootout_pareto_plot_invalid_choice_pareto
+  - found_by_wave6_doc_drift_agent_HIGH_verified_firsthand_grep_add_parser_plot_under_sweep_sub_grep_pareto_empty
+  - fix_arch_pareto_plot_to_sweep_plot_plus_lock_test_test_documented_plot_command_matches_cli_asserts_sweep_sub_add_parser_plot_in_cli_no_pareto_command_doc_uses_sweep_plot
+  - full_suite_green_ruff_clean_SEVENTH_hit_this_run
+decisions_made: []
+followups: []
+---

@@ -642,3 +642,14 @@ Added the isinstance-str + non-empty guard in `from_dict` (raises `ValueError` n
 **Why prioritized.** Static priority:high queue globally exhausted; found via the sibling-incomplete-fix meta-lens on the 8 PRs merged in this run's Phase A (sibling of #94). Deferred a `__post_init__` programmatic guard — the run path always passes `embedder.name` (a str), and `from_dict` is the documented external-JSON choke-point, so filing that separately would be churn.
 
 **Open questions / blockers.** None — PR #96 ready for review.
+
+## 2026-07-12 — Issue #97: architecture.md lists 'pareto plot' but the command is 'sweep plot'
+**Duration:** ~12 min · **Branch:** `session/2026-07-12-0951-issue-97`
+
+- `docs/architecture.md` listed the CLI subcommand as `pareto plot`, but `plot` is registered under the `sweep` subparser (real command `sweep plot`, as the README uses). `emb-shootout pareto plot` failed with `invalid choice: 'pareto'`. Fixed the doc and added a lock test tying the documented plot command to the CLI grouping.
+
+**Why this work, this session:** Seventh hit of the run — doc-drift lens on architecture.md CLI commands; a broken copy-pasteable command.
+
+**Open questions / blockers:** none — ready for review.
+
+**Next session:** Phase A merge PR for #97.
