@@ -110,7 +110,11 @@ emb_shootout/
 ├── queries.py    ← #2: deterministic verbatim-snippet queries from the corpus
 ├── sweep.py      ← #2: Embedder Protocol + run_sweep + recall@k + NDCG + aggregator
 ├── providers/    ← #2: HashEmbedder (default) + OpenAI, Voyage, Cohere, BGE, Nomic
-└── cli.py        ← emb-shootout corpus build / sweep run / sweep aggregate
+├── pareto.py     ← #3: Pareto-frontier computation over the sweep results
+├── plot.py       ← #3: matplotlib renderer behind the `plot` extra
+├── validate.py   ← #45: collecting-mode corpus validator (emb-shootout corpus validate)
+├── io_utils.py   ← cross-cutting: atomic_write_text
+└── cli.py        ← emb-shootout corpus build / validate | sweep run / aggregate / plot
 ```
 
 The corpus loader walks each module via `inspect`, treats `__all__` as the
