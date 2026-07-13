@@ -149,3 +149,67 @@ def test_takeaways_section_names_every_methodology_decision(readme_text: str) ->
         f"Either name the decision in the prose or update this test if the "
         f"methodology contract changed."
     )
+
+
+# ---------------------------------------------------------------------------
+# Package directory-tree completeness lock (#99).
+#
+# The README opens the "Architecture" section with a fenced `emb_shootout/`
+# directory tree annotating each module. Its bare `foo.py` entries aren't
+# markdown links (so `test_referenced_files_exist` skips them) and nothing
+# asserts the tree matches the package — that is how `pareto.py` (#3),
+# `plot.py` (#3), `validate.py` (#45), and `io_utils.py` shipped and stayed out
+# of the tree even though the surrounding prose describes them. Parse the tree
+# block and assert its `*.py` entries equal the package's non-dunder module set.
+# `__init__.py` is intentionally excluded, matching the tree's existing
+# convention (it lists public modules + the `providers/` subpackage, not the
+# package init). Same directory-tree-completeness class as nextjs #83,
+# llm-eval-harness #171, prompt-regression-suite #123.
+_PKG_DIR = REPO_ROOT / "emb_shootout"
+
+
+def _tree_py_modules(readme: str) -> set[str]:
+    """Basenames of the `*.py` entries in the fenced tree that opens with the
+    `emb_shootout/` header line (scan stops at the closing fence)."""
+    modules: set[str] = set()
+    in_tree = False
+    for line in readme.splitlines():
+        if line.strip() == "emb_shootout/":
+            in_tree = True
+            continue
+        if in_tree:
+            if line.strip().startswith("```"):
+                break
+            m = re.search(r"([A-Za-z_][A-Za-z0-9_]*\.py)\b", line)
+            if m:
+                modules.add(m.group(1))
+    return modules
+
+
+def test_readme_tree_lists_every_package_module(readme_text: str) -> None:
+    """The fenced `emb_shootout/` tree names exactly the package's non-dunder
+    `*.py` modules — no omission (the #3/#45 drift) and no stale leftover (#99)."""
+    tree = _tree_py_modules(readme_text)
+    assert tree, "expected an `emb_shootout/` directory tree with *.py entries in the README"
+    disk = {p.name for p in _PKG_DIR.glob("*.py") if p.name != "__init__.py"}
+    missing = sorted(disk - tree)
+    extra = sorted(tree - disk)
+    drift = [
+        *(f"missing from tree: {m}" for m in missing),
+        *(f"in tree but not on disk: {e}" for e in extra),
+    ]
+    assert not drift, (
+        "README emb_shootout/ directory tree is out of sync with the package:\n"
+        + "\n".join(f"  {d}" for d in drift)
+        + "\n(update the tree so it depicts the current package layout)"
+    )
+
+
+def test_readme_tree_parser_and_diff_catch_drift() -> None:
+    """Inverse safety net: exercise the real parser + set-diff on synthetic
+    trees so a vacuous parse can't let drift through."""
+    good = "emb_shootout/\n├── a.py   ← one\n└── b.py   ← two\n```"
+    assert _tree_py_modules(good) == {"a.py", "b.py"}
+    assert sorted({"a.py", "b.py", "c.py"} - _tree_py_modules(good)) == ["c.py"]
+    stale = "emb_shootout/\n├── a.py\n├── b.py\n└── gone.py\n```"
+    assert sorted(_tree_py_modules(stale) - {"a.py", "b.py"}) == ["gone.py"]

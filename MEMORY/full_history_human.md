@@ -653,3 +653,15 @@ Added the isinstance-str + non-empty guard in `from_dict` (raises `ValueError` n
 **Open questions / blockers:** none — ready for review.
 
 **Next session:** Phase A merge PR for #97.
+
+## 2026-07-13 (Night) — Issue #99: README package tree omitted pareto/plot/validate/io_utils
+**Duration:** ~20 min · **Branch:** `session/2026-07-13-0543-issue-99` · **PR:** #100
+
+- The README's `emb_shootout/` directory tree listed 5 of the package's 8 modules — `pareto.py` (#3), `plot.py` (#3), `validate.py` (#45), `io_utils.py` were absent even though the surrounding prose describes them. The tree's bare `foo.py` entries aren't markdown links, so `test_referenced_files_exist` skipped them, and nothing asserted the tree matches the package.
+- Added the four modules and a code-tied lock parsing the fenced tree block and asserting its `*.py` entries equal the package's non-dunder module set (bidirectional), with an inverse parser/set-diff guard. `__init__.py` intentionally excluded (matches the tree's convention). Verified it flags exactly the four modules on the pre-fix README. Full suite 414 pass; ruff clean.
+
+**Why this work, this session:** parallel Explore agents scanned the repos I hadn't touched tonight (aop/ems/vsas/pyasync) for count/field/tree drift; the ems README-tree gap was verified firsthand. 5th repo this night for the directory-tree-completeness variant (chunking #122 field-label, nextjs #83, leh #171, prs #123, ems #99) — the README tree is a second surface beyond architecture.md.
+
+**Open questions / blockers:** none — ready for review.
+
+**Next session:** still open from the same agent sweep — pyasync README tree missing `benchmark.py`/`io_utils.py` + a D-004 "no decorator-based registration" claim that contradicts `ToolRegistry.tool()`; vsas `weaviate-oss` vs the actual `weaviate` module dir. Check both README and architecture.md trees per repo going forward.
