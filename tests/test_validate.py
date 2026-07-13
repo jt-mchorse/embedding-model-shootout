@@ -309,6 +309,22 @@ def test_cli_malformed_corpus_exits_one_with_per_finding_stderr(tmp_path: Path) 
     assert err_lines[1].startswith("line 3 [missing_chunk_id]")
 
 
+def test_cli_non_utf8_corpus_exits_two_no_traceback(tmp_path: Path) -> None:
+    # #101: validate_corpus decodes lazily while iterating the file handle,
+    # outside the per-row json.loads try. A non-UTF-8 byte raises
+    # UnicodeDecodeError (a ValueError subclass, NOT an OSError), which the
+    # narrow FileNotFoundError/OSError CLI catches missed — so it escaped as a
+    # raw traceback at exit 1. A whole-file decode failure is an I/O error
+    # (exit 2), like the missing-file/OSError siblings, not a per-row finding.
+    p = tmp_path / "corpus.jsonl"
+    # Latin-1 'é' (0xE9) — an invalid UTF-8 continuation byte.
+    p.write_bytes(b'{"chunk_id": "a", "text": "caf\xe9"}\n')
+    proc = _run_cli("corpus", "validate", str(p))
+    assert proc.returncode == 2
+    assert "not valid UTF-8" in proc.stderr
+    assert "Traceback" not in proc.stderr
+
+
 def test_cli_json_flag_emits_report_dict_and_respects_exit_code(tmp_path: Path) -> None:
     p = tmp_path / "corpus.jsonl"
     _write_jsonl(p, [_valid_row("ok"), {"text": "no_id"}])
