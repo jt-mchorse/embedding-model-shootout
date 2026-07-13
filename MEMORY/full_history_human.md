@@ -665,3 +665,15 @@ Added the isinstance-str + non-empty guard in `from_dict` (raises `ValueError` n
 **Open questions / blockers:** none — ready for review.
 
 **Next session:** still open from the same agent sweep — pyasync README tree missing `benchmark.py`/`io_utils.py` + a D-004 "no decorator-based registration" claim that contradicts `ToolRegistry.tool()`; vsas `weaviate-oss` vs the actual `weaviate` module dir. Check both README and architecture.md trees per repo going forward.
+
+## Session 2026-07-13 (night) — issue #101: corpus validate exits 2 on non-UTF-8 corpus
+
+`emb-shootout corpus validate` leaked a raw `UnicodeDecodeError` traceback at exit 1 on a corpus JSONL that isn't valid UTF-8, breaking the documented "exit 0 clean / 1 findings / 2 I/O error" contract. `validate_corpus` decodes lazily while iterating the file handle, outside the per-row `json.loads` try, so a non-UTF-8 byte raises there. `UnicodeDecodeError` subclasses `ValueError` — not `OSError` — and `_cmd_corpus_validate` caught only `FileNotFoundError`/`OSError`, so it escaped. The sibling read seams (`corpus build`, `sweep aggregate`/`plot`) already catch `ValueError`, which covers it; only `validate` caught the narrower `OSError`.
+
+The fix adds an `except UnicodeDecodeError` clause → clean message + exit 2 (a whole-file decode failure is an I/O error, not a per-row finding, matching the `FileNotFoundError`/`OSError` siblings). Verified all three behaviors firsthand. Lock test added; full suite green, ruff clean.
+
+**Why this work, this session:** Seventh hit of the night run — a *second-order, cross-repo* find: after shipping the prompt-regression-suite #125 `UnicodeDecodeError`-at-utf8-read-seam fix, a targeted hunt applied that same lens across the portfolio's Python loaders and surfaced this in embedding-model-shootout (the decode-failure mode is a `ValueError` subclass that slips past `OSError`-only catches). Verified firsthand before filing.
+
+**Open questions / blockers:** none — PR #102 ready for review. (llm-eval-harness's validate handler was flagged as a same-class sibling; being verified next.)
+
+**Next session:** Phase A merge PR for #101.
