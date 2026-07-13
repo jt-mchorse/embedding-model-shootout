@@ -66,6 +66,16 @@ def _cmd_corpus_validate(args: argparse.Namespace) -> int:
     except OSError as e:
         sys.stderr.write(f"failed to read {args.corpus}: {e}\n")
         return 2
+    except UnicodeDecodeError as e:
+        # validate_corpus decodes lazily while iterating the file handle,
+        # outside the per-row json.loads try. A non-UTF-8 byte raises
+        # UnicodeDecodeError (a ValueError subclass, NOT an OSError), which the
+        # narrow FileNotFoundError/OSError catches above miss — so it escaped as
+        # a raw traceback at exit 1. A whole-file decode failure prevents reading
+        # any row, so it's an I/O error (exit 2) like the siblings here, not a
+        # per-row finding (#45/#75 contract; sibling of prompt-regression-suite#125).
+        sys.stderr.write(f"failed to read {args.corpus}: not valid UTF-8: {e}\n")
+        return 2
 
     if args.as_json:
         rendered = json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n"
