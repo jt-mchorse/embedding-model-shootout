@@ -1109,3 +1109,17 @@ context_for_next_session:
   - chunking_validate_corpus_same_structural_gap_but_NO_CLI_dispatch_no_exit_code_contract_disqualified_library_helper_rag_lco_no_operator_facing_utf8_file_loader_with_contract
 decisions_made: []
 followups: []
+
+---
+session: 2026-07-14T07:52Z
+issue: 103
+focus: atomic_write_text_temp_name_overflows_name_max_255_long_basename_cross_repo_sweep_sibling_rag_128_mcp_96_leh_175_chunking_128_lco_154
+phase: night_session_phase_b_issue_10
+delta:
+  files_changed: 2   # emb_shootout/io_utils.py, tests/test_io_utils_atomic_write.py
+  tests_added: 1
+context_for_next_session:
+  - shipped_103_pr_ready_ems_io_utils_atomic_write_text_63_prefix_dot_target_name_dot_overflows_name_max_255_reachable_cli_out_output_sinks_corpus_fixed_MAX_TEMP_BASE_BYTES_200_cap_base_for_temp_verified_firsthand_full_suite_416_green
+  - CROSS_REPO_SWEEP_atomic_write_text_overflow_NOW_FIXED_rag_128_mcp_96_leh_175_chunking_128_lco_154_ems_103_remaining_prs_pyasync_this_run_vsas_deferred_got_2_prs_already
+decisions_made: []
+followups: []
