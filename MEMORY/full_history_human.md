@@ -677,3 +677,14 @@ The fix adds an `except UnicodeDecodeError` clause → clean message + exit 2 (a
 **Open questions / blockers:** none — PR #102 ready for review. (llm-eval-harness's validate handler was flagged as a same-class sibling; being verified next.)
 
 **Next session:** Phase A merge PR for #101.
+
+## 2026-07-14 (night) — Issue #103: atomic_write_text overflows NAME_MAX on a long basename
+**Duration:** ~10 min · **Branch:** `session/2026-07-14-0752-issue-103` · **PR:** #104
+
+The cross-repo `atomic_write_text` temp-name-overflow bug (fixed in `rag-production-kit#128` / `mcp-server-cookbook#96`): a destination basename near `NAME_MAX` (255 bytes) made the temp name `.<base>.<rand>.tmp` overflow and raise `OSError` ENAMETOOLONG, though a plain `write_text` succeeds. Reachable from the CLI `--out`/`--output` sinks. Verified firsthand; ported the `_cap_base_for_temp` 200-byte cap. Full suite (416) green.
+
+**Why this work, this session:** Tenth hit — continuing the cross-repo atomic-write sweep (now fixed in rag, mcp, leh, chunking, lco, ems; prs + pyasync next; vsas deferred — it already received two PRs this run).
+
+**Open questions / blockers:** none — PR #104 ready for review.
+
+**Next session:** Phase A merge PR for #103.
