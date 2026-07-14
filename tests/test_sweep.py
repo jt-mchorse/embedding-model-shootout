@@ -774,6 +774,27 @@ def test_aggregate_markdown_escapes_pipe_in_embedder_name_so_columns_dont_break(
     assert "bge-small\\|v1.5" in row_line
 
 
+def test_aggregate_markdown_collapses_newline_in_embedder_name_so_row_stays_one_line():
+    # Newline sibling of #79/#80 at the same site: a GFM row is a single physical
+    # line, so a `\n`/`\r` in `embedder_name` (reachable via `from_dict` on an
+    # external/hand-edited result file, #75, or a BYO Embedder name) splits one
+    # result across two lines and breaks every row after it. The pipe-escape closed
+    # the column-delimiter class but left the row-delimiter class open. The fix
+    # collapses `[\r\n]+` -> a single space so the row stays on one line.
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs["embedder_name"] = "ev\nil\r\nx"
+    md = aggregate_markdown([SweepResult(**kwargs)])
+    row_lines = [line for line in md.splitlines() if line.startswith("|")]
+    # header + separator + exactly one data row — no extra physical line from the
+    # embedded newlines.
+    assert len(row_lines) == 3, f"newline split the row: {row_lines}"
+    data_row = row_lines[2]
+    assert "ev il x" in data_row
+    # No bare CR/LF survives inside the emitted row.
+    assert "\n" not in data_row
+    assert "\r" not in data_row
+
+
 # ----------------------------------------------------------------------
 # aggregate_json (issue #23)
 # ----------------------------------------------------------------------
