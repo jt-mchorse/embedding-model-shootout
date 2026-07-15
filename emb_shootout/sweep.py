@@ -12,6 +12,7 @@ cross-provider comparison meaningful.
 from __future__ import annotations
 
 import math
+import re
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -481,7 +482,16 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
         # alignment. Escape `|` -> `\|` (GitHub renders `\|` as a literal pipe,
         # contributing zero column delimiters) — same fix as `comment._row_to_md`
         # (rag-kit #130) and `calibration.render_report` (llm-eval-harness #134).
+        #
+        # A `\n`/`\r` in the same cell is the sibling corruption: a GFM row is a
+        # single physical line, so an embedded newline splits one result across
+        # two lines and breaks every row after it. The pipe-escape (#79/#80)
+        # closed one delimiter class at this site but left the row-delimiter class
+        # open; collapse `[\r\n]+` -> a single space, matching the portfolio
+        # `md_table_cell` pattern. Same external-input reachability as the pipe
+        # (`from_dict` invited hand-edit #75 / BYO embedder name).
         embedder_name = r.embedder_name.replace("|", "\\|")
+        embedder_name = re.sub(r"[\r\n]+", " ", embedder_name)
         lines.append(
             f"| {embedder_name} | {r.embedder_dim} | {r.n_corpus} | {r.n_queries} |{recalls} "
             f"{r.ndcg_at_10:.3f} | {r.embed_latency_ms.get('corpus_total', 0.0):.0f} | "

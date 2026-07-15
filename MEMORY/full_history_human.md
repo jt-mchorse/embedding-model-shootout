@@ -688,3 +688,11 @@ The cross-repo `atomic_write_text` temp-name-overflow bug (fixed in `rag-product
 **Open questions / blockers:** none — PR #104 ready for review.
 
 **Next session:** Phase A merge PR for #103.
+
+## 2026-07-14 (night, issue #105) — embedder_name GFM cell escapes pipe but not newline (sibling of #79/#80)
+
+`aggregate_markdown` escaped `|` in the free-form `embedder_name` cell but not `\n`/`\r`. A GFM row is a single physical line, so a newline in the name split one result across two physical lines and broke every row after it, corrupting the front-page `docs/benchmarks.md` table.
+
+Reachability is identical to the `|` case already guarded at the same site: the escape comment documents `embedder_name` arriving from an external/hand-edited result file (`from_dict`, invited workflow #75) or a BYO Embedder name, and `from_dict` enforces only non-empty-string — no charset restriction. The pipe-escape (#79/#80) closed the column-delimiter class but left the row-delimiter class open. Fix: collapse `[\r\n]+ → " "` after the pipe-escape, matching the portfolio `md_table_cell` pattern (leh#134/rag#130).
+
+**This corrects a stale auto-memory** that claimed the sibling emitters' newline gap was "unreachable churn, don't file" — that call was wrong for ems, and the decisive evidence is the pipe-escape sitting at the very same cell: if a cell already escapes one delimiter class for untrusted external input, the other delimiter class at the same cell is the same reachability, not churn. Verified firsthand via the real CLI (pre-fix a 2-row table emitted 5 physical lines; post-fix 4, well-formed). Full suite green, ruff clean. Shipped as PR #106.
