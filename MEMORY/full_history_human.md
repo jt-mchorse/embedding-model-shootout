@@ -708,3 +708,14 @@ the Pareto frontier. The portfolio's bool-is-int sweep had marked ems "already
 bool guarded" — true, but the guards were placed after coercion, so ineffective
 for the reachable loader path. Fixed by rejecting bools on the raw values in
 from_dict before coercion (sibling of #94/#95). Shipped as PR #108.
+
+## 2026-07-20 (night) — issue #109: boolean cost slipped through __post_init__
+
+`SweepResult.__post_init__` guarded `cost_per_million_tokens` for finiteness and
+sign but — alone among the numeric fields — never rejected `bool`. Since `bool`
+subclasses `int`, a provider-supplied `True` cost passed the guard and landed as a
+fabricated $1.0 point on the Pareto frontier. The just-merged #108 fixed the
+`from_dict` loader path (rejecting a bool cost pre-coercion) but left the
+`__post_init__`/direct-construction path — the centralized Protocol-implementer
+validation site — exposed. Added the `isinstance(bool)` exclusion mirroring the
+sibling fields; two tests. Found by a second-order sibling hunt on #108. PR #110.
