@@ -639,6 +639,51 @@ def test_sweep_result_from_dict_round_trip_rejects_corrupt_latency():
         SweepResult.from_dict(serialized)
 
 
+# Issue #107: bool is an int subclass, so from_dict's int()/float() coercion turns
+# a JSON `true`/`false` metric into 1.0/0.0 BEFORE __post_init__ runs — its bool
+# guards (which protect direct construction) never fire on the loader path. A
+# hand-edited result with a boolean metric would land a fabricated 1.0 on the
+# Pareto frontier. from_dict must reject bools on the raw values, before coercion.
+def _valid_sweep_serialized() -> dict:
+    provider = HashEmbedderProvider()
+    qs = build_queries(_CORPUS, n=5, seed=1)
+    original = run_sweep(_CORPUS, qs, embedder=provider)
+    return json.loads(json.dumps(original.to_dict()))
+
+
+def test_sweep_result_from_dict_rejects_boolean_recall_value():
+    serialized = _valid_sweep_serialized()
+    serialized["recall_at_k"] = {"5": True}
+    with pytest.raises(ValueError, match=r"recall_at_k\['5'\] must be a number, not a bool"):
+        SweepResult.from_dict(serialized)
+
+
+def test_sweep_result_from_dict_rejects_boolean_ndcg_scalar():
+    serialized = _valid_sweep_serialized()
+    serialized["ndcg_at_10"] = True
+    with pytest.raises(ValueError, match=r"ndcg_at_10 must be a number, not a bool"):
+        SweepResult.from_dict(serialized)
+
+
+def test_sweep_result_from_dict_rejects_boolean_latency_value():
+    serialized = _valid_sweep_serialized()
+    serialized["embed_latency_ms"]["corpus_total"] = False
+    with pytest.raises(
+        ValueError, match=r"embed_latency_ms\['corpus_total'\] must be a number, not a bool"
+    ):
+        SweepResult.from_dict(serialized)
+
+
+@pytest.mark.parametrize(
+    "field", ["embedder_dim", "cost_per_million_tokens", "n_corpus", "n_queries"]
+)
+def test_sweep_result_from_dict_rejects_boolean_scalar_number(field: str):
+    serialized = _valid_sweep_serialized()
+    serialized[field] = True
+    with pytest.raises(ValueError, match=rf"{field} must be a number, not a bool"):
+        SweepResult.from_dict(serialized)
+
+
 # #85: `from_dict` is the validation choke-point but only its numeric-range
 # guards raised the clean ValueError the CLI translates to exit 2. A valid-JSON-
 # but-structurally-malformed payload (non-object, missing field, wrong-typed

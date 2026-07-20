@@ -200,6 +200,31 @@ class SweepResult:
                     f"{container_field} must be a JSON object; "
                     f"got {type(d[container_field]).__name__}"
                 )
+        # bool is an int subclass, so `int(True)`/`float(True)` below silently
+        # coerce a JSON `true`/`false` to 1/0 — and the `__post_init__` bool guards
+        # (`isinstance(x, bool)`) run AFTER that coercion, so they never fire for
+        # this loader path (they protect only direct construction). A hand-edited
+        # or externally-generated result with a boolean metric would land a
+        # fabricated 1.0 recall/ndcg on the Pareto frontier and the committed JSON.
+        # Reject bools on the RAW values here, before coercion — the
+        # isinstance-before-coerce sibling of the #94/#95 `embedder_name` guard.
+        for scalar_field in (
+            "embedder_dim",
+            "cost_per_million_tokens",
+            "n_corpus",
+            "n_queries",
+            "ndcg_at_10",
+        ):
+            if isinstance(d[scalar_field], bool):
+                raise ValueError(
+                    f"{scalar_field} must be a number, not a bool; got {d[scalar_field]!r}"
+                )
+        for container_field in ("recall_at_k", "embed_latency_ms"):
+            for k, v in d[container_field].items():
+                if isinstance(v, bool):
+                    raise ValueError(
+                        f"{container_field}[{k!r}] must be a number, not a bool; got {v!r}"
+                    )
         try:
             return SweepResult(
                 embedder_name=d["embedder_name"],
