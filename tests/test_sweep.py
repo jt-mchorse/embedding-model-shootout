@@ -500,6 +500,21 @@ def test_sweep_result_rejects_non_finite_cost(bad_cost: float):
         SweepResult(**kwargs)
 
 
+@pytest.mark.parametrize("bad_cost", [True, False])
+def test_sweep_result_rejects_boolean_cost(bad_cost: bool):
+    # `cost_per_million_tokens` was the one numeric field whose __post_init__
+    # guard lacked the isinstance(bool) exclusion its siblings (embedder_dim,
+    # counts, ndcg, recall, latency) all have. Because bool subclasses int,
+    # `math.isfinite(True)` is True and `True < 0.0` is False, so a provider-
+    # supplied boolean cost was stored as a fabricated $1.0/$0.0 point on the
+    # Pareto frontier. Direct-construction sibling of the from_dict bool guard
+    # (#108).
+    kwargs = _valid_sweep_result_kwargs()
+    kwargs["cost_per_million_tokens"] = bad_cost
+    with pytest.raises(ValueError, match=r"cost_per_million_tokens must be a finite number"):
+        SweepResult(**kwargs)
+
+
 @pytest.mark.parametrize(
     ("field", "bad_value"),
     [

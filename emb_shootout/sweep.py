@@ -83,10 +83,24 @@ class SweepResult:
         # the dominance check silently degrades. Same harm class as #29's
         # sign-only-rejects-negative, one step further along the
         # "operator-supplied numeric silently corrupts comparator" arc.
-        if not math.isfinite(self.cost_per_million_tokens) or self.cost_per_million_tokens < 0.0:
+        #
+        # bool excluded explicitly (Python's bool subclasses int, so
+        # `math.isfinite(True)` is True and `True < 0.0` is False): this was the
+        # one numeric field the sibling bool exclusions (embedder_dim/n_corpus/
+        # n_queries/ndcg_at_10/recall_at_k/embed_latency_ms) overlooked, so a
+        # provider-supplied boolean cost (`embedder.cost_per_million_tokens`,
+        # this is the Protocol-implementer validation choke-point) was stored as
+        # a fabricated $1.0/$0.0 point on the Pareto frontier and the committed
+        # plot. `from_dict` already rejects a bool cost pre-coercion (#108); this
+        # closes its direct-construction sibling.
+        if (
+            isinstance(self.cost_per_million_tokens, bool)
+            or not math.isfinite(self.cost_per_million_tokens)
+            or self.cost_per_million_tokens < 0.0
+        ):
             raise ValueError(
                 f"cost_per_million_tokens must be a finite number >= 0.0; "
-                f"got {self.cost_per_million_tokens}"
+                f"got {self.cost_per_million_tokens!r}"
             )
         # Integer guard (#31): the three count fields are typed `int` but the
         # runtime can take floats. NaN/Infinity in dim makes `len(vec) == dim`
