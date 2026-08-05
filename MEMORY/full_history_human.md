@@ -719,3 +719,66 @@ fabricated $1.0 point on the Pareto frontier. The just-merged #108 fixed the
 `__post_init__`/direct-construction path — the centralized Protocol-implementer
 validation site — exposed. Added the `isinstance(bool)` exclusion mirroring the
 sibling fields; two tests. Found by a second-order sibling hunt on #108. PR #110.
+
+## 2026-08-04 — Issue #112: the guard was on one of the two seams
+
+`run_sweep` embeds twice — the corpus as one batch, then each query on its own
+so per-query latency can be measured. The corpus call had an inline row-count
+check. The per-query call, nine lines below it and against the same duck-typed
+`Embedder` Protocol, was a bare `embedder.embed([q.text])[0]`.
+
+What made this findable is that `_reject_non_finite_vectors`'s docstring says it
+rejects "at the embedder-output seam (where the length check already lives)".
+That sentence is true of one of the two seams, and reading it as a claim about
+the seam rather than about a line is what sent me looking.
+
+Both ways of breaking the contract were bad, and they were bad differently.
+
+Too few vectors raised `IndexError`. `sweep run` catches `ValueError`, so it
+escaped as a traceback at exit 1 instead of the documented exit 2.
+
+Too many vectors was worse: `[0]` took the first row and asked no questions. A
+provider that prepends or misorders one vector in a single-item batch produced
+recall@1 of 0.0 where an honest embedder scores 1.0 — a plausible, entirely
+wrong benchmark number, with no error anywhere. That is precisely the corruption
+`_reject_non_finite_vectors` was written to prevent (its own comment: NaN yields
+"plausible-but-wrong recall/NDCG" that the `SweepResult` range guard can't
+catch), reached through arity instead of value, at the seam that check skipped.
+
+It's reachable because the five shipped SDK providers each assemble their output
+differently — sorting `response.data` by `.index`, reading
+`response.embeddings.float`, extending from `response.embeddings`, mapping over
+a numpy array — and not one of them checks that what came back has a row per
+input. A truncated or partial batch response lands here.
+
+The fix is one helper applied at both seams rather than a second inline check,
+because the gap existed exactly because the two seams were separate expressions
+of the same contract.
+
+Three things about the tests are worth carrying forward.
+
+The important test anchors the guard to the **wrong number** rather than to an
+exception type: it performs exactly what the unguarded line did and asserts the
+wrong chunk comes back. Without that, someone could later "fix" a regression
+here by widening a catch while the silent-corruption path quietly returns.
+
+My first CLI test was vacuous and I nearly shipped it. Its corpus fixture used
+short texts, so `build_queries` exited 2 with `no corpus chunks have >= 6
+words` — the same exit code the test asserts, for an entirely unrelated reason.
+It passed on the unfixed tree. The lesson generalises: when asserting an exit
+code that has more than one cause, pin the message too.
+
+And the call-site lock parses with `ast` rather than grepping, because the
+guard's own docstring quotes the expression it replaced and a text scan counted
+that prose as a third call site. It failed on the first run for exactly that
+reason, which is a decent argument for writing the lock before trusting it.
+
+One thing changed that I'd said I'd leave alone: the corpus seam's message now
+names the embedder and the seam kind. Nothing asserted the old wording, and one
+shared message is the point of the helper — but it's a change, so it's in the PR
+rather than buried.
+
+Deferred to its own issue: the Protocol also documents "all vectors share
+`self.dim`", and nothing checks that either.
+
+435 passed. Shipped as PR #113.

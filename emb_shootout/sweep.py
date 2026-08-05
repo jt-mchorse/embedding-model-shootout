@@ -276,6 +276,45 @@ def cosine(a: list[float], b: list[float]) -> float:
     return dot / (na * nb)
 
 
+def _require_one_vector_per_text(
+    vectors: list[list[float]], n_texts: int, *, embedder_name: str, kind: str
+) -> None:
+    """Fail loud unless the embedder returned exactly one vector per input.
+
+    The `Embedder` Protocol promises "one float vector per input text" (D-004),
+    and nothing enforces it — `embed` is a BYO seam, and the five shipped SDK
+    providers each assemble their output differently (sorting `response.data`
+    by `.index`, reading `response.embeddings.float`, extending from
+    `response.embeddings`, mapping over a numpy array). None of them checks the
+    row count, so a truncated or partial batch response lands here.
+
+    The corpus call had this check inline; the per-query call nine lines below
+    it did not, and both ways of breaking the contract were bad there (#112):
+
+    - **Too few.** `embedder.embed([q.text])[0]` on an empty list raised
+      `IndexError`, which `cli`'s `sweep run` doesn't catch (it catches
+      `ValueError`), so it escaped as a traceback at exit 1 instead of the
+      documented exit-2 contract.
+    - **Too many.** `[0]` took the first row and asked no questions, so a
+      provider that prepended or misordered one vector produced a *plausible
+      and entirely wrong* benchmark number — recall@1 of 0.0 where an honest
+      embedder scores 1.0, with no error anywhere. That is the same corruption
+      `_reject_non_finite_vectors` below was added to prevent, reached through
+      arity instead of value, and it is equally invisible to the `SweepResult`
+      range guard (#62).
+
+    One helper rather than two inline checks, because the gap existed exactly
+    because the two seams were separate expressions of the same contract.
+    """
+    if len(vectors) != n_texts:
+        raise ValueError(
+            f"embedder {embedder_name!r} returned {len(vectors)} vectors for "
+            f"{n_texts} {kind} text{'' if n_texts == 1 else 's'}; the Embedder "
+            "protocol promises one vector per input text, and a mismatch either "
+            "crashes the sweep or silently scores the wrong vector"
+        )
+
+
 def _reject_non_finite_vectors(
     vectors: list[list[float]], *, embedder_name: str, kind: str
 ) -> None:
@@ -427,10 +466,9 @@ def run_sweep(
     t0 = time.perf_counter()
     corpus_vectors = embedder.embed(corpus_texts)
     corpus_total_ms = (time.perf_counter() - t0) * 1000.0
-    if len(corpus_vectors) != len(corpus_texts):
-        raise ValueError(
-            f"embedder returned {len(corpus_vectors)} vectors for {len(corpus_texts)} texts"
-        )
+    _require_one_vector_per_text(
+        corpus_vectors, len(corpus_texts), embedder_name=embedder.name, kind="corpus"
+    )
     _reject_non_finite_vectors(corpus_vectors, embedder_name=embedder.name, kind="corpus")
 
     # Embed queries one at a time so we can capture per-query latency.
@@ -438,9 +476,13 @@ def run_sweep(
     query_vectors: list[list[float]] = []
     for q in queries:
         t0 = time.perf_counter()
-        vec = embedder.embed([q.text])[0]
+        vecs = embedder.embed([q.text])
         query_latencies_ms.append((time.perf_counter() - t0) * 1000.0)
-        query_vectors.append(vec)
+        # Same contract as the corpus call above. Indexing `[0]` straight off
+        # the result raised `IndexError` on an empty return and silently scored
+        # the wrong vector on an over-long one (#112).
+        _require_one_vector_per_text(vecs, 1, embedder_name=embedder.name, kind="query")
+        query_vectors.append(vecs[0])
     _reject_non_finite_vectors(query_vectors, embedder_name=embedder.name, kind="query")
 
     # Compute hits per query at each k, plus NDCG@10.
