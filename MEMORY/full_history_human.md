@@ -782,3 +782,48 @@ Deferred to its own issue: the Protocol also documents "all vectors share
 `self.dim`", and nothing checks that either.
 
 435 passed. Shipped as PR #113.
+
+## 2026-08-07 — the documented command didn't produce the documented number (#114)
+
+The quickstart said to run the hash sweep with `--queries 200`. The committed
+`results/hash.json` was made with 50. So anyone following the README got
+recall@5 of 0.560 while the benchmarks table and the README's own prose said
+0.520. The number was never fake — re-running with `--queries 50 --seed 42`
+reproduces it to all sixteen digits of the NDCG — but no documented command
+produced it.
+
+Three snapshot tests cover this area and none of them could see it. One locks
+the artifact's cells against the README prose. Another locks the aggregator's
+rendering of the artifact into the benchmarks table. Together they form a
+closed loop: prose agrees with artifact agrees with table, and the command
+that generates the artifact sits entirely outside it. A set of artifacts that
+all agree with each other says nothing about whether the documented way to
+produce them works.
+
+Then checking one assumption changed the whole fix. Before writing the obvious
+regenerate-and-compare test, I looked at whether the corpus is committed. It
+isn't — a recorded decision keeps it reproducible from source instead. Which
+means the test would rebuild it, and the corpus is built out of the standard
+library's own docstrings. So the interpreter is an input. On Python 3.11 the
+corpus is 11,108 chunks and recall@5 is 0.580; on 3.14 it's 12,010 chunks and
+0.520, with identical flags. The committed artifact records 12,010, so it came
+from a 3.14-era stdlib — and CI runs 3.11 and 3.12. The published benchmark
+isn't reproducible on either version CI actually runs.
+
+That killed the test I was about to write. It would have failed in CI on every
+run, and gating it on the interpreter would have made it always skip, which is
+a failure mode this portfolio has already been bitten by. So this shipped the
+half that doesn't depend on the interpreter: the documented flags are locked
+against the metadata the artifact actually records, which needs no rebuild and
+holds everywhere.
+
+The rest is a decision, not a fix. Committing the corpus reverses the existing
+decision; pinning a builder interpreter amends it; recording the Python version
+in the result schema means regenerating a published benchmark row. All three
+are the kind of call to escalate rather than make quietly at two in the
+morning, so they're filed with the measurements attached.
+
+One thing worth stating plainly, because it would be easy to overstate the
+problem: the cross-provider comparison is unaffected. Within a single run every
+provider sees the same corpus and the same seed, so the apples-to-apples claim
+holds. It's the absolute numbers that carry an undeclared dependency.
