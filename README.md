@@ -176,14 +176,17 @@ land in `results/`, the notebook re-runs unchanged and absorbs them.
 # Build the corpus.
 emb-shootout corpus build --out data/corpus.jsonl
 
-# Run a provider. Hash-only (dep-free, hermetic) baseline:
+# Run a provider. Hash-only (dep-free, hermetic) baseline.
+# These are the flags that produced the committed `results/hash.json`;
+# `--seed` is spelled out because the query set is derived from the corpus
+# at sweep time (D-005), so it's part of the result's provenance.
 emb-shootout sweep run --provider hash \
-  --corpus data/corpus.jsonl --queries 200 --output results/hash.json
+  --corpus data/corpus.jsonl --queries 50 --seed 42 --output results/hash.json
 
 # Real providers each need their SDK + API key:
 pip install 'emb-shootout[openai]'
 OPENAI_API_KEY=sk-... emb-shootout sweep run --provider openai \
-  --corpus data/corpus.jsonl --queries 200 --output results/openai.json
+  --corpus data/corpus.jsonl --queries 50 --seed 42 --output results/openai.json
 
 # Aggregate JSONs into the markdown table.
 emb-shootout sweep aggregate --results-dir results --out docs/benchmarks.md
@@ -193,6 +196,27 @@ Six providers wired (`hash`, `openai`, `voyage`, `cohere`, `bge`, `nomic`).
 The query set is derived deterministically from the corpus at sweep time
 (seed `42` by default), so all providers run against the same queries by
 construction — cross-provider rows are apples-to-apples.
+
+### Reproducibility caveat: the corpus is interpreter-dependent
+
+The corpus is built from the standard library's own docstrings (D-002 —
+regenerated from source rather than committed), so **the interpreter you
+build it on changes the corpus, and therefore every number below.**
+Measured with identical flags (`--queries 50 --seed 42`):
+
+| | Python 3.11 | Python 3.14 |
+| --- | ---: | ---: |
+| `corpus build` chunk_count | 11 108 | 12 010 |
+| recall@5 | 0.580 | 0.520 |
+| NDCG@10 | 0.4853 | 0.4486 |
+
+The committed `results/hash.json` records `n_corpus: 12010`, so it was
+produced on a 3.14-era stdlib. Reproducing its exact row needs the same
+interpreter; on another version you'll get a self-consistent but different
+corpus and different numbers. Cross-provider comparisons within a single
+run are unaffected — that's what the shared seed guarantees. Which of
+these to change (commit the corpus, pin a builder interpreter, or record
+the version in the result schema) is open as issue #115.
 
 ## Benchmarks / Results
 
