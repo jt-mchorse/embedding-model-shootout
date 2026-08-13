@@ -276,6 +276,7 @@ def _read_corpus_jsonl(path: Path) -> list:
     from .sweep import CorpusChunk
 
     chunks: list[CorpusChunk] = []
+    seen_ids: dict[str, int] = {}
     with path.open("r", encoding="utf-8") as fh:
         for line_no, raw in enumerate(fh, start=1):
             line = raw.strip()
@@ -311,7 +312,31 @@ def _read_corpus_jsonl(path: Path) -> list:
                     )
                 if value == "":
                     raise ValueError(f"{path}:{line_no}: field {corpus_field!r} must not be empty")
-            chunks.append(CorpusChunk(chunk_id=obj["chunk_id"], text=obj["text"]))
+            # `duplicate_chunk_id` was the one `validate_corpus` finding code
+            # this reader didn't have, because #75 unified the *row-level*
+            # checks and uniqueness is a file-level property — exactly the kind
+            # a row-by-row parity pass misses (#117).
+            #
+            # It is not cosmetic: retrieval scoring is id-equality
+            # (`q.expected_chunk_id in retrieved_ids[:k]` for recall@k, and the
+            # `cid == q.expected_chunk_id` rel vector for NDCG@10), and
+            # `build_queries` takes each query's `expected_chunk_id` from the
+            # chunk its snippet came from. A second chunk carrying that id gets
+            # credited for retrieving the *wrong text*: measured, recall@1 rose
+            # from 0.9600 to 0.9667 on a corpus whose only change was
+            # duplicating one id. `corpus validate` already failed such a file
+            # while `sweep run` benchmarked it and wrote an artifact at exit 0.
+            #
+            # Message names both lines, mirroring `validate_corpus`'s finding.
+            # Callers' `except (OSError, ValueError)` maps this to exit 2.
+            chunk_id = obj["chunk_id"]
+            if chunk_id in seen_ids:
+                raise ValueError(
+                    f"{path}:{line_no}: duplicate chunk_id {chunk_id!r}; first seen at line "
+                    f"{seen_ids[chunk_id]}; chunk_id must be unique within a corpus"
+                )
+            seen_ids[chunk_id] = line_no
+            chunks.append(CorpusChunk(chunk_id=chunk_id, text=obj["text"]))
     return chunks
 
 

@@ -827,3 +827,45 @@ One thing worth stating plainly, because it would be easy to overstate the
 problem: the cross-provider comparison is unaffected. Within a single run every
 provider sees the same corpus and the same seed, so the apples-to-apples claim
 holds. It's the absolute numbers that carry an undeclared dependency.
+
+## 2026-08-12 — two readers, one file, different answers (#117)
+
+`corpus validate` failed a corpus with a duplicate `chunk_id`. `sweep run` read
+the same file happily and wrote a benchmark artifact from it at exit 0. Two
+readers over one format, disagreeing about whether the file was usable — in the
+direction that publishes a number.
+
+What found it wasn't reading the code case by case. It was a differential
+probe: fourteen candidate corpora, both readers run over each, accept/reject
+printed side by side. Two divergences fell straight out. That's the move to
+reach for whenever a repo has two readers for one format, and it's much faster
+than reasoning about either in isolation.
+
+The harm is measured rather than argued. Retrieval scoring is id-equality, and
+`build_queries` takes each query's expected id from the chunk its snippet came
+from — so a second chunk carrying that id gets credit for retrieving the wrong
+text. Duplicating one id raised recall@1 from 0.9600 to 0.9667.
+
+Demonstrating that took three attempts, which is worth remembering. A small
+corpus gave perfect recall, so only NDCG moved. A larger corpus with
+well-separated documents showed no change at all, because the two id-twins
+never appeared in each other's top-k. The demo only works with two strong
+lexical competitors: to show that a collision inflates a metric, the collision
+has to be engineered into the retrieval neighbourhood.
+
+The reason it was missed is instructive. `_read_corpus_jsonl` already carried
+the intent — "so the two loaders agree on a valid row" — and #75 unified the
+row-level checks. Uniqueness isn't a row-level property. When a parity fix is
+described as per-row, the question to ask is which properties aren't.
+
+So the fix that matters isn't the duplicate check; it's the differential test
+that drives both readers over an 18-input table and asserts they agree. Fixing
+the duplicate case alone would close today's instance and leave the next one to
+be found the same way. The single accepted difference — an empty file — is
+pinned explicitly, together with the `build_queries` guard that keeps it from
+reaching a benchmark.
+
+One calibration note: an AST sweep for bare write seams flagged `emb_shootout/
+plot.py` and all three `vector-search-at-scale` scripts. Every one was a false
+positive — the `except OSError` lives one frame up, in the caller. A per-file
+try-scan can't see that. Check the caller before filing.
