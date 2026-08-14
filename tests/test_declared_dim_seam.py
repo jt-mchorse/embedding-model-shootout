@@ -93,7 +93,7 @@ def test_error_names_the_embedder_and_the_seam() -> None:
     # only way this class surfaced at all was a mismatch *between* two vectors,
     # raising "vector length mismatch: 768 vs 512" from inside the retrieval
     # loop, naming neither the embedder nor the seam.
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError, match=r"declares dim=512") as exc:
         run_sweep(
             embedder=_StubEmbedder(512, 4, name="acme/embed-v9"),
             corpus=_corpus(),
@@ -102,7 +102,8 @@ def test_error_names_the_embedder_and_the_seam() -> None:
     msg = str(exc.value)
     assert "acme/embed-v9" in msg
     assert "corpus" in msg or "query" in msg
-    assert "512" in msg and "4-component" in msg
+    assert "512" in msg
+    assert "4-component" in msg
 
 
 def test_the_query_seam_is_covered_too() -> None:
@@ -128,5 +129,5 @@ def test_cli_exit_code_contract_still_holds_for_this_class() -> None:
     # `cli sweep run` catches ValueError and exits 2. Raising a ValueError (not
     # a bespoke exception type) is what keeps this class inside the documented
     # exit-code contract rather than escaping as a traceback at exit 1.
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"declares dim=1024"):
         run_sweep(embedder=_StubEmbedder(1024, 8), corpus=_corpus(), queries=_queries())
