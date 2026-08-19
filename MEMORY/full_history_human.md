@@ -869,3 +869,61 @@ One calibration note: an AST sweep for bare write seams flagged `emb_shootout/
 plot.py` and all three `vector-search-at-scale` scripts. Every one was a false
 positive — the `except OSError` lives one frame up, in the caller. A per-file
 try-scan can't see that. Check the caller before filing.
+
+## 2026-08-14 — a recorded dimension that described nothing (#119)
+
+`SweepResult.embedder_dim` was copied straight off `embedder.dim` and never
+reconciled with the vectors the embedder actually returned. A provider that
+declares one dimension and returns another produced a clean, successful sweep
+whose recorded dimension was fiction: declaring 1024 while returning
+8-component vectors recorded `embedder_dim: 1024` at exit 0.
+
+The detail that turns this from tidiness into a real defect is that the NDCG
+*differs* between the honest run and the declared-8/actual-1024 run — 0.710
+versus 0.662. The quality number genuinely depends on the real dimension while
+the reported dimension is the declared one, so `results/*.json` pairs a real
+measured score with a fabricated dim. Dimension is a first-class axis in the
+README table, the JSON payload and the Pareto plot; a cost/quality/dimension
+tradeoff is the entire subject of a shootout.
+
+It was found by reading a whole docstring sentence. The `Embedder` Protocol
+says "Return one float vector per input text. All vectors share `self.dim`."
+#112 enforced the first clause and wrote a long, correct docstring about why an
+arity mismatch yields a plausible and entirely wrong benchmark number with no
+error anywhere. The second clause had no guard and fails identically. When a
+fix enforces a docstring, read the rest of the sentence — the next clause is
+the sibling.
+
+The sharpest piece of evidence was a comment citing a check that doesn't exist.
+`SweepResult.__post_init__` justified its `embedder_dim` type guard with "NaN/
+Infinity in dim makes `len(vec) == dim` always false" — and grepping the whole
+package turned up no `len(vec) == dim` anywhere. It appealed to a downstream
+consumer that was never written. That's the strongest form of the
+prose-assertion lens: not a comment that overstates what the code does, but one
+that reasons about a guard which isn't there. The comment is corrected and the
+consumer now exists.
+
+`cosine`'s existing length guard structurally could not catch this, and the
+reason generalises: it compares *two* vectors, so it only fires when corpus and
+query vectors disagree with each other. The reachable case is uniform — a
+provider hardcodes `DEFAULT_DIM` and the upstream model's output size changes —
+and uniformly-wrong vectors are perfectly self-consistent. A pairwise
+consistency check cannot catch a uniform error.
+
+The guard is wired at both embed seams, because #112 had already established
+that the batch corpus call and the per-query call are two separate expressions
+of one contract, and that guarding only one is how the arity gap survived.
+There's a test with an embedder that's honest on the corpus pass and wrong on
+the query pass.
+
+Left alone deliberately: the six provider constructors validate `batch_size` in
+full parity (I checked all six) but not `dim=`. A range check on the kwarg
+would be strictly weaker than a seam check whose whole subject is agreement
+with the returned vectors.
+
+Two process notes. I chained `ruff check` into the same command as the commit
+and pushed before reading its output — it had found three lint errors, and a
+second commit was needed. Read the lint result before committing, not
+alongside. And `Chunk` takes six required fields while `Query` takes
+`expected_chunk_id` (singular), which killed two probe attempts; check
+`inspect.signature` first when stubbing a repo's dataclasses.

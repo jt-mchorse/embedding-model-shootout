@@ -103,8 +103,11 @@ class SweepResult:
                 f"got {self.cost_per_million_tokens!r}"
             )
         # Integer guard (#31): the three count fields are typed `int` but the
-        # runtime can take floats. NaN/Infinity in dim makes `len(vec) == dim`
-        # always false; fractional dim silently truncates via int comparison.
+        # runtime can take floats. NaN/Infinity in dim makes the
+        # `len(vec) != declared_dim` seam check in `_require_declared_dim`
+        # always fire; a fractional dim silently truncates via int comparison.
+        # (That seam check did not exist when this comment was written — it
+        # cited a consumer that was never built. Added in #119.)
         # bool excluded explicitly (Python's bool subclasses int).
         if not isinstance(self.embedder_dim, int) or isinstance(self.embedder_dim, bool):
             raise ValueError(f"embedder_dim must be an int; got {self.embedder_dim!r}")
@@ -315,6 +318,46 @@ def _require_one_vector_per_text(
         )
 
 
+def _require_declared_dim(
+    vectors: list[list[float]], declared_dim: int, *, embedder_name: str, kind: str
+) -> None:
+    """Fail loud unless every vector has exactly the embedder's declared `dim`.
+
+    The `Embedder` Protocol docstring is one sentence with two clauses: "Return
+    one float vector per input text. All vectors share `self.dim`." #112
+    enforced the first clause (`_require_one_vector_per_text`); this enforces
+    the second, at the same seam, because it fails the same way for the same
+    reason.
+
+    `SweepResult.embedder_dim` is copied straight off `embedder.dim` and was
+    never reconciled with what the embedder returned, so a provider that
+    declares one dimension and returns another produced a clean, successful
+    sweep whose recorded dimension was fiction. Measured: declaring 1024 while
+    returning 8-component vectors recorded `embedder_dim: 1024` at exit 0, and
+    declaring 8 while returning 1024 recorded `8` — with a *different* NDCG,
+    since the quality number genuinely depends on the real dimension. That
+    lands a real measured score next to a fabricated dimension in
+    `results/*.json`, the README table and the Pareto plot, where dim is a
+    first-class axis.
+
+    `cosine`'s length guard cannot cover this. It compares two vectors, so it
+    only fires when corpus and query vectors disagree with *each other*. The
+    reachable case is uniform — a provider hardcodes `DEFAULT_DIM` and the
+    upstream model's output size changes, or an operator passes a wrong `dim=`
+    — and uniformly-wrong vectors are perfectly self-consistent. When lengths
+    *do* differ, `cosine` raises from inside the retrieval loop naming neither
+    the embedder nor the seam; checking here names both.
+    """
+    for vi, vec in enumerate(vectors):
+        if len(vec) != declared_dim:
+            raise ValueError(
+                f"embedder {embedder_name!r} declares dim={declared_dim} but returned a "
+                f"{len(vec)}-component {kind} vector at index {vi}; the Embedder protocol "
+                "promises all vectors share `self.dim`, and a mismatch records a "
+                "fabricated dimension alongside a real quality score"
+            )
+
+
 def _reject_non_finite_vectors(
     vectors: list[list[float]], *, embedder_name: str, kind: str
 ) -> None:
@@ -469,6 +512,7 @@ def run_sweep(
     _require_one_vector_per_text(
         corpus_vectors, len(corpus_texts), embedder_name=embedder.name, kind="corpus"
     )
+    _require_declared_dim(corpus_vectors, embedder.dim, embedder_name=embedder.name, kind="corpus")
     _reject_non_finite_vectors(corpus_vectors, embedder_name=embedder.name, kind="corpus")
 
     # Embed queries one at a time so we can capture per-query latency.
@@ -482,6 +526,7 @@ def run_sweep(
         # the result raised `IndexError` on an empty return and silently scored
         # the wrong vector on an over-long one (#112).
         _require_one_vector_per_text(vecs, 1, embedder_name=embedder.name, kind="query")
+        _require_declared_dim(vecs, embedder.dim, embedder_name=embedder.name, kind="query")
         query_vectors.append(vecs[0])
     _reject_non_finite_vectors(query_vectors, embedder_name=embedder.name, kind="query")
 
