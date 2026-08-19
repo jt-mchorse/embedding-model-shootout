@@ -927,3 +927,57 @@ second commit was needed. Read the lint result before committing, not
 alongside. And `Chunk` takes six required fields while `Query` takes
 `expected_chunk_id` (singular), which killed two probe attempts; check
 `inspect.signature` first when stubbing a repo's dataclasses.
+
+## 2026-08-19 — a `max()` floor laundering a bad type past its own guard (#121)
+
+I had just shipped chunking-strategies-lab#158 in this same run, and
+`chunking`'s comment names its mirror: "Mirrors the `run_sweep` `k_values`
+guard in embedding-model-shootout (#28)." So I went and read the sibling. That
+is a lens on its own — when a comment names a counterpart in another repo, go
+look at the counterpart.
+
+`run_sweep`'s `k_values` gate checks sign and duplicates, not type. What makes
+this one more interesting than the chunking version is *why* the gap survived:
+the complete rule already lives twice in the same module. `ndcg_at_k` and
+`retrieve_top_k` both carry `not isinstance(k, int) or isinstance(k, bool) or
+k <= 0` from #31. Neither can be reached with the operator's value, because
+`retrieve_top_k` is called with `max(max_k, 10)` — and `max(True, 10)` is `10`,
+`max(2.5, 10)` is `10`. The floor launders the bad type away before the only
+type guard in the file can see it.
+
+The measured consequence is the part worth remembering:
+
+```
+k_values=(2.5,)   -> TypeError: slice indices must be integers ...   (raw)
+k_values=(20.5,)  -> ValueError: k must be a positive integer; got 20.5
+k_values=(3.0,)   -> TypeError: slice indices must be integers ...
+k_values=(30.0,)  -> ValueError: k must be a positive integer; got 30.0
+k_values=(True,)  -> no error at all
+```
+
+The same defect, and the diagnostic is decided by which side of 10 the typo
+falls on. The default `k_values` is `(1, 5, 10)`, so every default value sits
+in the range with the worse one. The general shape: when a value passes
+through `max`/`min`/a clamp/an `or` before reaching its guard, the guard may
+never see what the operator actually typed.
+
+`(True,)` was the loudest case. The sweep completed, `retrieved_ids[:True]`
+took one element, and `to_dict` emitted `{"True": 0.5}` — which
+`SweepResult.from_dict` then rejects with `invalid literal for int() with base
+10: 'True'`. The writer produced a result file its own reader refuses, and
+`_aggregate_ks` would have unioned that key into a `recall@True` column in the
+committed comparison table. `__post_init__` validates `recall_at_k`'s *values*
+exhaustively and never looks at a key, while `from_dict` coerces keys with
+`int(k)`.
+
+Two cases turned out to be covered only by accident, and both are now
+recorded. `(1, True)` was rejected by the *duplicate* check, because
+`list((1, True)).count(1)` is 2 (`True == 1`) — a check written for an entirely
+different purpose, which never covered `(True,)` alone or `(2, True)`. There is
+now a test that says so, so nobody reads it as type coverage. And `nan`/`inf`
+were caught downstream in `ndcg_at_k`, whose message names `k` rather than
+`k_values` — right outcome, wrong frame and wrong noun.
+
+I left `max(max_k, 10)` alone. The floor exists so NDCG@10 always has ten
+ranked results, which is correct; the fix is to reject the bad value before it
+gets there.
