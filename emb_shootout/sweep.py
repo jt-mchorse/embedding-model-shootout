@@ -482,6 +482,47 @@ def run_sweep(
         raise ValueError("queries must be non-empty")
     if not k_values:
         raise ValueError("k_values must be non-empty")
+    # Type, before sign (#121). The complete rule already lives TWICE in this
+    # module — `ndcg_at_k` and `retrieve_top_k` both carry
+    # `not isinstance(k, int) or isinstance(k, bool) or k <= 0` from #31 — and
+    # neither can be reached with the operator's actual value, because
+    # `retrieve_top_k` is called with `max(max_k, 10)` and `max(True, 10)` is
+    # `10`, `max(2.5, 10)` is `10`. The floor launders the bad type away before
+    # the only type guard in the file can see it.
+    #
+    # The measured consequence is that the SAME defect gets a different
+    # diagnostic depending on whether the typo happens to exceed 10:
+    #
+    #   k_values=(2.5,)   -> TypeError: slice indices must be integers ...
+    #                        (raw, from `retrieved_ids[:k]`, names nothing)
+    #   k_values=(20.5,)  -> ValueError: k must be a positive integer; got 20.5
+    #   k_values=(True,)  -> no error at all
+    #
+    # And the default is `(1, 5, 10)`, so an operator staying near the defaults
+    # sits entirely inside the range with the worst diagnostic.
+    #
+    # `(True,)` was the loudest case: the sweep COMPLETED, `retrieved_ids[:True]`
+    # took one element, and `to_dict` emitted `{"True": 0.5}` — which
+    # `SweepResult.from_dict` then rejects with `invalid literal for int() with
+    # base 10: 'True'`. The writer produced a result file its own reader refuses,
+    # and `_aggregate_ks` would have unioned that key straight into a
+    # `recall@True` column in the committed comparison table.
+    #
+    # Ordering is load-bearing, not cosmetic: `k <= 0` raises `TypeError` on a
+    # `str`/`None` element, so the sign check below cannot run at all until the
+    # non-numerics are gone. Collected in one pass, like both checks after it.
+    #
+    # An integral float (`3.0`) is rejected rather than coerced, so this gate
+    # agrees with the two downstream guards that already reject it. It is also
+    # the reachable float: `json.loads("3.0")` is `3.0`, so a `k_values` list
+    # from a config file or notebook cell carries floats with no decimal point
+    # ever typed.
+    bad_type = [k for k in k_values if isinstance(k, bool) or not isinstance(k, int)]
+    if bad_type:
+        raise ValueError(
+            f"every k in k_values must be an int (bool excluded); got {bad_type!r} — "
+            "coerce with int(k) if these came from JSON"
+        )
     # Non-positive `k` passes through list slicing (`retrieved_ids[:k]`)
     # without raising — `k=0` produces a tautological recall@0=0, `k<0`
     # silently miscounts ("all but the last N" entries). Surface every
