@@ -1039,3 +1039,42 @@ workload shapes × 200 queries, minimum boundary gap ~300 ulp), and
 ultimately JT's call; the reasoning and the revert path are both on the issue.
 
 **Next session:** `#115` and `#111` remain open decision-revisits.
+
+## 2026-08-20 — second pass on #123: the renderer had four more of them
+
+After shipping the first commit I ran a portfolio-wide grep for the pattern I
+had just fixed — `.get(<key>, 0)` — and it returned four more sites in
+`plot.py`, the actual figure, plus one in `cli.py`. The first commit had fixed
+`pareto.py` and `sweep.py` only.
+
+They were already unreachable for a missing k=5, because `render_pareto` calls
+`pareto_frontier` first and that now raises. But only by call order. A
+guarantee that depends on statement order is not a guarantee: a reordering, or
+a future path that skips the frontier, brings the fabricated coordinate back,
+and a reader has no way to see the dependency. All four now go through the
+shared accessor, so it is structural.
+
+`cli.py` got a deliberately different treatment — a direct `recall_at_k[5]`
+index rather than the raising accessor. That print happens *after* the result
+file is written, so turning a successful sweep into an exception at the print
+step would be worse than the bug. The command hardcodes `k_values=(1, 5, 10)`,
+so a `KeyError` is only reachable if that tuple changes. Match the failure mode
+to where in the flow the code sits.
+
+My first version of the lock failed on the repo's own explanatory prose: a
+substring scan for `.get(5, 0.0)` matched `pareto.py`'s docstring, which quotes
+the old expression to explain why it was removed. Prose about a bug is not the
+bug. Rewrote it to parse the AST and match only real call nodes. That is the
+second time in this run a doc lock flagged the text explaining its own fix —
+the `nextjs` 50/50 lock did the same thing — so it is worth treating as a rule.
+
+`#111` records that the plot/CLI render tests never run in CI, which is why the
+AST source lock is the part that always executes; the two behavioural render
+tests `importorskip` matplotlib.
+
+**Why this work, this session:** it is the same issue, caught by sweeping for
+the pattern after shipping rather than before.
+
+**Open questions / blockers:** none beyond those on #123 itself.
+
+**Next session:** unchanged — `#115` and `#111` remain open decision-revisits.
