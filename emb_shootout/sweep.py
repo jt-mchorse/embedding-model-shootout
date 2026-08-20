@@ -608,6 +608,19 @@ def run_sweep(
 # ----------------------------------------------------------------------
 
 
+#: Rendered where a result has no measurement at some k in the union (#123).
+#: An em dash rather than a blank so the column stays visible in the GFM table,
+#: and rather than `0.000` so it can never be read as a measured value.
+ABSENT_RECALL_CELL = "—"
+
+
+def _recall_cell(recall_at_k: dict[int, float], k: int) -> str:
+    """One recall cell, distinguishing "measured zero" from "not measured"."""
+    if k not in recall_at_k:
+        return f" {ABSENT_RECALL_CELL} |"
+    return f" {recall_at_k[k]:.3f} |"
+
+
 def _aggregate_ks(results: Sequence[SweepResult]) -> list[int]:
     """Union of `recall_at_k` keys across results, sorted ascending."""
     k_set: set[int] = set()
@@ -640,7 +653,24 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
         + "--------:|------------------:|---------------:|---------------:|------------:|",
     ]
     for r in sorted(results, key=lambda x: x.embedder_name):
-        recalls = "".join(f" {r.recall_at_k.get(k, 0.0):.3f} |" for k in ks)
+        # `.get(k, 0.0)` PUBLISHED A NUMBER FOR A MEASUREMENT NEVER TAKEN
+        # (#123). `_aggregate_ks` above correctly takes the UNION of k across
+        # results, so the column set is right — but a result swept at
+        # `k_values=(1, 3, 10)` then reported `0.000` under recall@5, which is
+        # indistinguishable from a real measurement of zero. Measured, two
+        # results with different k sets:
+        #
+        #   | mid         | ... | 0.400 | 0.000 | 0.550 | 0.600 |
+        #   | strong-no-5 | ... | 0.950 | 0.970 | 0.000 | 0.990 |
+        #
+        # `mid` was never measured at 3 and `strong-no-5` never at 5; both cells
+        # read as measured zeros. Handoff §10: do not invent benchmark numbers.
+        # An em dash instead — visible in the column, impossible to read as a
+        # value. Sibling of chunking-strategies-lab#160.
+        #
+        # The CLI hardcodes `k_values=(1, 5, 10)` for every provider, so a
+        # normal aggregate never takes this branch and its output is unchanged.
+        recalls = "".join(_recall_cell(r.recall_at_k, k) for k in ks)
         # `embedder_name` is the one free-form cell (every other is a formatted
         # number). It reaches here with an arbitrary `|` via `from_dict` on an
         # external/hand-edited result file, or a BYO `Embedder` whose `name`

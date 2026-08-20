@@ -90,9 +90,26 @@ def test_frontier_sorted_by_cost_ascending():
     assert [r.embedder_name for r in frontier] == ["b", "a", "c"]
 
 
-def test_missing_recall_at_5_treated_as_zero():
-    # A result without a `5` key in recall_at_k is interpreted as 0 — it will
-    # be dominated by any point with any non-zero recall@5 at the same cost.
+def test_missing_recall_at_5_is_refused_not_treated_as_zero():
+    """Deliberate reversal of a previously-asserted behaviour (#123).
+
+    This test used to be `test_missing_recall_at_5_treated_as_zero` and
+    asserted the frontier was `["has_recall"]` — i.e. that `no_recall` was
+    dominated away. Its comment described the mechanism ("interpreted as 0 — it
+    will be dominated by any point with any non-zero recall@5") but gave no
+    reason to *want* it, and no core decision endorses it: D-008 fixes the axes
+    as cost x recall@5 and says nothing about substituting a value for a
+    measurement that was never taken.
+
+    Scoring an unmeasured axis as 0.0 is not neutral — 0.0 is the worst
+    possible value, so the substitution actively ranks the model. Measured on
+    the pre-fix code, a model with real recall@1/3/10 of 0.95 / 0.97 / 0.99 was
+    dropped from the frontier in favour of one scoring 0.12 at k=5. In a
+    benchmark repo that is an invented number deciding a published result
+    (handoff §10).
+
+    Same scenario as before, opposite expectation.
+    """
     no_recall = SweepResult(
         embedder_name="no_recall",
         embedder_dim=128,
@@ -104,8 +121,8 @@ def test_missing_recall_at_5_treated_as_zero():
         embed_latency_ms={"corpus_total": 0.0, "query_p50": 0.0, "query_p95": 0.0},
     )
     has_recall = _make("has_recall", cost=1.0, recall_at_5=0.3)
-    frontier = pareto_frontier([no_recall, has_recall])
-    assert [r.embedder_name for r in frontier] == ["has_recall"]
+    with pytest.raises(ValueError, match="no_recall"):
+        pareto_frontier([no_recall, has_recall])
 
 
 def test_real_hash_baseline_alone_is_frontier():
