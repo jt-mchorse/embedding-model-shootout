@@ -164,3 +164,78 @@ class TestAggregateMarkdownDoesNotFabricate:
         )
         assert "0.100" in table
         assert "0.600" in table
+
+
+class TestTheRendererCannotFabricateEither:
+    """`plot.py` had four more `.get(5, 0.0)` sites (#123, second pass).
+
+    They were already unreachable once `pareto_frontier` gained its
+    precondition — `render_pareto` calls it first — but only by *call order*.
+    A reordering, or a future path that skips the frontier, would bring the
+    fabricated coordinate back. Routing them through the shared accessor makes
+    the guarantee structural instead of positional.
+
+    `#111` records that the plot/CLI render tests do not run in CI, so the
+    source-level lock below is the part that always executes.
+    """
+
+    def test_no_module_substitutes_a_default_for_the_frontier_axis(self) -> None:
+        """Scans the AST, not the text.
+
+        A substring scan also matches the docstrings and comments that *quote*
+        the old expression to explain why it was removed — prose about a bug is
+        not the bug. Parsing means the lock only ever sees real calls.
+        """
+        import ast
+        from pathlib import Path
+
+        pkg = Path(__file__).resolve().parents[1] / "emb_shootout"
+        offenders = []
+        for rel in ("plot.py", "cli.py", "pareto.py", "sweep.py"):
+            tree = ast.parse((pkg / rel).read_text(encoding="utf-8"), filename=rel)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                if not (isinstance(func, ast.Attribute) and func.attr == "get"):
+                    continue
+                if len(node.args) != 2:
+                    continue
+                key, default = node.args
+                if not (isinstance(key, ast.Constant) and key.value == FRONTIER_K):
+                    continue
+                if isinstance(default, ast.Constant) and default.value == 0:
+                    offenders.append(f"{rel}:{node.lineno}")
+        assert offenders == [], (
+            "these calls substitute a default for the Pareto frontier's quality "
+            "axis; 0.0 is the worst possible value there, so the default ranks "
+            "the model rather than abstaining: " + ", ".join(offenders)
+        )
+
+    def test_the_lock_is_looking_at_real_files(self) -> None:
+        # Guards the guard: a moved package would make the scan vacuous.
+        from pathlib import Path
+
+        pkg = Path(__file__).resolve().parents[1] / "emb_shootout"
+        for rel in ("plot.py", "cli.py", "pareto.py", "sweep.py"):
+            assert (pkg / rel).is_file(), f"{rel} not found — the lock scans nothing"
+
+    def test_render_pareto_refuses_a_missing_axis(self, tmp_path) -> None:
+        pytest.importorskip("matplotlib")
+        from emb_shootout.plot import render_pareto
+
+        strong = _result("strong-no-5", 0.02, STRONG_NO_5)
+        mid = _result("mid", 0.30, {1: 0.40, 5: 0.55, 10: 0.60})
+        with pytest.raises(ValueError, match="strong-no-5"):
+            render_pareto([strong, mid], out_png=str(tmp_path / "p.png"))
+
+    def test_render_pareto_still_works_on_a_normal_sweep(self, tmp_path) -> None:
+        pytest.importorskip("matplotlib")
+        from emb_shootout.plot import render_pareto
+
+        a = _result("a", 0.10, {1: 0.1, 5: 0.2, 10: 0.3})
+        b = _result("b", 0.20, {1: 0.4, 5: 0.5, 10: 0.6})
+        out = tmp_path / "p.png"
+        render_pareto([a, b], out_png=str(out))
+        assert out.is_file()
+        assert out.stat().st_size > 0
