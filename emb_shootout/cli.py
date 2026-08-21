@@ -152,7 +152,11 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
         sys.stderr.write(f"failed to write {out_path}: {e}\n")
         return 2
     sys.stdout.write(
-        f"{result.embedder_name}: recall@5={result.recall_at_k.get(5, 0.0):.3f} "
+        # Direct index, not `.get(5, 0.0)` (#123): this command hardcodes
+        # `k_values=(1, 5, 10)` above, so 5 is always present, and a default
+        # here would silently print `recall@5=0.000` if that tuple ever changed.
+        # A KeyError naming the missing key is the better failure.
+        f"{result.embedder_name}: recall@5={result.recall_at_k[5]:.3f} "
         f"NDCG@10={result.ndcg_at_10:.3f} → {out_path}\n"
     )
     return 0

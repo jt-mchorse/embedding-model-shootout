@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-from .pareto import pareto_frontier
+from .pareto import _recall_at_5, pareto_frontier
 from .sweep import SweepResult
 
 
@@ -72,7 +72,7 @@ def render_pareto(
     # All points first (non-frontier in muted color, frontier in highlight).
     for r in results:
         x = r.cost_per_million_tokens
-        y = float(r.recall_at_k.get(5, 0.0))
+        y = _recall_at_5(r)
         if id(r) in frontier_ids:
             ax.scatter(x, y, s=90, color="#d62728", zorder=3, edgecolor="black", linewidth=0.5)
         else:
@@ -88,12 +88,10 @@ def render_pareto(
         )
 
     # Polyline through the frontier only when ≥2 distinct frontier points.
-    distinct_frontier_coords = {
-        (r.cost_per_million_tokens, float(r.recall_at_k.get(5, 0.0))) for r in frontier
-    }
+    distinct_frontier_coords = {(r.cost_per_million_tokens, _recall_at_5(r)) for r in frontier}
     if len(distinct_frontier_coords) >= 2:
         xs = [r.cost_per_million_tokens for r in frontier]
-        ys = [float(r.recall_at_k.get(5, 0.0)) for r in frontier]
+        ys = [_recall_at_5(r) for r in frontier]
         ax.plot(xs, ys, color="#d62728", linewidth=1.6, zorder=2, linestyle="--", alpha=0.8)
 
     ax.set_xlabel("Cost per million tokens ($)")
@@ -111,7 +109,7 @@ def render_pareto(
     # Pad axes so labels don't clip.
     if len(results) > 1:
         x_vals = [r.cost_per_million_tokens for r in results]
-        y_vals = [float(r.recall_at_k.get(5, 0.0)) for r in results]
+        y_vals = [_recall_at_5(r) for r in results]
         x_pad = max(0.05, (max(x_vals) - min(x_vals)) * 0.08)
         y_pad = max(0.02, (max(y_vals) - min(y_vals)) * 0.08)
         ax.set_xlim(min(x_vals) - x_pad, max(x_vals) + x_pad)

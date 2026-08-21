@@ -981,3 +981,100 @@ were caught downstream in `ndcg_at_k`, whose message names `k` rather than
 I left `max(max_k, 10)` alone. The floor exists so NDCG@10 always has ten
 ranked results, which is correct; the fix is to reject the bad value before it
 gets there.
+
+## 2026-08-20 — the Pareto frontier ranked a model on a measurement it never took (#123)
+
+`pareto._recall_at_5` was `recall_at_k.get(5, 0.0)`. The important thing about
+that default is that `0.0` is the *worst possible* value on the frontier's
+quality axis — so it doesn't abstain, it ranks the model last. A default that
+lands at an extreme of the comparison is not a neutral default.
+
+Measured, with a model whose real recall@1/3/10 is 0.95 / **0.97** / 0.99 but
+which was swept at `k_values=(1, 3, 10)`: at $0.50/1M it was dominated by, and
+dropped from the frontier in favour of, a model scoring **0.12** at k=5. At
+$0.02/1M it survived on the cost axis alone and was simply plotted at `0.0` on
+the quality axis of the headline figure.
+
+My first hypothesis was that it would *always* vanish, and the first probe
+disproved that — the cheapest point survives regardless. I rewrote the probe
+with both cost positions and the issue states two distinct consequences rather
+than the one I'd assumed. Worth doing before writing the issue text, not after.
+
+The bigger lesson was procedural. A pre-existing test,
+`test_missing_recall_at_5_treated_as_zero`, had *named and asserted* the old
+behaviour. I didn't know that when I filed, and what surfaced it was running
+the whole suite rather than just my new file. So: run the whole suite before
+believing a behaviour is unguarded.
+
+Deciding to proceed anyway needed an argument, not an assumption. That test's
+comment described the mechanism but gave no reason to want it — no rationale,
+no linked issue, and no core decision behind it. D-008 fixes the axes as cost ×
+recall@5 and says nothing about substituting a value for a measurement never
+taken. A test that pins observed behaviour isn't the same as a decision, but
+the distinction has to be argued.
+
+I handled it in the open: posted a correction on the issue saying the issue as
+filed had failed to mention the asserted behaviour, gave the reasoning for
+overriding it, named the defensible opposite reading, and noted it's cheap to
+revert. The test was rewritten in place — same scenario, opposite expectation,
+with the old expectation recorded verbatim in its docstring — rather than
+deleted.
+
+I also deliberately stopped short of parameterizing the frontier's `k`. That
+would be a D-008 revisit, since the decision names recall@5 specifically.
+Failing loud is correct under D-008 as it stands, and it surfaces the question
+if it ever matters.
+
+The `aggregate_markdown` half was the direct sibling of
+chunking-strategies-lab#160, fixed earlier in this same run — except here
+`_aggregate_ks` already took the union of k, so only the fill was wrong.
+
+**Why this work, this session:** the static `priority:high` queue was globally
+empty. Two thorough empty hunts in `vector-search-at-scale` first — exact
+cosine ties are unreachable with the shipped Gaussian corpus (zero across five
+workload shapes × 200 queries, minimum boundary gap ~300 ulp), and
+`_percentile` matches numpy's linear method exactly across 30 cases.
+
+**Open questions / blockers:** whether a missing k=5 *should* be refused is
+ultimately JT's call; the reasoning and the revert path are both on the issue.
+
+**Next session:** `#115` and `#111` remain open decision-revisits.
+
+## 2026-08-20 — second pass on #123: the renderer had four more of them
+
+After shipping the first commit I ran a portfolio-wide grep for the pattern I
+had just fixed — `.get(<key>, 0)` — and it returned four more sites in
+`plot.py`, the actual figure, plus one in `cli.py`. The first commit had fixed
+`pareto.py` and `sweep.py` only.
+
+They were already unreachable for a missing k=5, because `render_pareto` calls
+`pareto_frontier` first and that now raises. But only by call order. A
+guarantee that depends on statement order is not a guarantee: a reordering, or
+a future path that skips the frontier, brings the fabricated coordinate back,
+and a reader has no way to see the dependency. All four now go through the
+shared accessor, so it is structural.
+
+`cli.py` got a deliberately different treatment — a direct `recall_at_k[5]`
+index rather than the raising accessor. That print happens *after* the result
+file is written, so turning a successful sweep into an exception at the print
+step would be worse than the bug. The command hardcodes `k_values=(1, 5, 10)`,
+so a `KeyError` is only reachable if that tuple changes. Match the failure mode
+to where in the flow the code sits.
+
+My first version of the lock failed on the repo's own explanatory prose: a
+substring scan for `.get(5, 0.0)` matched `pareto.py`'s docstring, which quotes
+the old expression to explain why it was removed. Prose about a bug is not the
+bug. Rewrote it to parse the AST and match only real call nodes. That is the
+second time in this run a doc lock flagged the text explaining its own fix —
+the `nextjs` 50/50 lock did the same thing — so it is worth treating as a rule.
+
+`#111` records that the plot/CLI render tests never run in CI, which is why the
+AST source lock is the part that always executes; the two behavioural render
+tests `importorskip` matplotlib.
+
+**Why this work, this session:** it is the same issue, caught by sweeping for
+the pattern after shipping rather than before.
+
+**Open questions / blockers:** none beyond those on #123 itself.
+
+**Next session:** unchanged — `#115` and `#111` remain open decision-revisits.
