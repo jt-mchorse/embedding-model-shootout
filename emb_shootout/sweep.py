@@ -384,16 +384,61 @@ def _reject_non_finite_vectors(
 
 
 def ndcg_at_k(relevances: list[int], k: int) -> float:
-    """DCG@k / iDCG@k for binary relevance.
+    """DCG@k / iDCG@k. Bounded in [0, 1] for any non-negative relevances.
 
-    `relevances[i]` is 0 or 1; the list is in ranked order (most relevant
-    first). NDCG is bounded in [0, 1] for binary relevance.
+    `relevances[i]` is a non-negative integer gain — 0/1 for binary relevance,
+    which is what `run_sweep` derives, and graded values work too: `[3, 2, 1, 0]`
+    scores 1.000, because `ideal` is computed over the *sorted* list and so is a
+    genuine maximum. The list is in ranked order (most relevant first).
+
+    The bound is a property of non-negativity, not of binariness. The docstring
+    used to say "for binary relevance", which understated the guarantee in one
+    direction and overstated it in another: a *negative* gain breaks the bound
+    outright (#125).
     """
     # Integer + positive guard (#31). NaN passes the sign-only `<= 0` check
     # and then surfaces deep inside `relevances[:k]` as a cryptic TypeError;
     # fractional silently truncates via the slicing-int coercion.
     if not isinstance(k, int) or isinstance(k, bool) or k <= 0:
         raise ValueError(f"k must be a positive integer; got {k!r}")
+    # `relevances` is the other operand of the same expression #31 hardened `k`
+    # in, and it was left unchecked. Measured (#125):
+    #
+    #   relevances        k          ndcg   in [0, 1]?
+    #   [1, 1, 0, 0]      4      1.000000   yes
+    #   [3, 2, 1, 0]      4      1.000000   yes    graded was always fine
+    #   [-10, 3]          1     -3.333333   NO
+    #   [-1, 20]          1     -0.050000   NO
+    #   [-1, 1]           2     -1.000000   NO
+    #   [inf, 1]          2           nan   NO
+    #   [nan, 1]          2      0.000000   yes -- and that is the problem
+    #   ["1", "0"]        2     raw TypeError, outside this module's contract
+    #
+    # The NaN row is the quietest and the worst: `_dcg` yields NaN, `ideal > 0`
+    # is False for NaN, so the fallback returns a clean 0.000 -- indistinguishable
+    # from "nothing relevant was retrieved". Same shape as the extreme-default
+    # class #123 closed, where an unmeasured recall scored 0.0 and was DOMINATED
+    # on the Pareto frontier rather than excluded from it.
+    #
+    # Validated rather than documented-around, and this repo has already made
+    # that call for this very number: `SweepResult.__post_init__` enforces
+    # `0.0 <= ndcg_at_10 <= 1.0` with a ValueError. The consumer treats the range
+    # as a hard contract; the producer only promised it in prose. Composing them
+    # surfaced the failure as "ndcg_at_10 must be a finite number in [0, 1]" --
+    # a message naming the FIELD rather than the relevance list at fault.
+    #
+    # Scoped to non-negative integers, which is what the annotation and the
+    # docstring both say. Graded gains stay accepted; only sign and type are
+    # constrained.
+    for i, r in enumerate(relevances):
+        if not isinstance(r, int) or isinstance(r, bool):
+            raise ValueError(f"relevances[{i}] must be a non-negative integer gain; got {r!r}")
+        if r < 0:
+            raise ValueError(
+                f"relevances[{i}] must be a non-negative integer gain; got {r}. "
+                f"A negative gain breaks the [0, 1] bound this function documents "
+                f"and SweepResult enforces"
+            )
     if not relevances:
         return 0.0
 
@@ -402,6 +447,10 @@ def ndcg_at_k(relevances: list[int], k: int) -> float:
 
     actual = _dcg(relevances[:k])
     ideal = _dcg(sorted(relevances, reverse=True)[:k])
+    # After the guard above, the only list that reaches `ideal <= 0` is one of
+    # all zeros, where 0.0 is the truthful answer -- so this fallback no longer
+    # doubles as a silent catch-all for a corrupt input, which is what it was
+    # doing for NaN (#125).
     return actual / ideal if ideal > 0 else 0.0
 
 
