@@ -1078,3 +1078,62 @@ the pattern after shipping rather than before.
 **Open questions / blockers:** none beyond those on #123 itself.
 
 **Next session:** unchanged — `#115` and `#111` remain open decision-revisits.
+
+---
+
+## 2026-08-24 — Issue #125: `ndcg_at_k` validated `k` and not `relevances`
+
+**What got done.** `ndcg_at_k` is exported in `__all__` and documents a range.
+#31 hardened `k` in this exact expression — `not isinstance(k, int) or
+isinstance(k, bool) or k <= 0` — and left `relevances`, the other operand,
+unchecked. Measured:
+
+```
+relevances        k          ndcg   in [0, 1]?
+[1, 1, 0, 0]      4      1.000000   yes
+[3, 2, 1, 0]      4      1.000000   yes    graded was always fine
+[-10, 3]          1     -3.333333   NO
+[-1, 20]          1     -0.050000   NO
+[-1, 1]           2     -1.000000   NO
+[inf, 1]          2           nan   NO
+[nan, 1]          2      0.000000   yes -- and that is the problem
+["1", "0"]        2     raw TypeError, outside the ValueError contract
+```
+
+**Three rows the issue didn't have.** The `inf` and the float/bool acceptances,
+and — the quietest and worst — the NaN row. `_dcg` yields NaN, `ideal > 0` is
+`False` for NaN, so the `ideal <= 0` fallback fires and the function returns a
+clean `0.000`, indistinguishable from "nothing relevant was retrieved". A
+fallback meant for one degenerate case was doubling as a silent catch-all for a
+corrupt input. Same shape as the extreme-default class #123 closed, where an
+unmeasured recall scored `0.0` and was *dominated* on the Pareto frontier rather
+than excluded from it.
+
+**I also corrected the issue's own table.** It listed `negative mixed` at `k=2`
+as `0.000000 / in range`. The list it must have used is something like
+`[-1, 0]`, which hits the `ideal <= 0` fallback; `[-1, 1]` actually gives
+`-1.000000`. Two different routes to two different wrong answers — worth re-running
+a filed table rather than trusting it.
+
+**Why validate rather than widen the docstring.** The issue offered both. The
+decisive argument turned out to be one function away:
+`SweepResult.__post_init__` already enforces `0.0 <= ndcg_at_10 <= 1.0` with a
+`ValueError`. The consumer treats the range as a hard contract while the
+producer only promised it in prose — so a caller composing them got
+`ndcg_at_10 must be a finite number in [0, 1]`, a message naming the *field*
+rather than the relevance list at fault. When the choice is "validate the input"
+versus "widen the docstring", grepping for a consumer that already enforces the
+documented range settles it.
+
+Graded non-negative gains stay accepted (`[3, 2, 1, 0] -> 1.000`, the issue's
+second acceptance criterion). The docstring is corrected too: the bound is a
+property of non-negativity, not of binariness, and it used to claim less than
+the code delivers in one direction while claiming more in another.
+
+**A process slip worth recording.** I ran the anti-vacuous revert *before*
+committing, and `git checkout -- emb_shootout/` discarded the uncommitted fix; I
+had to reapply the whole patch. Commit first, then revert, then restore. That
+rule is already in my notes and I still slipped on the eighth issue of the run.
+
+**Tests.** 32 new; 14 fail against a one-line narrowed revert. Suite 502 → 534
+green, ruff clean.
