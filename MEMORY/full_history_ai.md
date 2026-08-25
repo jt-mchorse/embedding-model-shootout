@@ -1336,3 +1336,30 @@ context_for_next_session:
   - COVERAGE_NOTE_111_records_that_the_plot_slash_CLI_render_tests_DO_NOT_RUN_IN_CI_so_the_AST_SOURCE_LOCK_is_the_part_that_ALWAYS_EXECUTES_the_two_behavioural_render_tests_importorskip_matplotlib_WHEN_A_MODULE_IS_CI_UNCOVERED_A_SOURCE_LEVEL_LOCK_IS_WORTH_MORE_THAN_A_BEHAVIOURAL_TEST_THAT_SKIPS
 decisions_made: []
 followups: []
+
+---
+session: 2026-08-24T08:08Z
+issue: 125
+focus: ndcg_at_k_validated_k_and_not_relevances_the_other_operand_of_the_same_expression
+phase: night_session_multi_issue_loop
+delta:
+  files_changed: 2
+  tests_added: 32   # tests/test_ndcg_relevance_domain.py; 14 fail on a ONE_LINE narrowed revert
+  suite: 502_to_534_green_ruff_clean
+  measured:
+    negative: "[-10,3] k=1 -> -3.333333 | [-1,20] k=1 -> -0.050000 | [-1,1] k=2 -> -1.000000"
+    nonfinite: "[inf,1] k=2 -> nan | [nan,1] k=2 -> 0.000000 SILENTLY"
+    types: "[0.5,0.5] and [True,False] ACCEPTED as 1.000 | ['1','0'] and [None,1] -> raw TypeError"
+    unchanged: "[1,1,0,0]->1.0 | [0,0,1,1]->0.570642 | [3,2,1,0]->1.0 | []->0.0 | k>len->1.0"
+decisions_made: []
+followups: []
+context_for_next_session:
+  - THE_ISSUES_OWN_FRAMING_WAS_RIGHT_AND_I_FOUND_A_STRONGER_ONE_the_issue_argued_from_31_hardened_k_AND_LEFT_relevances_THE_OTHER_OPERAND_which_is_the_operand_enumeration_lens_BUT_THE_DECISIVE_ARGUMENT_IS_THAT_THE_CONSUMER_ALREADY_ENFORCES_THE_RANGE_SweepResult_post_init_RAISES_ValueError_IF_NOT_0_LE_ndcg_at_10_LE_1_SO_THE_REPO_ALREADY_TREATS_0_1_AS_A_HARD_CONTRACT_ONE_FUNCTION_AWAY_ON_THE_VALUE_THIS_FUNCTION_PRODUCES
+  - GENERALIZED_WHEN_DECIDING_BETWEEN_VALIDATE_THE_INPUT_AND_WIDEN_THE_DOCSTRING_GREP_FOR_A_CONSUMER_THAT_ALREADY_ENFORCES_THE_DOCUMENTED_RANGE_if_one_exists_the_choice_is_made_the_producer_is_the_one_that_is_wrong_and_the_symptom_is_a_ValueError_NAMING_THE_CONSUMERS_FIELD_rather_than_the_producers_argument
+  - THE_QUIETEST_ROW_WAS_NOT_IN_THE_ISSUE_a_NaN_gain_returns_A_CLEAN_0_000_because_dcg_yields_NaN_and_ideal_GT_0_IS_FALSE_FOR_NaN_so_the_ideal_LE_0_FALLBACK_FIRES_INDISTINGUISHABLE_FROM_NOTHING_RELEVANT_WAS_RETRIEVED_A_FALLBACK_MEANT_FOR_ONE_DEGENERATE_CASE_DOUBLED_AS_A_SILENT_CATCH_ALL_FOR_A_CORRUPT_INPUT_ASK_OF_EVERY_else_RETURN_CONSTANT_WHAT_ELSE_REACHES_IT
+  - AND_TWO_MORE_ROWS_THE_ISSUE_MISSED_inf_GAIN_RETURNS_nan_and_float_0_5_AND_bool_True_WERE_ACCEPTED_AS_1_000_despite_the_annotation_saying_list_int
+  - I_ALSO_CORRECTED_THE_ISSUES_OWN_TABLE_it_listed_negative_mixed_k_2_as_0_000000_in_range_the_list_it_used_must_have_been_minus_1_comma_0_WHICH_HITS_THE_ideal_LE_0_FALLBACK_the_list_minus_1_comma_1_ACTUALLY_GIVES_MINUS_1_0_TWO_DIFFERENT_ROUTES_TO_TWO_DIFFERENT_WRONG_ANSWERS_RE_RUN_A_FILED_TABLE_DO_NOT_TRUST_IT
+  - PROCESS_MISTAKE_I_MADE_AND_CAUGHT_I_RAN_THE_ANTI_VACUOUS_REVERT_BEFORE_COMMITTING_and_git_checkout_dash_dash_emb_shootout_DISCARDED_THE_UNCOMMITTED_FIX_had_to_reapply_the_whole_patch_THE_RULE_IS_COMMIT_FIRST_THEN_REVERT_THEN_RESTORE_it_is_in_the_notes_and_I_still_slipped_on_the_eighth_issue_of_the_run
+  - TEST_SHAPE_WORTH_REUSING_test_every_accepted_input_lands_inside_the_documented_range_LOOPS_k_FROM_1_TO_len_PLUS_2_OVER_EIGHT_LISTS_asserting_the_DOCUMENTED_PROPERTY_over_THE_DOMAIN_THE_GUARD_NOW_ADMITS_rather_than_over_a_couple_of_hand_picked_cases_plus_test_the_producer_can_no_longer_emit_what_the_consumer_refuses_WHICH_PINS_THE_TWO_ENDS_AGREEING
+---
+
