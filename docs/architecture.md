@@ -126,4 +126,7 @@ D-006 (cost-per-million recorded alongside quality), D-007 (one JSON
 per provider, aggregator merges), D-008 (Pareto axes fixed to
 cost-per-million × recall@5), D-009 (atomic write helpers live in a
 package-level `emb_shootout.io_utils` module so `cli.py`, `corpus.py`,
-and the notebook builder share one tempfile-+-rename writer).
+and the notebook builder share one tempfile-+-rename writer), D-010
+(an unmeasured cell is reported as absent — an em dash in markdown, JSON
+`null` — never as `0.0`, in both aggregate formats and for both
+`recall_at_k` and `embed_latency_ms`).
