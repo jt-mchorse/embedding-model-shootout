@@ -119,3 +119,43 @@ Strategic decisions for this repo, with reasoning. Append-only — superseded de
 **Reversibility:** Cheap. The helper is two dozen lines and a stable API; any future evolution is a localized rewrite.
 
 **Related issues:** #37
+
+## D-010 — an unmeasured aggregate cell is absent, never 0.0 (2026-08-25)
+
+**Decision.** Every cell of both aggregate formats distinguishes "not measured"
+from "measured zero". Markdown renders an em dash (the `ABSENT_RECALL_CELL`
+convention #123 introduced); JSON renders `null`. This covers `recall_at_k` and
+all three `embed_latency_ms` fields, in both `aggregate_markdown` and
+`aggregate_json`.
+
+**Why.** #123 established the rule — "do not invent benchmark numbers" — and
+applied it to one cell of eight: `recall_at_k` in the markdown aggregator. The
+other seven still published a fabricated `0.0`.
+
+Two harms followed. The two formats disagreed about the same cell: for a result
+swept without `k=5`, markdown said `—` and JSON said `0.0`, while
+`aggregate_json`'s own docstring promises a consumer can "cross-check the two
+formats line-by-line" — and the JSON is the format CI actually parses. And for
+latency, the fabricated default is not merely wrong, it is the *best possible
+value*: a provider that reported no timings read as `0` ms corpus embed, `0.0` ms
+p50 and `0.0` ms p95, and won any "which is fastest" read of the published
+benchmark. A default landing at an extreme of a comparison does not abstain, it
+ranks.
+
+**Alternatives considered.** *An em dash in JSON too* — rejected; it turns a
+number column into a string column for a typed consumer, and JSON has a spelling
+for absent that markdown does not. *Omitting the key* — rejected; a missing key
+and a null key are different contracts, and the column set is a property of the
+aggregate (the union of every result's `k`), not of an individual row. *Rejecting
+a partial `embed_latency_ms` at `from_dict`* — rejected for the reason #123 gave
+about its own case: a sweep result is a *reported measurement*, and a provider
+that legitimately cannot time its calls should still be comparable on recall and
+cost. *Leaving the JSON alone because no committed artifact has absent cells* —
+rejected; the external-result-file path through `from_dict` is exactly the
+reachability #123 cites, and `sweep aggregate` walks it for every
+`results/*.json`.
+
+**Reversibility.** Cheap. Recorded because it widens a documented machine
+artifact's field type: `recall[k]` and the three `*_ms` fields go from `number`
+to `number | null`. No committed artifact moves — `results/hash.json` carries all
+three `k`s and all three latency keys — so `docs/benchmarks.md` is byte-identical.

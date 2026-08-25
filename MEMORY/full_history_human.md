@@ -1137,3 +1137,52 @@ rule is already in my notes and I still slipped on the eighth issue of the run.
 
 **Tests.** 32 new; 14 fail against a one-line narrowed revert. Suite 502 → 534
 green, ruff clean.
+
+## 2026-08-25 — #123's "don't invent benchmark numbers" rule covered 1 cell of 8 (#127, D-010)
+
+**What got done.** #123 fixed `.get(k, 0.0)` for `recall_at_k` because it
+"published a number for a measurement never taken". Written out as a grid, that
+fix reached one cell of eight — two aggregate functions × four fields:
+
+|  | `recall_at_k` | `corpus_total` | `query_p50` | `query_p95` |
+|---|---|---|---|---|
+| `aggregate_markdown` | fixed | `0.0` | `0.0` | `0.0` |
+| `aggregate_json` | `0.0` | `0.0` | `0.0` | `0.0` |
+
+All eight now report absent as absent: an em dash in markdown, `null` in JSON.
+
+**The tell.** `aggregate_json`'s docstring says it is "JSON-shaped aggregation
+*parallel to* `aggregate_markdown`" and that its rows are sorted alike "so a
+downstream consumer can cross-check the two formats line-by-line". That is a
+prose assertion that two implementations agree, and it was false on exactly the
+cell #123 was about — markdown `—`, JSON `0.0`, same input, same cell. The JSON
+is what CI parses.
+
+**The harm that turned out to be worse than the one in the issue title.** For
+latency, the fabricated `0.0` is not merely wrong, it is the *best possible
+value*. A provider that reported no timings was published as `0` ms corpus embed,
+`0.0` ms p50, `0.0` ms p95 — the fastest row in the table, in both formats. The
+same constant `0.0` is the bad end of the range for recall and the good end for
+latency: one default, two opposite lies.
+
+**The spelling is per format, deliberately.** Markdown keeps the em dash because
+markdown has no spelling for absent. JSON uses `null` because it does, and
+because `null` keeps the field numeric-or-null for a typed consumer rather than
+turning a number column into a string column. Not an omitted key: a missing key
+and a null key are different contracts, and the column set is a property of the
+aggregate — the union of every result's `k` — not of an individual row.
+
+**Open questions.** None. Rejecting a partial `embed_latency_ms` at `from_dict`
+was considered and rejected for the reason #123 gave about its own case: a sweep
+result is a reported measurement, and a provider that legitimately cannot time
+its calls should still be comparable on recall and cost.
+
+**Tests.** 8 new (`tests/test_aggregate_absent_cell_parity.py`). The parity test
+parses the markdown table back out and compares its absent cells to the JSON's
+nulls — a differential assertion derived from each format's own output rather
+than a restatement of the rule — and its row parser asserts column count, so
+#83's alignment invariant is re-pinned for free. The test that matters most is
+`test_a_measured_zero_is_still_rendered_as_zero`: a guard that rendered every
+falsy value as absent would satisfy every parity assertion and be just as wrong.
+Suite 534 → 542 green, ruff clean, and the committed `docs/benchmarks.md` is
+byte-identical.
