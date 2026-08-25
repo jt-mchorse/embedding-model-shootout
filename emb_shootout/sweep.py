@@ -657,9 +657,13 @@ def run_sweep(
 # ----------------------------------------------------------------------
 
 
-#: Rendered where a result has no measurement at some k in the union (#123).
+#: Rendered where a result has no measurement for some column (#123, #127).
 #: An em dash rather than a blank so the column stays visible in the GFM table,
 #: and rather than `0.000` so it can never be read as a measured value.
+#:
+#: Named `..._RECALL_...` when #123 introduced it for `recall_at_k` alone; it now
+#: covers the `embed_latency_ms` columns too, and the name is kept because it is
+#: public surface (`test_public_surface.py`).
 ABSENT_RECALL_CELL = "—"
 
 
@@ -668,6 +672,57 @@ def _recall_cell(recall_at_k: dict[int, float], k: int) -> str:
     if k not in recall_at_k:
         return f" {ABSENT_RECALL_CELL} |"
     return f" {recall_at_k[k]:.3f} |"
+
+
+def _latency_cell(embed_latency_ms: dict[str, float], key: str, *, places: int) -> str:
+    """One latency cell, by the same rule `_recall_cell` applies to recall (#127).
+
+    `#123` fixed `recall_at_k`'s `.get(k, 0.0)` because it "PUBLISHED A NUMBER FOR
+    A MEASUREMENT NEVER TAKEN". The three `embed_latency_ms` reads on the same row
+    had the identical shape and were not touched — and for latency the fabricated
+    default is worse than merely wrong, because `0.0` is the *best possible value*.
+    A provider that reported no timings won any "which is fastest" read of the
+    published benchmark:
+
+        | b-no-latency | ... | 0.850 |    0 | 0.0 |  0.0 | $0.100 |
+        | full-model   | ... | 0.720 | 1234 | 8.1 | 19.4 | $0.130 |
+
+    A default landing at an extreme of a comparison does not abstain, it ranks —
+    the same class as `#123` here and `llm-cost-optimizer#190`, reached through a
+    different dict.
+
+    Reachable by the path `#123` cites: `SweepResult.from_dict` on an external
+    result file, which is what `emb-shootout sweep aggregate` does to every
+    `results/*.json`. Verified that `from_dict` accepts both an empty and a
+    partial `embed_latency_ms`.
+    """
+    if key not in embed_latency_ms:
+        return f" {ABSENT_RECALL_CELL} |"
+    return f" {embed_latency_ms[key]:.{places}f} |"
+
+
+def _absent_or(value: dict, key: object) -> float | None:
+    """`value[key]` or `None` — the JSON spelling of `_recall_cell`'s em dash (#127).
+
+    `aggregate_json` says it is "JSON-shaped aggregation parallel to
+    `aggregate_markdown`" and that its rows are sorted alike "so a downstream
+    consumer can cross-check the two formats line-by-line". After `#123` fixed the
+    markdown side only, that cross-check failed on exactly the cell `#123` was
+    about: for a result swept without `k=5`, markdown said `—` and JSON said
+    `0.0`. The JSON is the format a CI consumer actually parses.
+
+    `null`, not the em dash: JSON has a spelling for absent and markdown does not,
+    and `null` keeps the field numeric-or-null for a typed consumer instead of
+    turning a number column into a string column.
+
+    Not "omit the key", either — a missing key and a null key are different
+    contracts. A consumer reading `row["recall"]["5"]` would get a `KeyError` from
+    omission but a readable `None` from null, and the column set is a property of
+    the aggregate (the union of every result's `k`), not of the individual row.
+    `test_aggregate_absent_cell_parity.py` pins that every row carries every key.
+    """
+    v = value.get(key)
+    return None if v is None else float(v)
 
 
 def _aggregate_ks(results: Sequence[SweepResult]) -> list[int]:
@@ -740,10 +795,11 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
         embedder_name = re.sub(r"[\r\n]+", " ", embedder_name)
         lines.append(
             f"| {embedder_name} | {r.embedder_dim} | {r.n_corpus} | {r.n_queries} |{recalls} "
-            f"{r.ndcg_at_10:.3f} | {r.embed_latency_ms.get('corpus_total', 0.0):.0f} | "
-            f"{r.embed_latency_ms.get('query_p50', 0.0):.1f} | "
-            f"{r.embed_latency_ms.get('query_p95', 0.0):.1f} | "
-            f"${r.cost_per_million_tokens:.3f} |"
+            f"{r.ndcg_at_10:.3f} |"
+            f"{_latency_cell(r.embed_latency_ms, 'corpus_total', places=0)}"
+            f"{_latency_cell(r.embed_latency_ms, 'query_p50', places=1)}"
+            f"{_latency_cell(r.embed_latency_ms, 'query_p95', places=1)}"
+            f" ${r.cost_per_million_tokens:.3f} |"
         )
     return "\n".join(lines) + "\n"
 
@@ -764,11 +820,15 @@ def aggregate_json(results: Sequence[SweepResult]) -> dict:
                 "dim": r.embedder_dim,
                 "n_corpus": r.n_corpus,
                 "n_queries": r.n_queries,
-                "recall": {str(k): r.recall_at_k.get(k, 0.0) for k in ks},
+                # `null`, not `0.0`, for a measurement never taken (#127). See
+                # `_absent_or`; the markdown sibling renders the same cells as an
+                # em dash, and `test_aggregate_absent_cell_parity.py` asserts the
+                # two formats agree on which cells are absent.
+                "recall": {str(k): _absent_or(r.recall_at_k, k) for k in ks},
                 "ndcg_at_10": r.ndcg_at_10,
-                "corpus_embed_ms": r.embed_latency_ms.get("corpus_total", 0.0),
-                "query_p50_ms": r.embed_latency_ms.get("query_p50", 0.0),
-                "query_p95_ms": r.embed_latency_ms.get("query_p95", 0.0),
+                "corpus_embed_ms": _absent_or(r.embed_latency_ms, "corpus_total"),
+                "query_p50_ms": _absent_or(r.embed_latency_ms, "query_p50"),
+                "query_p95_ms": _absent_or(r.embed_latency_ms, "query_p95"),
                 "cost_per_million_tokens": r.cost_per_million_tokens,
             }
         )
