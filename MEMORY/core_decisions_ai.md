@@ -81,3 +81,15 @@
   reversibility: cheap
   related_issues: [#37]
   superseded_by: null
+
+- id: D-010
+  date: 2026-08-25
+  decision: an_unmeasured_aggregate_cell_is_reported_as_absent_em_dash_in_markdown_json_null_never_as_0_0
+  rationale: d_123s_rule_do_not_invent_benchmark_numbers_reached_ONE_CELL_OF_EIGHT_recall_at_k_in_aggregate_markdown_only_leaving_recall_in_aggregate_json_and_ALL_THREE_embed_latency_ms_reads_in_BOTH_formats_publishing_a_fabricated_0_0_TWO_HARMS_first_the_two_formats_DISAGREED_about_the_same_cell_markdown_em_dash_vs_json_0_0_while_aggregate_jsons_own_docstring_promises_a_consumer_can_cross_check_the_two_formats_line_by_line_and_the_json_is_what_ci_parses_second_for_LATENCY_the_fabricated_0_0_is_the_BEST_POSSIBLE_VALUE_so_a_provider_that_reported_no_timings_WON_ANY_WHICH_IS_FASTEST_READ_of_the_published_benchmark_a_default_landing_at_an_extreme_of_a_comparison_does_not_abstain_it_RANKS
+  json_spelling: null_not_omitted_key   # a missing key and a null key are different contracts; a consumer reading row["recall"]["5"] gets KeyError from omission but a readable None from null, and the column set is a property of the AGGREGATE (union of every result's k) not of the row
+  markdown_spelling: em_dash            # markdown has no spelling for absent; ABSENT_RECALL_CELL was already the convention from #123
+  alternatives_rejected: [em_dash_in_json_too_REJECTED_it_turns_a_number_column_into_a_string_column_for_a_typed_consumer_and_json_HAS_a_spelling_for_absent, omit_the_key_in_json_REJECTED_missing_and_null_are_different_contracts_and_the_column_set_belongs_to_the_aggregate, reject_a_partial_embed_latency_ms_at_from_dict_REJECTED_a_sweep_result_is_a_REPORTED_MEASUREMENT_and_a_provider_that_legitimately_cannot_time_its_calls_should_still_be_comparable_on_recall_and_cost_same_read_vs_render_call_123_made, leave_json_alone_since_no_committed_artifact_has_absent_cells_REJECTED_the_external_result_file_path_from_dict_is_exactly_the_reachability_123_cites_for_its_own_case]
+  widens_public_json_field_type: true   # recall[k] and the three *_ms fields go from number to number|null; no committed artifact changes because results/hash.json has all three ks and all three latency keys
+  reversibility: cheap
+  related_issues: [#123, #127]
+  superseded_by: null
