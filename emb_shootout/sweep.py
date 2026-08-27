@@ -383,6 +383,57 @@ def _reject_non_finite_vectors(
                 )
 
 
+def _reject_zero_vectors(vectors: list[list[float]], *, embedder_name: str, kind: str) -> None:
+    """Fail loud if any vector is all zeros.
+
+    The fourth thing `embed` can return that corrupts a published score, beside
+    the wrong count (#112), the wrong length, and a non-finite component (#125).
+    It is the one that cannot be caught downstream: `cosine` deliberately maps a
+    zero-norm vector to `0.0`, and `retrieve_top_k`'s comment names that as a
+    dependency ("zero-norm -> 0.0 in `cosine`, so negation is safe").
+
+    A zero vector is not a bad measurement, it is the **absence** of one -- it is
+    equidistant from every other vector, so it carries no information about which
+    chunk answers which query. Scored anyway, it produces a plausible number.
+    Measured on a 6-chunk corpus with one query per chunk, an embedder returning
+    all zeros::
+
+        recall@1 = 0.167   recall@3 = 0.500   recall@5 = 0.833   ndcg@10 = 0.551
+
+    Exactly `k/N`. Every similarity ties at `0.0`, so the ranking falls entirely
+    to the `chunk_id` tiebreak, which is the same order for every query -- query
+    *i* hits iff `i < k`. Partial corruption is worse because it looks ordinary:
+    one zeroed corpus chunk out of six reads `recall@1 = 0.833`, exactly the
+    shape of an honest "slightly worse embedder".
+
+    And #73 removed the only symptom. Its `chunk_id` tiebreak made ranking a pure
+    function of `(similarity, chunk_id)` -- correct, and a determinism fix -- but
+    when every similarity is equal the tiebreak stops breaking ties and becomes
+    the whole ranking. Measured across five corpus shuffles the all-zero result
+    is bit-identical, so the score that would once have jumped around under
+    reordering is now stably, reproducibly meaningless. Determinism was achieved;
+    meaningfulness was not, and nothing downstream tells them apart.
+
+    Exactly zero-norm, deliberately -- not "small norm". A near-zero vector is
+    still a measurement, and any threshold would be a number nobody measured,
+    which is the thing this repo's handoff forbids. Same rule
+    `llm-eval-harness` D-017 settled for its own embed seam: a zero embed vector
+    means *uncomparable*, rejected on the authored side. Both inputs here are
+    authored fixtures -- a committed corpus and a committed query set -- so the
+    authored-side rule is the one that applies (#131).
+    """
+    for vi, vec in enumerate(vectors):
+        if vec and not any(vec):
+            raise ValueError(
+                f"embedder {embedder_name!r} returned an all-zero {kind} vector at "
+                f"index {vi}. A zero vector is equidistant from every other vector, "
+                "so `cosine` scores it 0.0 against everything and the ranking falls "
+                "to the chunk_id tiebreak -- yielding a plausible recall/NDCG "
+                "(exactly k/N when every vector is zero) that measures nothing; "
+                "fix the embedder or re-run."
+            )
+
+
 def ndcg_at_k(relevances: list[int], k: int) -> float:
     """DCG@k / iDCG@k. Bounded in [0, 1] for any non-negative relevances.
 
@@ -690,6 +741,7 @@ def run_sweep(
     )
     _require_declared_dim(corpus_vectors, embedder.dim, embedder_name=embedder.name, kind="corpus")
     _reject_non_finite_vectors(corpus_vectors, embedder_name=embedder.name, kind="corpus")
+    _reject_zero_vectors(corpus_vectors, embedder_name=embedder.name, kind="corpus")
 
     # Embed queries one at a time so we can capture per-query latency.
     query_latencies_ms: list[float] = []
@@ -705,6 +757,7 @@ def run_sweep(
         _require_declared_dim(vecs, embedder.dim, embedder_name=embedder.name, kind="query")
         query_vectors.append(vecs[0])
     _reject_non_finite_vectors(query_vectors, embedder_name=embedder.name, kind="query")
+    _reject_zero_vectors(query_vectors, embedder_name=embedder.name, kind="query")
 
     # Compute hits per query at each k, plus NDCG@10.
     hits_at_k: dict[int, int] = dict.fromkeys(k_values, 0)
