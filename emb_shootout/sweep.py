@@ -249,7 +249,7 @@ class SweepResult:
                 cost_per_million_tokens=float(d["cost_per_million_tokens"]),
                 n_corpus=int(d["n_corpus"]),
                 n_queries=int(d["n_queries"]),
-                recall_at_k={int(k): float(v) for k, v in d["recall_at_k"].items()},
+                recall_at_k={k: float(v) for k, v in _coerce_recall_keys(d["recall_at_k"]).items()},
                 ndcg_at_10=float(d["ndcg_at_10"]),
                 embed_latency_ms={k: float(v) for k, v in d["embed_latency_ms"].items()},
                 notes=list(d.get("notes", [])),
@@ -508,27 +508,89 @@ def retrieve_top_k(
 # ----------------------------------------------------------------------
 
 
-def run_sweep(
-    corpus: Sequence[CorpusChunk],
-    queries: Sequence[Query],
-    *,
-    embedder: Embedder,
-    k_values: Sequence[int] = (1, 5, 10),
-    notes: Sequence[str] = (),
-) -> SweepResult:
-    """End-to-end sweep: embed → retrieve → score.
+def _coerce_recall_keys(raw: dict[str, Any]) -> dict[int, Any]:
+    """Coerce `recall_at_k`'s JSON string keys back to `int`, loudly (#129).
 
-    Returns a `SweepResult` with recall@k for each requested k, NDCG@10,
-    embed-latency p50/p95, and the operator-supplied cost-per-million-tokens.
+    `to_dict` writes `{str(k): v}`. Reading that back with a bare
+    `{int(k): ... }` was not the inverse: `int()` accepts leading zeros,
+    surrounding whitespace, a leading `+`, `_` digit separators and non-ASCII
+    decimal digits, none of which `str(int)` can produce. Measured on the
+    unguarded version::
 
-    The cost number is informational — the harness records it alongside the
-    quality numbers so a future Pareto plot has all three axes (recall,
-    latency, cost) without needing a separate price lookup.
+        {"5": 0.9, "05": 0.1}      -> {5: 0.1}    0.9 gone
+        {"5": 0.9, " 5": 0.1}      -> {5: 0.1}    0.9 gone
+        {"5": 0.9, "+5": 0.1}      -> {5: 0.1}    0.9 gone
+        {"5": 0.9, "\u0665": 0.1} -> {5: 0.1}    0.9 gone (Arabic-Indic five)
+        {"5_0": 0.9}               -> {50: 0.9}   a typo becomes a different k
+        {"0": 0.9} / {"-3": 0.9}   -> loaded
+
+    Requiring the *canonical* spelling makes a collision impossible by
+    construction -- two distinct canonical spellings cannot coerce to the same
+    int -- so there is no separate collision check to fall out of sync.
+
+    The contrast that made this worth fixing is inside `from_dict` itself: every
+    *value* on this read path is checked and named (`recall_at_k[5] must be a
+    finite number in [0, 1]; got nan`), and the key axis was `int()`. The `[5]`
+    in that message is the only place a key was used, and it was already the
+    coerced one.
+
+    The range half delegates to :func:`validate_k_values`, the same rule
+    `run_sweep` applies before *producing* these keys -- which rejects `k <= 0`
+    because "`k=0` produces a tautological recall@0=0, `k<0` silently
+    miscounts". The loader accepted both from a file, and `from_dict`'s own
+    comment says hand-editing result files is "an explicitly invited workflow
+    (#75)".
     """
-    if not corpus:
-        raise ValueError("corpus must be non-empty")
-    if not queries:
-        raise ValueError("queries must be non-empty")
+    out: dict[int, Any] = {}
+    for key, value in raw.items():
+        if not isinstance(key, str):
+            # Unreachable from `json.loads` (JSON names are strings), reachable
+            # from a hand-built dict passed straight to `from_dict`.
+            raise ValueError(f"recall_at_k key must be a string; got {key!r}")
+        try:
+            k = int(key)
+        except ValueError:
+            raise ValueError(
+                f"recall_at_k key {key!r} is not an integer; `to_dict` writes these "
+                f"keys as `str(k)` for the integer k of recall@k"
+            ) from None
+        if str(k) != key:
+            raise ValueError(
+                f"recall_at_k key {key!r} is not the canonical spelling of {k} "
+                f"(expected {str(k)!r}); `int()` accepts leading zeros, surrounding "
+                f"whitespace, a leading '+', '_' digit separators and non-ASCII "
+                f"decimal digits, none of which `to_dict` can write -- and two such "
+                f"spellings collide silently, dropping a measurement"
+            )
+        out[k] = value
+    if out:
+        # Same rule the write path applies, shared rather than restated. The
+        # message is re-raised with the field name because `validate_k_values`
+        # says "k_values", which is right for `run_sweep` and wrong for a loader
+        # whose other errors all name the field they came from.
+        try:
+            validate_k_values(sorted(out))
+        except ValueError as e:
+            raise ValueError(f"recall_at_k keys: {e}") from None
+    return out
+
+
+def validate_k_values(k_values: Sequence[int]) -> None:
+    """Reject a `k_values` this module cannot honour. Raises ``ValueError``.
+
+    Extracted from ``run_sweep``'s body (#129) so ``SweepResult.from_dict``
+    can apply the *same* rule to the ``recall_at_k`` keys it reads back,
+    instead of a second copy. `#121`'s note below already observes that the
+    complete rule "lives TWICE in this module"; a fourth inline copy in the
+    loader would have been the worst available answer. Mirrors the
+    ``validate_ks`` extraction in chunking-strategies-lab (#149), whose own
+    loader became its third caller in csl#169.
+
+    The duplicate check is vacuous for a caller passing a dict's keys --
+    they are unique by construction -- and is kept here rather than split
+    out, because the point of the extraction is that there is exactly one
+    definition of a valid ``k_values``.
+    """
     if not k_values:
         raise ValueError("k_values must be non-empty")
     # Type, before sign (#121). The complete rule already lives TWICE in this
@@ -591,6 +653,30 @@ def run_sweep(
     dup_k = sorted({k for k in k_values if list(k_values).count(k) > 1})
     if dup_k:
         raise ValueError(f"k_values must not contain duplicates; got duplicate {dup_k}")
+
+
+def run_sweep(
+    corpus: Sequence[CorpusChunk],
+    queries: Sequence[Query],
+    *,
+    embedder: Embedder,
+    k_values: Sequence[int] = (1, 5, 10),
+    notes: Sequence[str] = (),
+) -> SweepResult:
+    """End-to-end sweep: embed → retrieve → score.
+
+    Returns a `SweepResult` with recall@k for each requested k, NDCG@10,
+    embed-latency p50/p95, and the operator-supplied cost-per-million-tokens.
+
+    The cost number is informational — the harness records it alongside the
+    quality numbers so a future Pareto plot has all three axes (recall,
+    latency, cost) without needing a separate price lookup.
+    """
+    if not corpus:
+        raise ValueError("corpus must be non-empty")
+    if not queries:
+        raise ValueError("queries must be non-empty")
+    validate_k_values(k_values)
     max_k = max(k_values)
 
     # Embed corpus (single batch).

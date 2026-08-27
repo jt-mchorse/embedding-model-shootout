@@ -1186,3 +1186,49 @@ than a restatement of the rule — and its row parser asserts column count, so
 falsy value as absent would satisfy every parity assertion and be just as wrong.
 Suite 534 → 542 green, ruff clean, and the committed `docs/benchmarks.md` is
 byte-identical.
+
+## 2026-08-26 — every value guarded, the key axis a bare coercion (#129)
+
+**What got done.** `SweepResult.from_dict` read `recall_at_k` back with
+`{int(k): float(v) ...}` and validated nothing about the key.
+`_coerce_recall_keys` now requires the canonical spelling and delegates the range
+check to `validate_k_values`, extracted verbatim from `run_sweep`.
+
+**Sixth issue of the run, and the second from one grep.** The portfolio sweep for
+`{k: f(v) for k, v in ...}` landed on `chunking-strategies-lab/metrics.py` and
+`embedding-model-shootout/sweep.py`, and both were real.
+
+**The sharpest framing was a contrast inside one function.** `from_dict` names
+the field for every bad *value* — `recall_at_k[5] must be a finite number in
+[0, 1]; got nan`. The `[5]` in that message is the key, and it was already the
+coerced one. When a function is meticulous on one axis, the other axis is the
+place to look.
+
+**The extraction was argued by the code's own comment.** `#121` observes that the
+complete k rule "lives TWICE in this module", in `ndcg_at_k` and
+`retrieve_top_k`. Adding a fourth inline copy in the loader would have been the
+worst available answer. A comment counting its own duplicates is an argument for
+extraction handed to you — and the design precedent was a sibling repo:
+`chunking-strategies-lab#149` extracted `validate_ks` for exactly this, and
+`#169` there made its loader the third caller twenty minutes earlier tonight.
+
+**Reachability was the module's own claim.** `from_dict`'s comment says
+hand-editing result files is "an explicitly invited workflow (#75)".
+
+**Test technique, reused and extended.** `csl#169`'s trick — monkeypatch the
+shared validator to a no-op and assert the bad value gets through the *reader* —
+plus a second test asserting the `run_sweep` direction, so the extraction cannot
+rot into a loader-only helper. Assert both ends of a shared rule.
+
+**A control that earned its keep.** The change claims to touch keys only, so
+there is an explicit block pinning that the value-axis messages are unchanged. A
+change that claims to touch one axis should pin the other one.
+
+**Pre-existing and not mine.** mypy reports 4 findings on this repo on `main`
+too — `sweep.py:148`, `corpus.py:355`, and two matplotlib import stubs. Verified
+by stashing; stated in the PR rather than quietly ignored. mypy is not in this
+repo's CI gate.
+
+**Tests.** 31 new. Neutering the canonical-spelling check turns 12 red, the
+`validate_k_values` delegation 4, with no control affected in either. Suite
+542 → 573 green, ruff clean.
