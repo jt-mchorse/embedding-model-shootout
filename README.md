@@ -197,6 +197,19 @@ The query set is derived deterministically from the corpus at sweep time
 (seed `42` by default), so all providers run against the same queries by
 construction — cross-provider rows are apples-to-apples.
 
+`embed` is a bring-your-own seam, so the sweep validates what a provider
+hands back before scoring it. Four things get a published number wrong
+and none of them raises on its own: the wrong **number** of vectors
+(#112), a vector of the wrong **length**, a **non-finite** component
+(#125), and a vector of **all zeros** (#131). The last is the one nothing
+downstream can see — `cosine` maps a zero norm to `0.0` by design, so a
+zero vector ties with everything and the `chunk_id` tiebreak becomes the
+whole ranking. An embedder returning nothing but zeros scored
+`recall@1 = 0.167`, `recall@5 = 0.833`, `ndcg@10 = 0.551` — exactly `k/N`,
+identical across corpus shuffles, and indistinguishable from a real
+result. All four now fail loud, naming the provider, the side (corpus or
+query) and the index.
+
 ### Reproducibility caveat: the corpus is interpreter-dependent
 
 The corpus is built from the standard library's own docstrings (D-002 —

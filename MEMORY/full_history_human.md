@@ -1232,3 +1232,46 @@ repo's CI gate.
 **Tests.** 31 new. Neutering the canonical-spelling check turns 12 red, the
 `validate_k_values` delegation 4, with no control affected in either. Suite
 542 → 573 green, ruff clean.
+
+
+## 2026-08-27 - #131: three guards at one seam, and the fourth failure mode
+
+`run_sweep` already validated three things a provider's `embed` can hand back
+that would corrupt a published score: the wrong number of vectors, a vector of
+the wrong length, and a non-finite component. All three at the same seam, all
+three applied to the corpus and the query side alike. A tidy uniform grid like
+that is an invitation to ask what is not in it, and the answer was a vector of
+all zeros.
+
+The reason it was missing is the interesting part. `cosine` maps a zero norm to
+`0.0` on purpose, and the retrieval sort names that as a dependency it relies on
+for finiteness. So a deliberate downstream accommodation is exactly why the
+upstream guard never got written - the zero vector never crashed anything, so it
+never looked like a problem. Worth grepping for comments that say "X is safe
+because Y handles it", and asking whether Y *handles* it or merely *survives* it.
+
+What it produces instead of a crash is a number. An embedder returning nothing
+but zeros scored `recall@1 = 0.167`, `recall@5 = 0.833`, `ndcg@10 = 0.551` and
+exited 0. That is exactly `k/N` - the arithmetic of a fixed arbitrary ordering,
+not of retrieval - because every similarity ties and the ranking falls entirely
+to the chunk-id tiebreak. When a metric lands on a suspiciously clean ratio, it
+is worth deriving it; a closed form means the data did not participate.
+
+And the sharpest bit: `#73` had removed the only symptom. It added that tiebreak
+so ranking would be a pure function of `(similarity, chunk_id)` - a correct
+determinism fix. But when every similarity is equal, a tiebreak is not a
+tiebreak, it is the whole ranking, so the all-zero result is bit-identical across
+corpus shuffles. The score that would once have jumped around under reordering is
+now stably meaningless, and stability is what a reader takes as evidence that a
+number is real. Not an argument against `#73`. An argument that a determinism fix
+and a validity check are different guarantees, and that having the first can hide
+the absence of the second.
+
+Scoping held the line in the two places it usually slips: exactly zero-norm
+rather than "small norm", because a threshold is a number nobody measured; and a
+zero *component* is not a zero vector, because scoping to components would reject
+any sparse embedding. Both non-cases got their own pinned test.
+
+`llm-eval-harness` D-017 had settled this same question for its own embed seam
+this very morning - a zero embed vector means uncomparable. Shipping a decision
+in one repo is a reason to grep the siblings for the same seam.
