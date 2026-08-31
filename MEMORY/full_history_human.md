@@ -1275,3 +1275,18 @@ any sparse embedding. Both non-cases got their own pinned test.
 `llm-eval-harness` D-017 had settled this same question for its own embed seam
 this very morning - a zero embed vector means uncomparable. Shipping a decision
 in one repo is a reason to grep the siblings for the same seam.
+
+## 2026-08-31 — Issue #133: `SweepResult` copies its mutable fields in
+**Duration:** ~1 session block · **Branch:** `session/2026-08-31-0835-issue-133`
+
+- `frozen=True` refuses `r.recall_at_k = {}` and does nothing about the caller's own reference to the dict it passed. All three mutable fields were aliased, so `recall[5] = 999.0` and `recall[1] = nan` and `latency = -1.0` all landed inside a "frozen" result — and `to_dict` carried them into `results/*.json`, the README table and the Pareto plot.
+- The severity is not the aliasing itself: it is that `__post_init__` runs five validation loops over exactly these containers, added across #29/#31/#65, each with a written argument about a corrupt number reaching the Pareto comparator. Every one of them was a one-time check on a container someone else could still edit.
+- **The class had already defended the opposite direction and said so.** `to_dict`'s comment reads "`notes` is copied to a fresh list so caller mutation of the returned dict doesn't bleed back into the frozen dataclass". Out was copied; in was not.
+- The copy runs *before* the guards, so the container that gets validated is the container that gets stored. And `notes` elements must now be `str` — that is what makes the shallow copy complete rather than approximate, since the two dict loops prove their values are numbers and `notes` had no such proof. Measured: a nested list survived a shallow copy, and `from_dict` accepted `[1, ["nested"], {"k": "v"}]` and round-tripped it into the markdown table.
+- 19 new tests, 583 → 602 green. Reverting each copy in turn turns a distinct subset red; dropping the `notes` check turns 9 red.
+
+**Why this work, this session:** triaging `portfolio-ops#71`'s cross-repo worklist, which is explicit that a `GAP` is a candidate until reachability is checked. These were the three rows in the one listed repo without an open PR this run — four of the other five already have one, and a second same-repo PR collides on the append-only `MEMORY/` files.
+
+**Open questions / blockers:** none. The other 18 rows of #71 stay for the next run, with this triage reported back there.
+
+**Next session:** #115 and #111 remain, both gated on a JT decision.
