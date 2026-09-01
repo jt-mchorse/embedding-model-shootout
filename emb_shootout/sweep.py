@@ -71,6 +71,36 @@ class SweepResult:
     notes: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        # Copy the three mutable fields in before anything else (#133).
+        #
+        # `frozen=True` refuses `r.recall_at_k = {}` with a
+        # `FrozenInstanceError` and does nothing about the caller's own
+        # reference to the dict it passed. Measured: all three fields were
+        # aliased, so `recall[5] = 999.0` after construction put an
+        # out-of-range value into a "frozen" result — and `to_dict` carried it
+        # into `results/*.json`, the README table and the Pareto plot.
+        #
+        # That defeats every guard below. The loops in this method were added
+        # across #29/#31/#65, each with its own argument about a corrupt number
+        # reaching the Pareto comparator or the published table, and each is a
+        # one-time check on a container someone else could still edit. So the
+        # copy runs *first*: the container that gets validated has to be the
+        # container that gets stored, and it has to be ours.
+        #
+        # `to_dict` already defended the opposite direction and says so in its
+        # own comment — "`notes` is copied to a fresh list so caller mutation of
+        # the returned dict doesn't bleed back into the frozen dataclass". Out
+        # was copied; in was not.
+        #
+        # Shallow is enough, and that is a consequence of the validation rather
+        # than a hope: the two dict loops below prove every value is a number,
+        # and the `notes` loop proves every element is a `str`. All three are
+        # immutable, so there is nothing left to reach through. Without the
+        # `notes` element check a nested list would survive the copy — measured,
+        # `notes=[inner]` then `inner.append(...)` still mutated the instance.
+        object.__setattr__(self, "recall_at_k", dict(self.recall_at_k))
+        object.__setattr__(self, "embed_latency_ms", dict(self.embed_latency_ms))
+        object.__setattr__(self, "notes", list(self.notes))
         # D-006 makes `cost_per_million_tokens` operator-supplied at provider
         # construction. A negative value silently inverts the Pareto-frontier
         # comparator at pareto.py:33-34 (a negative-cost provider dominates
@@ -150,6 +180,20 @@ class SweepResult:
                 raise ValueError(f"embed_latency_ms[{k!r}] must be a number; got {v!r}")
             if not math.isfinite(v) or v < 0.0:
                 raise ValueError(f"embed_latency_ms[{k!r}] must be a finite number >= 0; got {v!r}")
+        # `notes` is declared `list[str]` and nothing enforced it (#133).
+        # `from_dict` does `list(d.get("notes", []))`, so a hand-edited or
+        # externally-generated result carried whatever the JSON held straight
+        # through: measured, `[1, ["nested"], {"k": "v"}]` was accepted and
+        # `to_dict` round-tripped it into the markdown table.
+        #
+        # It is also what makes the shallow copy above complete. A `str` has
+        # nothing to reach through; a nested list does, and would have left one
+        # field of a "frozen" result mutable while the other two were fixed —
+        # a guarantee that is true of two members of a set of three is the
+        # shape this whole issue is about.
+        for i, note in enumerate(self.notes):
+            if not isinstance(note, str):
+                raise ValueError(f"notes[{i}] must be a string; got {note!r}")
 
     def to_dict(self) -> dict[str, Any]:
         # Explicit nine-field contract (#47) — no `asdict(self)`. A
