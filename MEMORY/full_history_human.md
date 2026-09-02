@@ -1290,3 +1290,74 @@ in one repo is a reason to grep the siblings for the same seam.
 **Open questions / blockers:** none. The other 18 rows of #71 stay for the next run, with this triage reported back there.
 
 **Next session:** #115 and #111 remain, both gated on a JT decision.
+
+## 2026-09-02 — #135: one input class defeated all three write guards at once
+
+`io_utils._cap_base_for_temp` shortens a destination's basename before it goes
+into the temp filename `.<base>.<random>.tmp`. Its comment says "Budget is in
+BYTES (NAME_MAX is a byte limit)", and that is true. The code under it counted
+`base.encode("utf-8")` with the strict error handler, which is a *different*
+set of bytes from the ones NAME_MAX limits.
+
+The two counts agree for every name that is valid UTF-8. They disagree for the
+rest by raising. POSIX path bytes — and `sys.argv` — decode through
+`surrogateescape`, so a byte that isn't valid UTF-8 arrives as a lone surrogate
+in U+DC80–U+DCFF, and strict encoding refuses it. `corpus validate --out
+$'report\xff.txt'` was enough: the cap raised `UnicodeEncodeError` before it
+ever got as far as measuring anything.
+
+**The interesting part is what the guards had already been swept for.**
+`_cmd_sweep_run`'s comment states its own completeness: "This is the one write
+seam #75/#87 never reached; the sibling seams (corpus build/validate, sweep
+aggregate) already honor the exit-2 write-failure contract". That is accurate,
+and it counts *seams*. Every seam is guarded — against `OSError`. But the
+population the contract is about is *ways an operator-supplied `--out` can fail
+to be written*, and an unencodable name is a member of that population which
+isn't an `OSError` at all. So it walks past all three sites together. A complete
+sweep over sites is not a complete sweep over the class.
+
+For `corpus validate` the cost isn't noise. The command ends
+`return 0 if report.ok else 1`, and `docs/architecture.md` documents 0/1/2, so
+the leaked exit 1 means *the corpus has findings*. Measured in a real process
+against the same single well-formed row the existing
+`test_corpus_validate_unwritable_out_exits_two` uses, the pre-fix run returns rc
+1 with a `UnicodeEncodeError` traceback — a gating job reads "your corpus has
+findings" over a byte in the filename. That is the third repo in a row where
+exit 1 carries a content meaning, after `chunking-strategies-lab` and
+`prompt-regression-suite`.
+
+The fix is one line: measure with `os.fsencode`, the filesystem encoding plus
+its own error handler, which is exactly what the kernel receives.
+
+**On testing.** The CLI assertion runs in a subprocess, and that is load-bearing
+twice over. It gets the real `sys.stderr` (`errors="backslashreplace"`) instead
+of `capsys`'s strict-encoding buffer — which in the sibling
+`prompt-regression-suite` work manufactured a convincing second "bug" that
+doesn't exist on the shipped CLI. And it exercises the actual argv road, since
+`subprocess` fsencodes the argument and the child decodes it back with
+`surrogateescape`.
+
+The host must not decide the verdict either: ext4 accepts any non-NUL byte in a
+filename so on CI the write succeeds and the exit is 0, while APFS returns
+`EILSEQ` and it is 2 through the existing guard. Both are correct statements
+about the corpus, so what is asserted is "never 1, and if nothing was written it
+is 2". The pure-function half is a variant table over short/long crossed with
+ASCII, multibyte, surrogate-bearing and mixed, asserting the capped name is a
+character-boundary prefix, within budget, and **maximal** — that last one
+because a cap returning `""` for everything satisfies the first two.
+
+Reverting the single measurement line turns 9 of the 15 new assertions red and
+leaves the 6 encodable-name controls green.
+
+**Why this work, this session:** found by grepping the portfolio for
+`_MAX_TEMP_BASE_BYTES` after hitting the same defect in `llm-eval-harness#226`.
+Both of this repo's own open issues are decision-revisits needing JT, so this
+class was the actionable work here.
+
+**Open questions / blockers:** none. Note for future sessions: this repo's
+`.venv` has no `mypy` installed, so `ruff check` and `ruff format --check` are
+the local gates.
+
+**Next session:** the remaining copies of the helper live in
+`vector-search-at-scale`, `python-async-llm-pipelines`, and
+`mcp-server-cookbook`'s `filesystem-sandbox-py`.

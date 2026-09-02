@@ -1474,3 +1474,27 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-09-02T07:42Z
+issue: 135
+focus: the_temp_name_byte_budget_was_measured_in_strict_utf8_so_an_unencodable_out_slipped_past_all_three_write_guards
+phase: night_session_multi_issue_loop_issue_6
+delta:
+  files_changed: 2
+  tests_added: 15
+  suite: 602_to_617_green
+measured:
+  pre_fix_exit_code: "real subprocess, corpus validate <one well-formed row> --out <tmp>/report<U+DCFF>.txt -> rc 1 with UnicodeEncodeError traceback; post-fix rc 2 with 'failed to write ... [Errno 92]' on APFS, rc 0 with the file written on ext4"
+  equivalence: "os.fsencode and str.encode('utf-8') give the same count for every valid-utf8 NAME_VARIANTS row"
+  anti_vacuous: "reverting the single measurement line turns 9 of 15 red and leaves the 6 encodable-name controls green"
+context_for_next_session:
+  - PORTFOLIO_CLASS_SIXTH_OF_NINE_leh_226_lco_205_rag_199_csl_178_prs_159_and_this_ONE_SHARED_LINE_NINE_DIFFERENT_CONSEQUENCES
+  - THE_ENUMERATION_HERE_IS_COUNTED_IN_SEAMS_AND_THE_MISSING_MEMBER_IS_A_CLASS_cmd_sweep_runs_guard_says_THIS_IS_THE_ONE_WRITE_SEAM_75_87_NEVER_REACHED_the_sibling_seams_ALREADY_HONOR_THE_EXIT_2_CONTRACT_which_is_TRUE_and_counts_SITES_every_site_is_now_guarded_AGAINST_OSError_and_the_population_is_WAYS_AN_OPERATOR_SUPPLIED_out_CAN_FAIL_TO_BE_WRITTEN_so_ONE_INPUT_CLASS_DEFEATS_ALL_THREE_SITES_AT_ONCE_A_COMPLETE_SITE_SWEEP_IS_NOT_A_COMPLETE_CLASS_SWEEP
+  - AND_corpus_validate_ENDS_return_0_if_report_ok_else_1_so_THE_LEAKED_EXIT_1_IS_A_CONTENT_VERDICT_same_shape_as_csl_178_and_prs_159_THREE_REPOS_IN_A_ROW_WHERE_EXIT_1_MEANS_SOMETHING_go_look_for_this_in_every_validate_style_cli
+  - THE_SUBPROCESS_IS_LOAD_BEARING_FOR_TWO_SEPARATE_REASONS_it_gets_the_REAL_sys_stderr_backslashreplace_instead_of_capsyss_STRICT_buffer_see_prs_159_where_that_manufactured_a_fake_second_bug_AND_it_exercises_the_ACTUAL_argv_road_because_subprocess_fsencodes_the_arg_and_the_child_decodes_it_back_with_surrogateescape
+  - HOST_SKEW_ext4_ACCEPTS_ANY_NON_NUL_BYTE_IN_A_NAME_so_ON_CI_THE_WRITE_SUCCEEDS_AND_IT_IS_0_while_APFS_RETURNS_EILSEQ_AND_IT_IS_2_assert_NEVER_1_AND_IF_NOTHING_WAS_WRITTEN_IT_IS_2
+  - NOTE_THIS_REPOS_VENV_HAS_NO_MYPY_INSTALLED_ruff_check_and_ruff_format_check_are_the_local_gates
+decisions_made: []
+followups: []
+---
