@@ -1361,3 +1361,60 @@ the local gates.
 **Next session:** the remaining copies of the helper live in
 `vector-search-at-scale`, `python-async-llm-pipelines`, and
 `mcp-server-cookbook`'s `filesystem-sandbox-py`.
+
+## 2026-09-03 — #137: the caption asked the frontier and answered for the results
+
+`render_pareto` picked its default title from
+`len(distinct_frontier_coords) < 2`. That value is a property of the
+**frontier**; the sentence it selected — "all points co-located on at least one
+axis" — claims something about **all results**. The two coincide only when the
+frontier is the whole population.
+
+They come apart in the case this repo exists to produce. When one model
+dominates every other, the frontier collapses to a single point over results
+spread across both axes, and the figure was captioned with a denial that any
+separation existed. Two of five measured cases stated the opposite of the data,
+and they were the interesting two: "one model wins" is the headline result of a
+shootout.
+
+**The picture was right, which is why nobody saw it.** The plot correctly drew
+one highlighted point and correctly skipped the polyline; only the caption
+lied. A wrong string next to a right figure does not read as wrong.
+
+The polyline condition is untouched. It asks "can I draw a line through these
+points", which is genuinely a frontier property — one computed quantity was
+answering two different questions and only the second one was wrong. It now
+lives in `_should_draw_polyline`, whose docstring states why it is *not*
+`not _is_colocated(results)`: once the title stops asking a frontier question,
+making the polyline "consistent" is the tempting next move and it is a
+different question.
+
+Second defect in the same function: `set_ylim` clamped its upper bound to the
+recall domain and not its lower, so recalls near zero drew an axis running to
+−0.02 — a region `SweepResult.__post_init__` refuses to store. The guard
+covered one operand of the expression it protects.
+
+**Where the tests live matters here.** `plot.py`'s render path has no CI
+coverage (#111, gated on D-008 and JT's call), which is how a caption stating
+the opposite of the data survived. Rather than wait on that decision, the title
+and axis choices are now pure functions of two lists, so they are checked in
+the standard matrix with no `plot` extra. That does not resolve #111; it stops
+these two decisions depending on it.
+
+Two things I got wrong along the way, both corrected by running rather than
+reasoning. I assumed two models at the same cost would give a two-point
+frontier — they do not: the higher-recall one dominates, so co-located results
+always collapse to a single distinct coordinate. Then I asserted the frontier
+had length 1, and the identical-coordinates row has *two* results on the
+frontier and *one* distinct coordinate. That is the same unit confusion this
+issue is about, one level down, in my own test.
+
+And one thing I deliberately did not do. Swapping the polyline's call site to
+the results predicate leaves the suite green; I checked why, and the only
+disagreement produces a degenerate one-point dashed line, which renders as
+nothing. There is no harm to assert, so I recorded the difference in the
+predicate's docstring and said so in the PR rather than inventing a source-text
+lock for a consequence-free substitution.
+
+**Next session:** both remaining open issues (#115, #111) are JT-gated
+decision-revisits.

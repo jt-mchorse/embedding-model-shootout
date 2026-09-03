@@ -1498,3 +1498,28 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-09-03T08:10Z
+issue: 137
+focus: the_plot_title_asked_a_FRONTIER_question_and_made_a_RESULTS_claim_so_a_dominating_model_was_captioned_all_points_co_located
+phase: night_session_multi_issue_loop_issue_5
+delta:
+  files_changed: 2
+  tests_added: 45
+  suite: 617_to_662_green
+measured:
+  title_table: "5 cases - one-dominates(2 models) FALSE caption, one-dominates(3 models) FALSE caption, genuine-2-point-frontier correct, truly-co-located correct, single-result correct. The two wrong rows are the ones a shootout is FOR"
+  ylim: "recalls {0.00,0.02} -> ylim (-0.02, 0.04) - an axis in NEGATIVE recall while __post_init__ enforces [0,1]. recalls {0.95,0.99} -> (0.93, 1.00), top correctly clamped"
+  shipped_artifact: "docs/pareto.svg carries 'single point (real-provider runs pending)' - CORRECT today with one committed result. It becomes wrong the first time a second provider is swept"
+  anti_vacuous: "title-from-frontier revert 4 red; lower-y-clamp revert 1 red; never-say-co-located 3 red"
+context_for_next_session:
+  - THE_LENS_ONE_COMPUTED_VALUE_TWO_CONSUMERS_AND_ONLY_ONE_OF_THEM_ASKED_THE_RIGHT_QUESTION_distinct_frontier_coords_is_EXACTLY_RIGHT_for_the_polyline_you_cannot_draw_a_line_through_one_point_AND_WRONG_for_a_caption_asserting_something_about_EVERY_PLOTTED_POINT_when_you_find_a_reused_predicate_ASK_WHAT_EACH_CONSUMER_IS_ACTUALLY_ASKING
+  - AND_THE_VISUAL_WAS_CORRECT_WHICH_IS_WHY_NOBODY_SAW_IT_the_plot_drew_one_highlighted_point_correctly_UNDER_A_CAPTION_CONTRADICTING_IT_a_wrong_STRING_next_to_a_right_PICTURE_is_invisible_in_review
+  - HUNT_IN_THE_MODULE_CI_DOES_NOT_COVER_111_records_that_the_4_plot_render_tests_never_run_A_KNOWN_COVERAGE_GAP_IS_A_HUNTING_GROUND_and_the_fix_is_to_LIFT_THE_DECISION_OUT_OF_THE_MATPLOTLIB_CALL_PATH_so_the_new_tests_run_in_the_standard_matrix_WITHOUT_resolving_the_gated_decision
+  - I_WROTE_TWO_WRONG_TESTS_AND_THE_RUNS_CORRECTED_ME_TWICE_first_i_assumed_two_models_at_the_SAME_COST_give_a_2_point_frontier_FALSE_the_higher_recall_one_DOMINATES_so_co_located_results_ALWAYS_collapse_to_one_distinct_coordinate_second_i_asserted_len_frontier_EQ_1_and_the_identical_coordinate_row_has_TWO_results_on_the_frontier_and_ONE_distinct_COORDINATE_THE_SAME_UNIT_CONFUSION_THE_ISSUE_IS_ABOUT_ONE_LEVEL_DOWN
+  - AND_I_DID_NOT_SHIP_A_FAKE_GUARD_swapping_the_POLYLINE_call_site_to_the_results_predicate_stays_GREEN_and_i_checked_WHY_the_only_disagreement_is_a_degenerate_ONE_POINT_dashed_line_which_renders_as_NOTHING_so_there_is_NO_HARM_TO_ASSERT_i_documented_the_difference_in_the_predicates_docstring_and_said_so_in_the_PR_rather_than_inventing_a_source_text_lock_for_a_consequence_free_substitution
+  - GOTCHA_A_BACKSLASH_DOLLAR_IN_A_NON_RAW_DOCSTRING_IS_AN_INVALID_ESCAPE_SyntaxWarning_second_time_tonight_a_non_raw_docstring_ate_an_escape_SEE_ALSO_prs_160_where_backslash_u_MADE_THE_MODULE_UNIMPORTABLE_WRITE_DOCSTRINGS_CONTAINING_BACKSLASHES_AS_r_TRIPLE_QUOTE
+decisions_made: []
+followups: []
+---
