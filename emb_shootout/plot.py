@@ -196,11 +196,19 @@ def render_pareto(
     ax.set_title(title)
     ax.grid(True, linestyle=":", linewidth=0.5, alpha=0.6)
 
-    # Pad axes so labels don't clip.
-    if len(results) > 1:
-        (x_lo, x_hi), (y_lo, y_hi) = _axis_limits(results)
-        ax.set_xlim(x_lo, x_hi)
-        ax.set_ylim(y_lo, y_hi)
+    # Pad axes so labels don't clip -- for every non-empty result set, single
+    # included (#139). The `len(results) > 1` this replaces read as "one point
+    # needs no padding", and it guarded against a problem `_axis_limits` had
+    # already solved: both pads have a floor (`max(0.05, ...)`, `max(0.02, ...)`),
+    # so a zero spread still yields a real range. What it actually did was skip
+    # the domain clamps on the branch this repo ships from -- the committed
+    # result has `cost_per_million_tokens: 0.0`, and `docs/pareto.svg` carried
+    # x ticks at -0.04 and -0.02. #137 called this "the guard covered one
+    # operand of the expression it protects"; this is the same shape one level
+    # up, at the call site rather than inside it.
+    (x_lo, x_hi), (y_lo, y_hi) = _axis_limits(results)
+    ax.set_xlim(x_lo, x_hi)
+    ax.set_ylim(y_lo, y_hi)
 
     fig.tight_layout()
 

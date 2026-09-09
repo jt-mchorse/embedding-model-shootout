@@ -1523,3 +1523,29 @@ context_for_next_session:
 decisions_made: []
 followups: []
 ---
+
+---
+session: 2026-09-08T15:45Z
+duration_min: 25
+issue: 139
+focus: the_SHIPPED_figure_had_negative_cost_ticks_because_the_axis_clamp_is_skipped_on_the_one_branch_the_repo_actually_draws_from
+phase: day_session_multi_issue_loop_issue_8
+delta:
+  files_changed: 4
+  tests_added: 30
+  suite: 662_to_692_green
+measured:
+  the_shipped_artifact: "docs/pareto.svg tick labels were ['−0.04','−0.02','0.00','0.02','0.04',...] - NEGATIVE COST PER MILLION TOKENS in the committed figure the README links, because the sole committed result has cost_per_million_tokens 0.0"
+  drawn_axes_table: "single recall 0.99 -> ylim (0.9356, 1.0445) ABOVE 1.0; single recall 1.0 -> (0.945, 1.055); single cost 0.0 -> xlim (-0.055, 0.055); two results -> (0.83,0.93) and (0.0,0.18) CLAMP WORKING. three of six single-result rows outside a domain the dataclass enforces"
+  anti_vacuous: "FOUR neighbours built and run - the len(results)>1 condition restored 12 red; clamping at the CALL SITE instead of in _axis_limits 13 red; the pad FLOORS removed (zero-width axis) 15 red; and the ORIGINAL committed svg restored, which trips the artifact lock ALONE"
+context_for_next_session:
+  - THE_LENS_137_FIXED_A_GUARD_THAT_COVERED_ONE_OPERAND_AND_THE_SAME_SHAPE_WAS_ONE_LEVEL_UP_AT_ITS_CALL_SITE_a_guard_covering_one_BRANCH_if_len_results_greater_than_1_AND_IT_IS_THE_BRANCH_THE_REPO_SHIPS_FROM_WHEN_YOU_FIX_AN_EXPRESSION_ASK_WHETHER_ITS_CALL_SITE_HAS_A_CONDITION
+  - AND_THE_CONDITION_GUARDED_A_PROBLEM_ITS_CALLEE_HAD_ALREADY_SOLVED_len_results_greater_than_1_reads_as_ONE_POINT_NEEDS_NO_PADDING_and_axis_limits_pads_have_FLOORS_max_0_05_and_max_0_02_so_a_zero_spread_ALREADY_yields_a_real_range_A_DEFENSIVE_CONDITION_WHOSE_HAZARD_IS_HANDLED_DOWNSTREAM_IS_PURE_SUBTRACTION
+  - TEST_THE_DRAWN_THING_NOT_THE_COMPUTED_ONE_the_existing_test_file_tests_axis_limits_DIRECTLY_and_PASSES_AGAINST_THE_UNFIXED_CODE_because_the_function_was_never_wrong_ITS_CALL_SITE_WAS_so_the_new_tests_capture_the_Axes_object_render_pareto_builds_by_spying_on_plt_subplots_and_read_the_limits_off_it
+  - AND_THE_CHECK_THAT_WOULD_HAVE_CAUGHT_IT_READS_THE_COMMITTED_BYTES_the_render_tests_importorskip_matplotlib_and_111_leaves_the_render_path_uncovered_in_ci_SO_THE_ARTIFACT_LOCK_PARSES_docs_pareto_svg_AS_TEXT_and_needs_nothing_installed_A_SHIPPED_ARTIFACT_IS_TESTABLE_WITHOUT_THE_TOOL_THAT_MADE_IT
+  - GOTCHA_matplotlib_writes_U_PLUS_2212_MINUS_SIGN_not_an_ascii_hyphen_into_the_svg_tick_comments_a_hand_written_negative_check_on_dash_MISSES_EVERY_ONE_and_i_pinned_that_with_a_test_that_feeds_the_scanner_the_exact_shape_the_repo_SHIPPED
+  - GOTCHA_render_pareto_CLOSES_ITS_FIGURE_so_plt_gcf_axes_is_EMPTY_afterwards_spy_on_plt_subplots_to_capture_the_Axes_AS_IT_IS_MADE
+  - NEGATIVE_RESULT_WORTH_RECORDING_i_first_hunted_the_x_lower_bound_inside__axis_limits_expecting_137_to_have_clamped_only_y_IT_CLAMPS_BOTH_137_did_that_part_right_the_gap_was_entirely_at_the_call_site
+decisions_made: []
+followups: []
+---

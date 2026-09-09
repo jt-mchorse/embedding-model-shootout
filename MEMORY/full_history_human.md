@@ -1418,3 +1418,48 @@ lock for a consequence-free substitution.
 
 **Next session:** both remaining open issues (#115, #111) are JT-gated
 decision-revisits.
+
+## 2026-09-08 — Issue #139: the shipped figure had negative-cost ticks
+**Duration:** ~25 min · **Branch:** `session/2026-09-08-1531-issue-139`
+
+- `docs/pareto.svg` — the figure this repo ships and the README links — carried
+  x ticks at **−0.04** and **−0.02**. Negative cost per million tokens, a value
+  `SweepResult.__post_init__` refuses to store.
+- `_axis_limits` was right. It was not called: `if len(results) > 1` skipped the
+  clamps entirely for a single result, and the sole committed result has
+  `cost_per_million_tokens: 0.0`, so the shipped figure is drawn on exactly that
+  branch. Three of six measured single-result rows draw outside a domain the
+  dataclass enforces — recall 0.99 → `ylim (0.9356, 1.0445)`, recall 1.0 →
+  `(0.945, 1.055)`, cost 0.0 → `xlim (−0.055, 0.055)`.
+- **#137 fixed a guard that covered one operand; this was the same shape one
+  level up** — a guard covering one *branch* of the call site, and the branch
+  the repo ships from.
+- **The condition guarded a problem its callee had already solved.**
+  `len(results) > 1` reads as "one point needs no padding", and `_axis_limits`'
+  pads have floors (`max(0.05, …)`, `max(0.02, …)`), so a zero spread already
+  yields a real range. A defensive condition whose hazard is handled downstream
+  is pure subtraction.
+- **Test the drawn thing, not the computed one.** The existing test file tests
+  `_axis_limits` directly and passes against the unfixed code, because the
+  function was never wrong. The new tests spy on `plt.subplots` to capture the
+  `Axes` object `render_pareto` builds and read the limits off it.
+- **And the check that would have caught it reads the committed bytes.** The
+  render tests `importorskip("matplotlib")`, and #111 leaves the render path
+  uncovered in CI — so the artifact lock parses `docs/pareto.svg` as text and
+  needs nothing installed. A shipped artifact is testable without the tool that
+  made it.
+- Four neighbours built and run: the condition restored (12 red), clamping at
+  the call site instead of in `_axis_limits` (13 red), the pad floors removed
+  (15 red), and the original committed SVG restored — which trips the artifact
+  lock alone. Suite 662 → 692.
+- One negative result worth keeping: I first hunted the x lower bound *inside*
+  `_axis_limits`, expecting #137 to have clamped only y. It clamps both. #137
+  got that part right; the whole gap was at the call site.
+
+**Why this work, this session:** embedding-model-shootout had no actionable open
+issue and had not been touched since 2026-09-02, so the hunt was the work, and
+the entry point was its most recent merge.
+
+**Open questions / blockers:** none. This does not resolve #111.
+
+**Next session:** nothing outstanding in `plot.py`'s axis handling.
