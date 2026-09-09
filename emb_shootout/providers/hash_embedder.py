@@ -14,6 +14,8 @@ import math
 from collections.abc import Sequence
 from typing import Literal
 
+from .._argcheck import require_positive_int
+
 Tokenizer = Literal["word"]
 
 
@@ -26,10 +28,12 @@ class HashEmbedderProvider:
         # returned a 1-element list; `name` became `"...Trued-ngram2"`) and
         # whole-float (`dim=128.0` slipped, then `[0.0] * 128.0` raised
         # `TypeError: can't multiply sequence by non-int` far from the call site).
-        if not isinstance(dim, int) or isinstance(dim, bool) or dim <= 0:
-            raise ValueError(f"dim must be a positive integer; got {dim!r}")
-        if not isinstance(ngram, int) or isinstance(ngram, bool) or ngram <= 0:
-            raise ValueError(f"ngram must be a positive integer; got {ngram!r}")
+        # Through the shared rule since #141, messages unchanged. This provider
+        # had the `dim` check the five real ones lacked -- the dep-free
+        # reference was stricter than the providers an operator actually pays
+        # for.
+        require_positive_int("dim", dim)
+        require_positive_int("ngram", ngram)
         if tokenizer != "word":
             raise ValueError(
                 f"unknown tokenizer {tokenizer!r}; only 'word' is supported by this provider"

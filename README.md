@@ -114,6 +114,8 @@ emb_shootout/
 ├── plot.py       ← #3: matplotlib renderer behind the `plot` extra
 ├── validate.py   ← #45: collecting-mode corpus validator (emb-shootout corpus validate)
 ├── io_utils.py   ← cross-cutting: atomic_write_text
+├── _argcheck.py  ← #141: one definition of the positive-int / finite-cost rules,
+│                   shared by the six providers and SweepResult
 └── cli.py        ← emb-shootout corpus build / validate | sweep run / aggregate / plot
 ```
 
