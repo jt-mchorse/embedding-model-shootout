@@ -1511,3 +1511,71 @@ least-read surface in the repo.
 **Noted, not smuggled in:** `queries.py` and `sweep.py` spell the same
 positive-int message at five more sites. Same rule, different subsystem, with
 pinned messages of their own — a separate migration.
+
+---
+
+## 2026-09-10 — every field's value was validated, and no field's identity (#143)
+
+**Focus:** `SweepResult.__post_init__`, and the two rules `from_dict` had that
+it did not.
+
+**What got done.** This class has been completed one field at a time — #29/#31
+gave it cost, dim and the counts; #31 again the recall and nDCG values; #65 the
+latency values; #133 the `notes` elements. Every one of those is a rule about a
+**value**. `from_dict` validates two things about **identity**: `embedder_name`
+must be a non-empty string, and every `recall_at_k` key must be the canonical
+spelling of a positive integer. The constructor checked `embedder_name` *not at
+all* — the only field in the class with no guard — and checked no key of either
+dict.
+
+The reason it was missed is worth keeping: `embedder_name` is the one field with
+no interesting numeric question to ask, so every value-axis sweep walked past
+it. A field with no value rule is the one a value sweep skips.
+
+And `from_dict`'s guard comment was an accurate bug report about the other path.
+It says a non-string name "only crashes later at exit 1: a raw `AttributeError`
+in `aggregate_markdown` (`.replace("|", ...)`) and a `TypeError` when sorting a
+batch of mixed-type names". Both were reachable through the constructor and both
+are now measured. The cost guard two fields down had already closed exactly this
+asymmetry and said so — "`from_dict` already rejects a bool cost pre-coercion
+(#108); this closes its direct-construction sibling". `embedder_name` was the
+sibling nobody closed.
+
+Two rows are silent, and they are why this is a guard rather than six
+tracebacks. `embedder_name=""` constructs, renders an **empty embedder column**
+into the markdown the README publishes, and writes a result file that nothing
+complains about until it is reloaded. And a *string* `recall_at_k` key
+round-trips into an `int` key, so
+`from_dict(r.to_dict()).recall_at_k != r.recall_at_k` with no error anywhere —
+which is why the round-trip assertions compare the value rather than the absence
+of an exception.
+
+Dict keys turned out to be a genuinely separate axis. Every container guard in
+the class loops `for k, v in ...items()` and tests only `v`. `to_dict` writes
+`{str(k): v}` and the loader parses it back canonically, so a non-int key writes
+a file the loader refuses.
+
+**My own structural test caught me half-sharing.** I added the shared predicate
+to `__post_init__` and left `from_dict`'s inline spelling in place — so there
+were still two spellings of the rule. The AST arm asserting *exactly two
+callers* went red at one. A count assertion on the callers of a shared predicate
+catches a partial adoption, which is what a "one definition" fix actually fails
+as.
+
+**And the gotcha that nearly cost real accuracy.** The over-broad arm came back
+green on all 873 tests. A stale `__pycache__` was serving the previous bytecode.
+A false green is the dangerous direction: it would have let me call the
+`if self.recall_at_k:` guard redundant and delete it, breaking #83's empty-recall
+case. Re-measured with an explicit cache clear immediately before pytest, it is
+one red — the `#83` control row — and on the full suite it breaks collection,
+because a sibling test module builds such a result at import time. This is the
+second time today; a shell *function* for the clear was not enough, it has to be
+inlined every time.
+
+**Why this was prioritized.** The priority tier was already worked this run, and
+this repo's only open issue is a JT-gated decision-revisit.
+
+**Open questions / blockers:** none. Deliberately not swept in:
+`embed_latency_ms` keys. `to_dict` does `dict(...)` with no stringification and
+the field is already `dict[str, float]`, so there is no write/read asymmetry to
+close — a rule there would be new strictness rather than parity.
