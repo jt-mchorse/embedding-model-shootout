@@ -1463,3 +1463,51 @@ the entry point was its most recent merge.
 **Open questions / blockers:** none. This does not resolve #111.
 
 **Next session:** nothing outstanding in `plot.py`'s axis handling.
+
+## 2026-09-09 — Issue #141: the reason was written down and applied to one of three arguments
+**Branch:** `session/2026-09-09-0835-issue-141`
+
+Every real provider carries #33's comment verbatim: validate `batch_size` before
+the lazy import, so a misconfigured caller gets a fast `ValueError` instead of a
+slow ImportError-then-network-init, *and* so the check is testable without the
+optional extra installed. Both halves cover `dim` and `cost_per_million_tokens`
+exactly as well, and neither was validated in any of the five.
+`HashEmbedderProvider` — the dep-free reference in the same package — validated
+its own `dim`, so the provider nobody pays for was stricter than the ones an
+operator does.
+
+The second reason turned out to be measurable on this host without installing
+anything. `batch_size=0` raises `ValueError` from all five; `dim=-1` and
+`cost=nan` raise `ImportError`. A misconfiguration that raises `ImportError` on a
+bare host is one no hermetic test can express — the absence of a possible test
+was itself the finding, and the new test file is that table.
+
+The first reason has a price attached. With the extra installed, a `nan` cost
+constructs cleanly, the client initialises, and the sweep runs — BGE downloading
+~110MB of weights, the three API providers billing for every corpus *and* query
+embedding — before `SweepResult.__post_init__` refuses it. The guard is in the
+right place for correctness and the wrong place for a misconfigured caller.
+
+The counter-argument was already in the code: `SweepResult.__post_init__` says
+implementers benefit from the central check "without copying the validation per
+provider". That is true, and it is why the fix is a shared module rather than
+three checks pasted into five files. The central check gives correctness; #33's
+reasons are about *when* and *testability*; all three hold at once only if the
+rule is shared. The change also *removes* duplication — the `batch_size` rule had
+six copies, and pasting would have made eleven.
+
+The rules are derived from the downstream ones rather than written afresh,
+because a provider-side rule even slightly stricter would refuse a sweep the
+harness would have accepted — worse than the gap. There is a test asserting the
+shared predicate accepts exactly what `SweepResult`'s two arms accept, and making
+it stricter turns four pre-existing `test_sweep.py` rows red.
+
+**Why this work, this session:** the repo's one open issue is maintainer-gated,
+so the hunt was the work. The providers package had one issue per module and the
+least-read surface in the repo.
+
+**Open questions / blockers:** none.
+
+**Noted, not smuggled in:** `queries.py` and `sweep.py` spell the same
+positive-int message at five more sites. Same rule, different subsystem, with
+pinned messages of their own — a separate migration.

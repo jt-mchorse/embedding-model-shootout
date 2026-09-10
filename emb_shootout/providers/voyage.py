@@ -8,6 +8,8 @@ from __future__ import annotations
 import os
 from collections.abc import Sequence
 
+from .._argcheck import require_non_negative_finite, require_positive_int
+
 DEFAULT_MODEL = "voyage-3"
 DEFAULT_DIM = 1024
 DEFAULT_COST = 0.06  # voyage-3 list price as of 2026-05
@@ -24,8 +26,13 @@ class VoyageProvider:
         api_key: str | None = None,
     ) -> None:
         # Validate before lazy import; see CohereProvider for rationale (#33).
-        if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
-            raise ValueError(f"batch_size must be a positive integer; got {batch_size!r}")
+        # Through the shared rule since #141 -- the message is unchanged; what
+        # changed is that `dim` and `cost_per_million_tokens` are now held to
+        # the same standard, for the same two reasons stated above, which cover
+        # them exactly as well as they cover `batch_size`.
+        require_positive_int("batch_size", batch_size)
+        require_positive_int("dim", dim)
+        require_non_negative_finite("cost_per_million_tokens", cost_per_million_tokens)
         try:
             import voyageai  # type: ignore[import-not-found]
         except ImportError as e:

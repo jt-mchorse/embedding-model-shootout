@@ -55,7 +55,22 @@ until that second point exists).
   OpenAI / Voyage / Cohere / BGE / Nomic behind optional extras
   (D-004). Each is exercised by its own unit test against a stub HTTP
   response shape, so the wire format is locked even when no API key is
-  configured.
+  configured. Constructor arguments are validated **before** each
+  provider's lazy import, from one definition in
+  `emb_shootout/_argcheck.py` (#141). #33 established that for
+  `batch_size` and stated two reasons — a fast `ValueError` instead of a
+  slow ImportError-then-network-init, and a check that is testable
+  without the extra installed — and both cover `dim` and
+  `cost_per_million_tokens` just as exactly, while neither was validated
+  in any of the five. Measured with no extras installed: `batch_size=0`
+  raised `ValueError` from all five, `dim=-1` and `cost=nan` raised
+  `ImportError` — misconfigurations no test could reach. The rules are
+  *derived from* `SweepResult.__post_init__` (#31) and
+  `_require_declared_dim` (#112) rather than written afresh, because a
+  provider-side rule even slightly stricter would refuse a sweep the
+  harness would have accepted; `tests/test_provider_arg_domain.py`
+  asserts the two domains are identical, and that the downstream guards
+  still fire. This moves the moment, not the contract.
 - **`emb_shootout.pareto`** — pure-Python `pareto_frontier(results)`
   over (cost-per-million, recall@5) pairs (D-008). The frontier
   computation is dep-free so it runs in the standard CI matrix.

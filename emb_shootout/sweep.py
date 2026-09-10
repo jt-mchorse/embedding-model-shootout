@@ -18,6 +18,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from ._argcheck import is_non_negative_finite
+
 # ----------------------------------------------------------------------
 # Embedder Protocol
 # ----------------------------------------------------------------------
@@ -123,11 +125,14 @@ class SweepResult:
         # a fabricated $1.0/$0.0 point on the Pareto frontier and the committed
         # plot. `from_dict` already rejects a bool cost pre-coercion (#108); this
         # closes its direct-construction sibling.
-        if (
-            isinstance(self.cost_per_million_tokens, bool)
-            or not math.isfinite(self.cost_per_million_tokens)
-            or self.cost_per_million_tokens < 0.0
-        ):
+        #
+        # Through `is_non_negative_finite` since #141 so the five providers can
+        # apply the identical rule at construction without a sixth copy -- a
+        # provider-side rule even slightly stricter than this one would reject a
+        # sweep this dataclass would have accepted. Predicate rather than
+        # raiser: the message below is more specific than a shared wording
+        # could be, and it is pinned.
+        if not is_non_negative_finite(self.cost_per_million_tokens):
             raise ValueError(
                 f"cost_per_million_tokens must be a finite number >= 0.0; "
                 f"got {self.cost_per_million_tokens!r}"
@@ -139,6 +144,13 @@ class SweepResult:
         # (That seam check did not exist when this comment was written — it
         # cited a consumer that was never built. Added in #119.)
         # bool excluded explicitly (Python's bool subclasses int).
+        # Two messages, deliberately: "must be an int" and "must be >= 1"
+        # diagnose different mistakes and both are pinned. The shared predicate
+        # is the conjunction of the two, so the type arm is spelled here and
+        # the range arm below it. `tests/test_provider_arg_domain.py` asserts
+        # `is_positive_int` accepts exactly what this pair accepts, which is
+        # what keeps the provider-side rule from drifting stricter than this
+        # one -- a stricter provider would refuse a sweep this class allows.
         if not isinstance(self.embedder_dim, int) or isinstance(self.embedder_dim, bool):
             raise ValueError(f"embedder_dim must be an int; got {self.embedder_dim!r}")
         if self.embedder_dim < 1:
