@@ -97,3 +97,30 @@ def require_non_negative_finite(name: str, value: Any) -> None:
     """Raise ``ValueError`` unless *value* is a finite number >= 0."""
     if not is_non_negative_finite(value):
         raise ValueError(f"{name} must be a finite number >= 0.0; got {value!r}")
+
+
+def is_non_empty_str(value: object) -> bool:
+    """True for a non-empty ``str``.
+
+    Shared by ``SweepResult.from_dict`` and ``SweepResult.__post_init__``
+    (#143). ``from_dict`` has carried this rule since #94/#95 and its own
+    comment names both harms it prevents -- a raw ``AttributeError`` from
+    ``aggregate_markdown``'s ``.replace("|", ...)`` and a ``TypeError`` when
+    sorting a batch of mixed-type names -- while ``__post_init__`` checked
+    ``embedder_name`` not at all. It was the only field in that class with zero
+    guards, on a class documented as the validation choke-point for "Embedder
+    Protocol-implementers ... without copying the validation per provider",
+    whose ``.name`` is exactly an unvalidated string.
+
+    Measured on the unguarded constructor, every value reaching ``to_dict``::
+
+        123 / None / ['a'] / 1.5 / True   aggregate_markdown -> AttributeError
+        ''                                table cell rendered EMPTY, silently
+        all six                           to_dict wrote a dict from_dict REFUSES
+
+    Predicate rather than raiser, the split this module already uses for
+    ``is_non_negative_finite``: both call sites interpolate the offending
+    type name into a message their own tests pin, and a shared wording would
+    be less specific than either.
+    """
+    return isinstance(value, str) and bool(value)

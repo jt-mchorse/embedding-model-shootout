@@ -71,6 +71,45 @@ until that second point exists).
   harness would have accepted; `tests/test_provider_arg_domain.py`
   asserts the two domains are identical, and that the downstream guards
   still fire. This moves the moment, not the contract.
+
+  **And the identity axis, which every guard in `SweepResult` had
+  skipped (#143).** `__post_init__` was completed one field at a time —
+  #29/#31 (cost, dim, counts), #31 again (recall/ndcg values), #65
+  (`embed_latency_ms` values), #133 (`notes` elements) — and every one
+  of those is a rule about a **value**. `from_dict` validates two things
+  about **identity** that `__post_init__` did not: `embedder_name` must
+  be a non-empty `str` (#94/#95), and every `recall_at_k` key must be
+  the canonical spelling of a positive integer (#129). `embedder_name`
+  was checked *not at all* — the only field in the class with zero
+  guards — so `to_dict` wrote result JSON under `results/` that this
+  package's own `from_dict` refuses. That is the asymmetry the cost guard itself had
+  already closed and said so: "`from_dict` already rejects a bool cost
+  pre-coercion (#108); this closes its direct-construction sibling."
+
+  Both harms `from_dict`'s guard comment names were reachable through
+  the constructor and are now measured: five of six bad names crash
+  `aggregate_markdown` with a raw `AttributeError` from
+  `.replace("|", ...)`, and `sorted(results, key=...embedder_name)`
+  over a mixed batch raised `TypeError`. Two rows are *silent* and are
+  the reason this is a guard rather than six tracebacks —
+  `embedder_name=""` constructs, renders an **empty embedder column**
+  into the published README table, and writes a result file nothing
+  complains about until it is reloaded; and a string `recall_at_k` key
+  round-trips into an `int` key, so
+  `from_dict(r.to_dict()).recall_at_k != r.recall_at_k` with no error
+  anywhere.
+
+  One definition each: the name rule is `_argcheck.is_non_empty_str`,
+  now called from both seams, and the key range delegates to
+  `validate_k_values` — the same rule `run_sweep` applies before
+  *producing* these keys and the one `_coerce_recall_keys` uses on the
+  way back in, so all three agree on `k >= 1` by construction. The key
+  *type* arm has to run before the range arm, because `sorted()` over
+  mixed key types raises a raw `TypeError`. `from_dict` keeps its own
+  guards, and they are not redundant: `_coerce_recall_keys` turns `"05"`
+  into a perfectly good `int` 5 before the constructor sees it, so the
+  canonical-spelling rule #129 exists for has nothing left to object to
+  by then.
 - **`emb_shootout.pareto`** — pure-Python `pareto_frontier(results)`
   over (cost-per-million, recall@5) pairs (D-008). The frontier
   computation is dep-free so it runs in the standard CI matrix.

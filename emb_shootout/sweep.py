@@ -18,7 +18,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from ._argcheck import is_non_negative_finite
+from ._argcheck import is_non_empty_str, is_non_negative_finite
 
 # ----------------------------------------------------------------------
 # Embedder Protocol
@@ -103,6 +103,27 @@ class SweepResult:
         object.__setattr__(self, "recall_at_k", dict(self.recall_at_k))
         object.__setattr__(self, "embed_latency_ms", dict(self.embed_latency_ms))
         object.__setattr__(self, "notes", list(self.notes))
+        # `embedder_name` was the only field in this class with NO guard at all
+        # (#143), while `from_dict` has required a non-empty `str` since #94/#95
+        # and its comment names both harms: "a raw `AttributeError` in
+        # `aggregate_markdown` (`.replace("|", ...)`) and a `TypeError` when
+        # sorting a batch of mixed-type names". Both are reachable here --
+        # measured, five of six bad values crash `aggregate_markdown` and all
+        # six make `to_dict` write a dict `from_dict` refuses. `''` is the
+        # silent one: it constructs, renders an EMPTY embedder column into the
+        # published README table, and writes a result file nothing complains
+        # about until someone reloads it.
+        #
+        # This is the same asymmetry the cost guard below closed and said so --
+        # "`from_dict` already rejects a bool cost pre-coercion (#108); this
+        # closes its direct-construction sibling". Through the shared predicate
+        # so the two sides cannot drift; the message stays local because it
+        # names the type and is pinned.
+        if not is_non_empty_str(self.embedder_name):
+            raise ValueError(
+                f"embedder_name must be a non-empty string; got {self.embedder_name!r} "
+                f"({type(self.embedder_name).__name__})"
+            )
         # D-006 makes `cost_per_million_tokens` operator-supplied at provider
         # construction. A negative value silently inverts the Pareto-frontier
         # comparator at pareto.py:33-34 (a negative-cost provider dominates
@@ -169,6 +190,38 @@ class SweepResult:
         # NaN would silently win the Pareto-frontier comparison (pareto.py) and
         # render nonsensical points in the plot. Same "numeric silently corrupts
         # comparator" class as the cost guard above (#29/#31), on the metric axis.
+        # The KEY axis, which every guard in this method had skipped (#143).
+        # `to_dict` writes `{str(k): v}` and `_coerce_recall_keys` reverses it
+        # with a canonical integer parse, so a non-int key here produces a
+        # result file this package's own loader refuses. Measured:
+        #
+        #     {1: 0.5}    (control)  keys ['1']    reload [1]   identical
+        #     {'1': 0.5}             keys ['1']    reload [1]   NOT identical
+        #     {1.5: 0.5}             keys ['1.5']  from_dict REFUSES
+        #     {True: 0.5}            keys ['True'] from_dict REFUSES
+        #     {-1: 0.5}              keys ['-1']   from_dict REFUSES
+        #
+        # The `'1'` row is the silent one -- a string key round-trips into an
+        # `int` key, so `from_dict(r.to_dict()).recall_at_k != r.recall_at_k`
+        # with no error anywhere.
+        #
+        # Type arm here, range arm delegated to `validate_k_values` -- the same
+        # rule `run_sweep` applies before PRODUCING these keys and the one
+        # `_coerce_recall_keys` delegates to on the read path, so all three
+        # agree on `k >= 1` by construction. The type arm has to run first:
+        # `sorted()` over mixed key types raises a raw `TypeError`.
+        for key in self.recall_at_k:
+            if not isinstance(key, int) or isinstance(key, bool):
+                raise ValueError(
+                    f"recall_at_k key must be an int; got {key!r} "
+                    f"({type(key).__name__}); `to_dict` writes these keys as "
+                    "`str(k)` for the integer k of recall@k"
+                )
+        if self.recall_at_k:
+            try:
+                validate_k_values(sorted(self.recall_at_k))
+            except ValueError as e:
+                raise ValueError(f"recall_at_k keys: {e}") from None
         for k, v in self.recall_at_k.items():
             if not isinstance(v, (int, float)) or isinstance(v, bool):
                 raise ValueError(f"recall_at_k[{k}] must be a number; got {v!r}")
@@ -262,7 +315,10 @@ class SweepResult:
         # `TypeError` when sorting a batch of mixed-type names. Guard it here with
         # the isinstance-str + non-empty check, the sibling of the #94 corpus
         # loader `chunk_id`/`text` fix, so the CLI maps it to exit 2.
-        if not isinstance(d["embedder_name"], str) or not d["embedder_name"]:
+        # Through the shared predicate since #143, so this seam and
+        # `__post_init__` cannot answer differently for the same value. The
+        # message stays here because it interpolates this seam's own expression.
+        if not is_non_empty_str(d["embedder_name"]):
             raise ValueError(
                 f"embedder_name must be a non-empty string; got {d['embedder_name']!r} "
                 f"({type(d['embedder_name']).__name__})"
