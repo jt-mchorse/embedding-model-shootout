@@ -163,7 +163,12 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
 
 
 def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
-    from .sweep import SweepResult, aggregate_json, aggregate_markdown
+    from .sweep import (
+        SweepResult,
+        aggregate_json,
+        aggregate_markdown,
+        splice_markdown_table,
+    )
 
     results_dir = Path(args.results_dir)
     if not results_dir.is_dir():
@@ -192,11 +197,26 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
         except OSError as e:
             sys.stderr.write(f"failed to read {p}: {e}\n")
             return 2
+    out_path = Path(args.out)
     if args.format == "json":
         rendered = json.dumps(aggregate_json(results), indent=2, sort_keys=True) + "\n"
     else:
         rendered = aggregate_markdown(results)
-    out_path = Path(args.out)
+        # Preserve the destination's non-generated prose when it marks a region
+        # for us (#145, D-011). Before this, `--out docs/benchmarks.md` -- the
+        # command that file's own opening paragraph tells the operator to run --
+        # replaced all 44 lines with the 3-line table, deleting the
+        # no-fabricated-benchmarks disclosure, and every test stayed green because
+        # the snapshot lock checks CONTAINMENT. A file with no markers is written
+        # as before, so a scratch `--out` is unaffected.
+        try:
+            existing = out_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            # Missing, unreadable, or not UTF-8: nothing to preserve. The write
+            # below reports a genuinely unwritable path (#75); a read failure here
+            # must not pre-empt that message with a different one.
+            existing = ""
+        rendered = splice_markdown_table(existing, rendered)
     # An unwritable --out otherwise raised a raw OSError at exit 1 (#75).
     try:
         atomic_write_text(out_path, rendered)

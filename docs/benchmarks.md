@@ -13,9 +13,11 @@ against the corpus with their API key and commits the resulting
 `results/<P>.json`. Per the no-fabricated-benchmarks rule, this README does
 **not** carry placeholder numbers for those providers.
 
+<!-- emb-shootout:table:begin -->
 | embedder | dim | n_corpus | n_queries | recall@1 | recall@5 | recall@10 | NDCG@10 | corpus embed (ms) | query p50 (ms) | query p95 (ms) | $/1M tokens |
 |----------|----:|---------:|----------:|---:|---:|---:|--------:|------------------:|---------------:|---------------:|------------:|
-| hash-embedder-128d-ngram2 | 128 | 12010 | 50 | 0.320 | 0.520 | 0.620 | 0.449 | 429 | 0.0 | 0.0 | $0.000 |
+| hash-embedder-128d-ngram2 | 128 | 12010 | 50 | 0.320 | 0.520 | 0.620 | 0.449 | 429 | 0.013 | 0.017 | $0.000 |
+<!-- emb-shootout:table:end -->
 
 `hash-embedder-128d-ngram2`'s recall@5 of **0.52** isn't the takeaway — it's
 the *lower bound*. A SHA-256 bag-of-bigrams projection is a useless
