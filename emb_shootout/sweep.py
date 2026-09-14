@@ -949,7 +949,68 @@ def _latency_cell(embed_latency_ms: dict[str, float], key: str, *, places: int) 
     """
     if key not in embed_latency_ms:
         return f" {ABSENT_RECALL_CELL} |"
-    return f" {embed_latency_ms[key]:.{places}f} |"
+    return f" {_format_latency(embed_latency_ms[key], places=places)} |"
+
+
+#: Significant figures a latency cell keeps when a fixed-width render would
+#: collapse it. Two is enough to separate 0.013 from 0.017 and from 0.0, and few
+#: enough that the column stays readable next to an 8.1 (#145).
+_LATENCY_SIG_FIGS = 2
+
+
+def _format_latency(value: float, *, places: int) -> str:
+    """Render *value* ms so a measured sub-`places` value is not published as zero.
+
+    `#127` gave this column an em dash for an ABSENT latency, and its docstring
+    states the reason in full: "for latency the fabricated default is worse than
+    merely wrong, because `0.0` is the *best possible value* [...] A default
+    landing at an extreme of a comparison does not abstain, it ranks."
+
+    That argument is about the OBSERVABLE, and `#127` closed only the path where
+    `0.0` arrives as a default. A *present* measurement smaller than half of
+    `10**-places` reaches the identical cell by ARITHMETIC. Measured on 295a88b at
+    `places=1`, which is what the markdown table uses for p50/p95 (#145):
+
+        ABSENT                                    ' — '
+        present 0.0135 ms  (committed query_p50)  ' 0.0 '
+        present 0.0171 ms  (committed query_p95)  ' 0.0 '
+        present 0.04 ms                           ' 0.0 '
+        a genuine 0.0 ms                          ' 0.0 '   <- the collision
+        present 8.1 ms     (#127's own control)   ' 8.1 '
+
+    Both of the committed result's query latencies sit in that band, so the
+    published table read `0.0 | 0.0` for a provider that measured 0.0135 and
+    0.0171 ms -- while `README.md` quotes the honest `0.017 ms` for the same
+    measurement, and only the README half was locked.
+
+    Significant figures rather than a wider fixed `places`: a wider fixed width
+    MOVES the collision band instead of removing it, so `places=3` would publish
+    a 0.0004 ms value as `0.000`. That neighbour is built and run in
+    `tests/test_latency_cell_precision.py`.
+
+    Widened ONLY when the narrow form would round a non-zero measurement to zero.
+    A first draft applied significant figures unconditionally and turned `0.5`
+    into `0.50` -- churn in a band that never collided, and it falsified the
+    sentence this docstring used to carry ("values at or above 0.1 are
+    unaffected"). The test for `#127`'s own worked values is what caught it. So the
+    rule is: render at `places`; if that produces a zero for a value that is not
+    zero, widen to `_LATENCY_SIG_FIGS` significant figures. Every other cell --
+    8.1, 19.4, 429, 0.5, 1.0 -- is byte-identical to before.
+
+    A genuine `0.0` keeps the narrow form, which is what makes it distinguishable
+    from a small measurement rather than equal to it.
+    """
+    if not math.isfinite(value):
+        # Not reachable from a sweep this package ran, but `from_dict` accepts an
+        # external result file. Render the shape rather than a misleading number;
+        # `math.floor(math.log10(nan))` would raise out of a markdown renderer.
+        return ABSENT_RECALL_CELL
+    narrow = f"{value:.{places}f}"
+    if value == 0.0 or float(narrow) != 0.0:
+        return narrow
+    exponent = math.floor(math.log10(abs(value)))
+    decimals = max(places, _LATENCY_SIG_FIGS - 1 - exponent)
+    return f"{value:.{decimals}f}"
 
 
 def _absent_or(value: dict, key: object) -> float | None:
@@ -982,6 +1043,58 @@ def _aggregate_ks(results: Sequence[SweepResult]) -> list[int]:
     for r in results:
         k_set.update(r.recall_at_k.keys())
     return sorted(k_set)
+
+
+#: Markers delimiting the aggregator-owned region of a markdown artifact (#145,
+#: D-011). HTML comments, so they are invisible in rendered markdown and in GitHub's
+#: view of `docs/benchmarks.md`.
+TABLE_BEGIN_MARKER = "<!-- emb-shootout:table:begin -->"
+TABLE_END_MARKER = "<!-- emb-shootout:table:end -->"
+
+
+def splice_markdown_table(existing: str, rendered: str) -> str:
+    """Replace the marked region of *existing* with *rendered*, or return *rendered*.
+
+    `docs/benchmarks.md` opens by saying it "is **regenerated** by
+    ``emb-shootout sweep aggregate``" and "Don't hand-edit". Running that command
+    as documented took the file from 44 lines to 3: the generator emitted only the
+    table and `atomic_write_text` replaced the whole file, deleting the
+    `## Current results` framing, the `## Reproducing` section, the
+    apples-to-apples note, and the sentence **"Per the no-fabricated-benchmarks
+    rule, this README does not carry placeholder numbers for those providers"** --
+    which encodes this portfolio's first quality rule (#145).
+
+    And the suite stayed green through it, which is the part that matters.
+    `tests/test_benchmarks_md_snapshot.py` locks the artifact by CONTAINMENT: it
+    asserts the aggregator's table is *in* the file. A file truncated *to* the
+    table still contains the table. Measured on 295a88b: 873 passed, with the
+    disclosure gone. A containment lock cannot see a deletion, and a green suite is
+    exactly why an operator would believe the regeneration had gone fine.
+
+    So the generator owns a marked region and nothing else. When *existing* carries
+    both markers, only the text between them is replaced. Otherwise -- a new file,
+    a scratch path, a deliberately table-only destination -- *rendered* is returned
+    unchanged, so `--out /tmp/anything.md` keeps working exactly as before and no
+    existing caller has to learn about markers.
+
+    Deliberately not "preserve everything and append": the generator has to be able
+    to *shrink* its own region when a provider's JSON is removed from `results/`,
+    and an append-only rule would accumulate stale tables. The markers are what make
+    replacement and preservation the same operation.
+    """
+    begin = existing.find(TABLE_BEGIN_MARKER)
+    if begin == -1:
+        return rendered
+    end = existing.find(TABLE_END_MARKER, begin)
+    if end == -1:
+        # An opening marker with no close is a damaged artifact, not a licence to
+        # guess where the region stops. Refusing here would break `--out` on a
+        # half-edited file, so fall back to the pre-#145 behaviour and let the
+        # snapshot test report the mismatch.
+        return rendered
+    head = existing[: begin + len(TABLE_BEGIN_MARKER)]
+    tail = existing[end:]
+    return f"{head}\n{rendered.strip()}\n{tail}"
 
 
 def aggregate_markdown(results: Sequence[SweepResult]) -> str:

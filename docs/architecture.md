@@ -184,3 +184,56 @@ and the notebook builder share one tempfile-+-rename writer), D-010
 (an unmeasured cell is reported as absent — an em dash in markdown, JSON
 `null` — never as `0.0`, in both aggregate formats and for both
 `recall_at_k` and `embed_latency_ms`).
+
+## The aggregator owns a region, not the file (#145, D-011)
+
+`docs/benchmarks.md` opens by telling the operator the file "is
+**regenerated** by `emb-shootout sweep aggregate`" and "Don't hand-edit".
+Running that command as documented took the file from 44 lines to 3. The
+generator emits only the table, and the write replaced the whole file —
+deleting the `## Current results` framing, the interpretation paragraph,
+the whole `## Reproducing` section, the apples-to-apples note, and the
+sentence "Per the no-fabricated-benchmarks rule, this README does not
+carry placeholder numbers for those providers", which is this portfolio's
+first quality rule written down in the one file where the numbers live.
+
+**And all 873 tests stayed green.** `test_benchmarks_md_snapshot.py` locks
+the artifact by *containment* — it asserts the aggregator's table is **in**
+the file — and a file truncated *to* the table still contains the table. A
+containment lock cannot see a deletion, and a green suite is exactly why an
+operator would have believed the regeneration had gone fine. So both halves
+moved: the generator stops owning the whole file (D-011's markers), and
+`tests/test_benchmarks_md_regeneration.py` adds an **equality** lock plus a
+test that runs the documented command and asserts the prose survives it.
+
+The markers are HTML comments, invisible in rendered markdown. A
+destination without them is written whole exactly as before, so a scratch
+`--out` is unaffected and no existing caller has to learn about them. Not
+append-only: the generator must be able to *shrink* its region when a
+provider's JSON leaves `results/`, and markers make replacement and
+preservation the same operation.
+
+## A measured latency is never published as zero (#145, applying D-010)
+
+`#127` gave the latency columns an em dash for an **absent** measurement,
+and argued from the observable: "`0.0` is the best possible value… a
+default landing at an extreme of a comparison does not abstain, it ranks."
+That argument does not depend on how the `0.0` arrived, and `#127` closed
+only the path where it arrives as a default. A *present* measurement below
+half of `10**-places` reached the identical cell by arithmetic.
+
+Both of the committed result's query latencies sat in that band, so the
+published table read `0.0 | 0.0` for a provider that measured 0.0135 ms and
+0.0171 ms — while `README.md` quotes the honest `0.017 ms` for the same
+measurement and `test_readme_snapshot.py` pinned *that* half. Two published
+surfaces disagreeing, with the lock watching the one that happened to be
+right.
+
+`_format_latency` now widens to two significant figures, and **only** when
+the narrow form would round a non-zero value to zero. Significant figures
+rather than a wider fixed `places`, because a wider fixed width moves the
+collision band instead of removing it — `places=3` publishes 0.0004 ms as
+`0.000`, and that neighbour is built and run in the tests. The
+widen-only-on-collision scoping came from a correction: an unconditional
+rule turned `0.5` into `0.50`, churn in a band that never collided, and the
+test for `#127`'s own worked values (`8.1`, `19.4`) is what caught it.

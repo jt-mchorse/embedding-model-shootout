@@ -159,3 +159,57 @@ reachability #123 cites, and `sweep aggregate` walks it for every
 artifact's field type: `recall[k]` and the three `*_ms` fields go from `number`
 to `number | null`. No committed artifact moves — `results/hash.json` carries all
 three `k`s and all three latency keys — so `docs/benchmarks.md` is byte-identical.
+
+## D-011 — a generated markdown artifact marks the region the generator owns
+
+**Date:** 2026-09-11 · **Reversibility:** cheap · **Issues:** #145
+
+**Decision.** `docs/benchmarks.md` carries
+`<!-- emb-shootout:table:begin -->` / `<!-- emb-shootout:table:end -->` around the
+aggregator's table, and `emb-shootout sweep aggregate --out <file>` replaces only
+the text between those markers when the destination has them. A destination
+without markers — a scratch path, or a file intended to be table-only — is written
+whole exactly as before.
+
+**Why.** `docs/benchmarks.md` opens by telling the operator that the file "is
+**regenerated** by `emb-shootout sweep aggregate`" and "Don't hand-edit". Running
+that command as documented took the file from 44 lines to 3. It deleted the
+`## Current results` framing, the interpretation paragraph, the whole
+`## Reproducing` section, the apples-to-apples note, and the sentence "Per the
+no-fabricated-benchmarks rule, this README does not carry placeholder numbers for
+those providers" — which is this portfolio's first quality rule written down in the
+one file where the numbers live.
+
+And all 873 tests stayed green. `test_benchmarks_md_snapshot.py` locks the artifact
+by *containment*: it asserts the aggregator's table is **in** the file, and a file
+truncated *to* the table still contains the table. A containment lock cannot see a
+deletion, and a green suite is exactly why an operator would have believed the
+regeneration had gone fine. So the fix is both halves: the generator stops owning
+the whole file, and the lock becomes an equality check that can see a deletion.
+
+**Alternatives considered.** Moving the prose into the README (rejected — it
+explains the table and belongs beside it, and the disclosure has to live where the
+numbers are). Refusing to overwrite an existing file without `--force` (rejected —
+it breaks the documented one-liner and makes the honest path the longer one).
+Dropping the "regenerated" claim and hand-maintaining the table (rejected — the
+table is exactly what a generator should own). An equality lock with no markers
+(rejected — it catches the deletion only after the operator has already destroyed
+their working copy).
+
+**Not append-only.** The generator has to be able to *shrink* its region when a
+provider's JSON is removed from `results/`, and an append-only rule would
+accumulate stale tables. Markers make replacement and preservation the same
+operation.
+
+**A note on the other half of #145.** A *measured* latency below half of
+`10**-places` rendered as `0.0`, indistinguishable from a genuine zero — and both
+of the committed result's query latencies sat in that band, so the published table
+read `0.0 | 0.0` for a provider that measured 0.0135 ms and 0.0171 ms while the
+README quoted the honest `0.017 ms`. That is recorded as **applying D-010** rather
+than as a new decision. D-010's rule is "an unmeasured cell is absent, never
+`0.0`", and its rationale argues from the observable: "`0.0` is the best possible
+value… a default landing at an extreme of a comparison does not abstain, it
+ranks." That argument never depended on how the `0.0` arrived. D-010 closed the
+path where it arrives as a default; extending it to the rounding path is the same
+decision reaching the rest of its own reason. Flagged here rather than assumed,
+because it does widen what D-010 is understood to cover.

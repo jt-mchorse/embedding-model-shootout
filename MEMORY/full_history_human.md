@@ -1579,3 +1579,55 @@ this repo's only open issue is a JT-gated decision-revisit.
 `embed_latency_ms` keys. `to_dict` does `dict(...)` with no stringification and
 the field is already `dict[str, float]`, so there is no write/read asymmetry to
 close — a rule there would be new strictness rather than parity.
+
+## 2026-09-11 — the documented regen command deleted the disclosure, and the suite stayed green (#145, D-011)
+
+**What got done.** `docs/benchmarks.md` opens by telling the operator the file "is
+**regenerated** by `emb-shootout sweep aggregate`" and "Don't hand-edit". I ran that
+command. The file went from 44 lines to 3. It deleted the `## Current results`
+framing, the interpretation paragraph, the whole `## Reproducing` section, the
+apples-to-apples note, and the sentence "Per the no-fabricated-benchmarks rule, this
+README does not carry placeholder numbers for those providers" — which is this
+portfolio's first quality rule, written down in the one file where the numbers live.
+
+And all 873 tests passed. `test_benchmarks_md_snapshot.py` locks the artifact by
+*containment*: the aggregator's table must be **in** the file. A file truncated *to*
+the table still contains the table. A containment lock cannot see a deletion, and a
+green suite is exactly why an operator would have believed the regeneration had gone
+fine. That is worse than having no lock at all. So both halves moved: D-011 gives the
+generator a marked region instead of the whole file, and a new module adds an
+*equality* lock plus a test that runs the documented command and checks the prose
+survives.
+
+**The second half was a number.** `_latency_cell` formats at one decimal place, so a
+measured 0.0135 ms and 0.0171 ms both rendered `0.0` — identical to a genuine zero.
+`#127` had already given this column an em dash for an *absent* measurement, and its
+reasoning was about the observable: "`0.0` is the best possible value… a default
+landing at an extreme of a comparison does not abstain, it ranks." That argument never
+depended on how the `0.0` arrived; `#127` closed the default path and left the
+rounding path, which reaches the same cell. Both of the committed result's query
+latencies sat in that band, so the published table said `0.0 | 0.0` while the README
+quoted the honest `0.017 ms` for the same measurement — two published surfaces
+disagreeing, with the lock watching the one that happened to be right.
+
+**Three corrections worth recording, two of them mine.** I filed the issue claiming
+nothing in the suite compared the committed file to the generator's output. That was
+wrong — the containment lock was right there, and I had missed it. Corrected the issue
+body and commented; the corrected finding is sharper, because a lock that *permits*
+the defect is a better story than an absent one. Then my first precision fix applied
+significant figures unconditionally and turned `0.5` into `0.50` — churn in a band
+that never collided, which also falsified a sentence I had already written into the
+docstring. The test I had built from `#127`'s own worked values caught it, and the rule
+now widens only when the narrow form would round a non-zero value to zero. And one
+correction was in a test rather than the code: I asserted round-trip fidelity at every
+magnitude, which fails on `0.17` rendering `0.2` — correctly, because that is the
+column's declared precision. Two claims, two scopes.
+
+**Why this was prioritized.** `embedding-model-shootout`'s only open issue is a
+JT-gated decision-revisit, so the work came from hunting, and "run the command the
+artifact documents" is the method that has now paid in three repos tonight.
+
+**Open questions / blockers:** none. `results/hash.json`'s own provenance is
+deliberately untouched — #115 is that the corpus is not reproducible across Python
+versions, so a committed-result-versus-fresh-sweep lock would be an assertion about
+the host. The absence of that lock is correct until #115 is decided.

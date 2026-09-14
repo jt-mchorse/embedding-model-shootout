@@ -93,3 +93,24 @@
   reversibility: cheap
   related_issues: [#123, #127]
   superseded_by: null
+
+- id: D-011
+  date: 2026-09-11
+  decision: a_generated_markdown_artifact_marks_the_region_the_generator_owns_with_html_comments_and_sweep_aggregate_replaces_only_that_region_when_the_destination_marks_one
+  markers: ["<!-- emb-shootout:table:begin -->", "<!-- emb-shootout:table:end -->"]
+  rationale: docs_benchmarks_md_opens_by_saying_it_IS_REGENERATED_by_emb_shootout_sweep_aggregate_and_DONT_HAND_EDIT_and_running_that_command_as_documented_took_the_file_from_44_LINES_TO_3_deleting_the_current_results_framing_the_interpretation_paragraph_the_whole_reproducing_section_the_apples_to_apples_note_and_the_sentence_PER_THE_NO_FABRICATED_BENCHMARKS_RULE_THIS_README_DOES_NOT_CARRY_PLACEHOLDER_NUMBERS_which_encodes_the_portfolios_FIRST_quality_rule_AND_ALL_873_TESTS_STAYED_GREEN_because_test_benchmarks_md_snapshot_locks_by_CONTAINMENT_and_a_file_truncated_TO_the_table_still_CONTAINS_the_table_a_containment_lock_cannot_see_a_deletion_and_a_green_suite_is_exactly_why_an_operator_would_believe_the_regeneration_had_gone_fine
+  fallback: a_destination_with_no_markers_or_with_an_unclosed_marker_is_written_whole_exactly_as_before_so_a_scratch_out_path_is_unaffected_and_no_existing_caller_has_to_learn_about_markers
+  why_not_append_only: the_generator_must_be_able_to_SHRINK_its_own_region_when_a_providers_json_is_removed_from_results_and_an_append_only_rule_would_accumulate_stale_tables_the_markers_are_what_make_replacement_and_preservation_the_same_operation
+  alternatives_rejected: [keep_truncating_and_move_the_prose_into_README_REJECTED_the_prose_explains_the_table_and_belongs_beside_it_and_the_no_fabricated_benchmarks_disclosure_has_to_live_where_the_numbers_are, refuse_to_write_an_existing_file_without_a_force_flag_REJECTED_it_breaks_the_documented_one_liner_and_makes_the_honest_path_the_longer_one, stop_claiming_the_file_is_regenerated_and_hand_maintain_the_table_REJECTED_the_table_is_exactly_the_part_a_generator_should_own, equality_snapshot_lock_alone_without_markers_REJECTED_it_would_catch_the_deletion_AFTER_an_operator_had_already_destroyed_their_working_copy]
+  reversibility: cheap
+  related_issues: [#145]
+  superseded_by: null
+  # The precision half of #145 -- a MEASURED latency below half of 10**-places
+  # rendering as `0.0`, indistinguishable from a genuine zero -- is recorded as
+  # APPLYING D-010, not as a new decision. D-010's rule is "an unmeasured cell is
+  # absent, never 0.0" and its rationale argues from the OBSERVABLE ("0.0 is the
+  # best possible value... a default at an extreme does not abstain, it RANKS").
+  # That argument does not depend on how the 0.0 arrived, and D-010 closed only
+  # the path where it arrives as a default. Extending it to the rounding path is
+  # the same decision reaching the rest of its own reason. Flagged here rather
+  # than assumed, because it does widen what D-010 is understood to cover.
