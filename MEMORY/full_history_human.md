@@ -1631,3 +1631,61 @@ artifact documents" is the method that has now paid in three repos tonight.
 deliberately untouched — #115 is that the corpus is not reproducible across Python
 versions, so a committed-result-versus-fresh-sweep lock would be an assertion about
 the host. The absence of that lock is correct until #115 is decided.
+
+## 2026-09-22 — Issue #147: the fourth cell in the same row
+**Duration:** see the issue's plan/close comment timestamps · **Branch:** `session/2026-09-22-0820-issue-147`
+
+#145 gave the three latency columns a significant-figures renderer, and its
+docstring states the argument in full. Reading it again, neither load-bearing
+sentence mentions latency: "a *present* measurement smaller than half of
+`10**-places` reaches the identical cell by ARITHMETIC", and (quoting #127)
+"`0.0` is the *best possible value* […] a default landing at an extreme of a
+comparison does not abstain, it ranks". Both are about a number at the good end
+of a comparison. Cheapest is the good end of a cost column — the axis D-008
+makes the Pareto frontier's x-axis — and the cost cell sat one line below the
+three that were fixed, in the same f-string, still going through a bare `:.3f`.
+
+Measured: a genuinely free local embedder, a real $0.0001/1M price and a real
+$0.0004/1M price all rendered `$0.000`. Three distinct costs, one cell, at the
+cheapest possible value.
+
+What made it easy to scope was the sibling artifact. `aggregate_json` published
+`[0.0, 0.0001, 0.0004]` exactly and the Pareto frontier ordered them correctly,
+so the computation was always right and only the published table collapsed. And
+`aggregate_json`'s own docstring promises a consumer can "cross-check the two
+formats line-by-line", which for this column they could not. When a repo ships
+two parallel renderings of one dataset, diffing them localises the defect to a
+layer for free.
+
+The design decision worth recording is the genuine zero. A self-hosted embedder
+that costs nothing is a *real measurement*, not an absence, so it must keep
+rendering `$0.000`; rendering it as `$0.0001` would fabricate a price, which is
+the one rule this repo exists to keep. The rule keys off the value being small,
+never off it being falsy — the same distinction `llm-cost-optimizer` D-018/D-019
+drew for abstention — and the neighbour that drops that clause goes six arms
+red.
+
+#145 also predicted its own wrong neighbour in prose: "a wider fixed `places`
+MOVES the collision band instead of removing it". I built that exact neighbour
+and it goes nine arms red, including every byte-identical ordinary-price arm.
+When a docstring names the neighbour it rejected, build that neighbour — the
+prose hands you the falsification for free.
+
+I generalised into one `_format_no_fabricated_zero` with `_format_latency` left
+as a thin named wrapper, so no pre-existing test had to change and each call site
+still reads as what it renders.
+
+Two mistakes worth keeping. I retyped a rendered float again — wrote `"0.014"`
+for `_format_latency(0.0135)` from the docstring's prose when the true render is
+`"0.013"`, because the binary double sits just below the midpoint. That is the
+second time today. And my artifact-stability check briefly looked like a
+regression: writing the aggregate to a fresh `/tmp` path produces table-only
+output, because the aggregator *inserts between markers* in an existing file —
+which is D-011's own finding. Regenerate into the committed path and `git diff`
+it.
+
+Suite 894 → 910, no pre-existing tests modified, `docs/benchmarks.md`
+byte-identical. No decision recorded on purpose: this applies D-011's rule to the
+column it stopped one line short of.
+
+**Open questions:** none.
