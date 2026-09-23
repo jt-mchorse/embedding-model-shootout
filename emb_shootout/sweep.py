@@ -1000,6 +1000,76 @@ def _format_latency(value: float, *, places: int) -> str:
     A genuine `0.0` keeps the narrow form, which is what makes it distinguishable
     from a small measurement rather than equal to it.
     """
+    return _format_no_fabricated_zero(value, places=places, sig_figs=_LATENCY_SIG_FIGS)
+
+
+#: Significant figures a cost cell keeps when `.3f` would collapse it (#147).
+#: Two, matching `_LATENCY_SIG_FIGS`, for the same reason: enough to separate
+#: 0.0001 from 0.0004 and from a genuine 0, few enough that the column still
+#: reads next to `$0.100`.
+_COST_SIG_FIGS = 2
+
+#: Fixed decimals a cost cell renders at when no widening is needed. The value
+#: `#145` shipped; every cost in the committed artifacts stays byte-identical.
+_COST_PLACES = 3
+
+
+def _format_cost(value: float) -> str:
+    """Render `$/1M tokens` so a measured sub-`.3f` price is not published as zero (#147).
+
+    The same rule as `_format_latency`, through the same definition, because it
+    is the same rule -- `#145` wrote the argument for latency and it was never
+    about latency:
+
+        "A *present* measurement smaller than half of ``10**-places`` reaches
+        the identical cell by ARITHMETIC"
+
+        "``0.0`` is the *best possible value* [...] A default landing at an
+        extreme of a comparison does not abstain, it ranks."
+
+    Both sentences are about a number at the good end of a comparison, and
+    cheapest is the good end of a cost column -- the axis D-008 makes the Pareto
+    frontier's x-axis. Measured before this, on three distinct costs:
+
+        a-genuinely-free-local   0.0      -> $0.000
+        b-cheap-real-0.0001      0.0001   -> $0.000
+        c-cheap-real-0.0004      0.0004   -> $0.000
+        d-openai-small           0.02     -> $0.020
+        e-cohere                 0.10     -> $0.100
+
+    while `aggregate_json` published `[0.0, 0.0001, 0.0004]` and the Pareto
+    frontier ordered them correctly. So the computation was right and only the
+    published table collapsed -- and `aggregate_json`'s own docstring promises a
+    consumer can "cross-check the two formats line-by-line", which for this
+    column they could not.
+
+    **One difference from latency, and it is why this has two branches where
+    `_latency_cell` has three:** cost has no ABSENT case. `cost_per_million_tokens`
+    is a required field validated by `is_non_negative_finite`, so there is no
+    em-dash arm to mirror -- only the truncation arm.
+
+    A genuine `0.0` keeps the narrow `$0.000`. A self-hosted embedder that costs
+    nothing is a real measurement, not an absence, and rendering it as `$0.0001`
+    would fabricate a price -- which is the rule this repo exists to keep.
+    """
+    return "$" + _format_no_fabricated_zero(value, places=_COST_PLACES, sig_figs=_COST_SIG_FIGS)
+
+
+def _format_no_fabricated_zero(value: float, *, places: int, sig_figs: int) -> str:
+    """Render *value* at *places* decimals, widening only if that would fake a zero.
+
+    One definition, two call sites (`_format_latency`, `_format_cost`). Shared
+    rather than copied because a second copy of "don't publish a measured value
+    as zero" is a second thing to keep in step, and this repo has already paid
+    that bill twice -- `#79`/`#80` on pipe-escaping, and `#145` itself, where the
+    README's honest `0.017 ms` and the table's `0.0` were the same measurement
+    with only one of the two locked.
+
+    Widened ONLY when the narrow form would round a non-zero measurement to
+    zero, so every cell that never collided is byte-identical. A genuine `0.0`
+    keeps the narrow form, which is what makes it distinguishable from a small
+    measurement rather than equal to it.
+    """
     if not math.isfinite(value):
         # Not reachable from a sweep this package ran, but `from_dict` accepts an
         # external result file. Render the shape rather than a misleading number;
@@ -1009,7 +1079,7 @@ def _format_latency(value: float, *, places: int) -> str:
     if value == 0.0 or float(narrow) != 0.0:
         return narrow
     exponent = math.floor(math.log10(abs(value)))
-    decimals = max(places, _LATENCY_SIG_FIGS - 1 - exponent)
+    decimals = max(places, sig_figs - 1 - exponent)
     return f"{value:.{decimals}f}"
 
 
@@ -1163,7 +1233,7 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
             f"{_latency_cell(r.embed_latency_ms, 'corpus_total', places=0)}"
             f"{_latency_cell(r.embed_latency_ms, 'query_p50', places=1)}"
             f"{_latency_cell(r.embed_latency_ms, 'query_p95', places=1)}"
-            f" ${r.cost_per_million_tokens:.3f} |"
+            f" {_format_cost(r.cost_per_million_tokens)} |"
         )
     return "\n".join(lines) + "\n"
 
