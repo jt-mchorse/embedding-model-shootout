@@ -1689,3 +1689,16 @@ byte-identical. No decision recorded on purpose: this applies D-011's rule to th
 column it stopped one line short of.
 
 **Open questions:** none.
+
+## 2026-09-23 — Issue #149: the quality columns were still a bare `.3f`
+**Duration:** ~9 min (measured) · **Branch:** session/2026-09-23-0755-issue-149
+
+- #145 gave the latency columns a significant-figures renderer and #147 gave the cost column the same one, saying in its docstring that "#145 wrote the argument for latency and it was never about latency". Four columns on the same row were still a bare `.3f`: one `recall@k` cell per `k`, and `NDCG@10`.
+- Measured: a sweep that found the gold document for one query in four thousand — recall `0.00025`, nDCG `7.23e-05` — published a row byte-identical to the one that found nothing, while `aggregate_json` carried the true values. That is the promise `aggregate_json`'s own docstring makes, that a consumer can cross-check the two formats line-by-line.
+- Routed both through the shared `_format_no_fabricated_zero`, keeping #127's three-way split (absent → em dash, genuine zero → narrow, small measurement → widened). The documented regen command leaves `docs/benchmarks.md` byte-identical.
+
+**Why this work, this session:** the freshest diff in the repo was #147, and its own docstring argued the rule was general while applying it to one more column.
+
+**Open questions / blockers:** none. The half of #145's argument about extreme defaults does *not* transfer here — `0.000` is the worst value on these columns, so truncation understates rather than flatters — and that distinction is written into the new docstring rather than inherited.
+
+**Next session:** the aggregate table's renderers are now uniform across all eight numeric columns; the remaining unread surface here is `validate.py` and `corpus.py`.

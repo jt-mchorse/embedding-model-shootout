@@ -919,10 +919,17 @@ ABSENT_RECALL_CELL = "—"
 
 
 def _recall_cell(recall_at_k: dict[int, float], k: int) -> str:
-    """One recall cell, distinguishing "measured zero" from "not measured"."""
+    """One recall cell, distinguishing "measured zero" from "not measured".
+
+    And, since `#149`, from "measured, and smaller than this column can show".
+    That was the third case the original two-way wording did not name: a
+    recall of `0.00025` -- one gold document found in four thousand queries --
+    rendered `0.000`, byte-identical to the row that retrieved nothing at all,
+    while `aggregate_json` published `0.00025`. See :func:`_format_quality`.
+    """
     if k not in recall_at_k:
         return f" {ABSENT_RECALL_CELL} |"
-    return f" {recall_at_k[k]:.3f} |"
+    return f" {_format_quality(recall_at_k[k])} |"
 
 
 def _latency_cell(embed_latency_ms: dict[str, float], key: str, *, places: int) -> str:
@@ -1055,10 +1062,64 @@ def _format_cost(value: float) -> str:
     return "$" + _format_no_fabricated_zero(value, places=_COST_PLACES, sig_figs=_COST_SIG_FIGS)
 
 
+#: Significant figures a quality cell keeps when `.3f` would collapse it (#149).
+#: Two, as for latency and cost -- enough to separate 0.00025 from 0.00075 and
+#: from a genuine 0, few enough that the column still reads next to `0.850`.
+_QUALITY_SIG_FIGS = 2
+
+#: Fixed decimals a quality cell renders at when no widening is needed. The
+#: value the column has always used; every committed artifact stays
+#: byte-identical.
+_QUALITY_PLACES = 3
+
+
+def _format_quality(value: float) -> str:
+    """Render `recall@k` / `NDCG@10` so a measured sub-`.3f` score is not published as zero (#149).
+
+    The third and fourth call sites of the rule `#145` wrote and `#147` reused.
+    `#147`'s docstring states it generally and correctly -- "`#145` wrote the
+    argument for latency and it was never about latency" -- and the half that
+    carries here is the arithmetic one:
+
+        "A *present* measurement smaller than half of ``10**-places`` reaches
+        the identical cell by ARITHMETIC"
+
+    Measured before this, through the public constructor, on a 4,000-query sweep::
+
+        a-genuinely-zero      recall 0.0      ndcg 0.0       -> 0.000 / 0.000
+        b-one-hit-in-4000     recall 0.00025  ndcg 7.23e-05  -> 0.000 / 0.000
+        c-four-hits-in-4000   recall 0.001    ndcg 0.000289  -> 0.001 / 0.000
+
+    `b` found the gold document for one query in four thousand and published a
+    row byte-identical to the one that found nothing. `c`'s recall survives and
+    its nDCG still collapses. `aggregate_json` carried `0.00025` and `7.23e-05`
+    for `b` throughout -- so the computation was right and only the table
+    collapsed, and `aggregate_json`'s own promise that "a downstream consumer can
+    cross-check the two formats line-by-line" failed on these columns.
+
+    **The extreme-default half of `#145`'s argument does NOT transfer, and this
+    is the one place the four columns differ.** For latency and cost, `0.0` is
+    the *best* value, so the fabricated zero won a "which is fastest / cheapest"
+    read -- "a default landing at an extreme of a comparison does not abstain, it
+    ranks". Here `0.000` is the *worst* value, so truncation understates rather
+    than flatters. Nobody is made to look good by this. What is lost is the
+    distinction itself: two different present measurements, and a genuine zero,
+    all reaching one cell.
+
+    A genuine `0.0` keeps the narrow `0.000` -- an embedder that retrieved
+    nothing is a real measurement, and widening it to `0.00000` would say the
+    opposite of what `_recall_cell` exists to say. The absent case never reaches
+    here: `_recall_cell` returns the em dash before calling this, which keeps
+    `#127`'s three-way distinction intact.
+    """
+    return _format_no_fabricated_zero(value, places=_QUALITY_PLACES, sig_figs=_QUALITY_SIG_FIGS)
+
+
 def _format_no_fabricated_zero(value: float, *, places: int, sig_figs: int) -> str:
     """Render *value* at *places* decimals, widening only if that would fake a zero.
 
-    One definition, two call sites (`_format_latency`, `_format_cost`). Shared
+    One definition, three call sites (`_format_latency`, `_format_cost`,
+    `_format_quality` -- the last covering both quality columns). Shared
     rather than copied because a second copy of "don't publish a measured value
     as zero" is a second thing to keep in step, and this repo has already paid
     that bill twice -- `#79`/`#80` on pipe-escaping, and `#145` itself, where the
@@ -1229,7 +1290,7 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
         embedder_name = re.sub(r"[\r\n]+", " ", embedder_name)
         lines.append(
             f"| {embedder_name} | {r.embedder_dim} | {r.n_corpus} | {r.n_queries} |{recalls} "
-            f"{r.ndcg_at_10:.3f} |"
+            f"{_format_quality(r.ndcg_at_10)} |"
             f"{_latency_cell(r.embed_latency_ms, 'corpus_total', places=0)}"
             f"{_latency_cell(r.embed_latency_ms, 'query_p50', places=1)}"
             f"{_latency_cell(r.embed_latency_ms, 'query_p95', places=1)}"
