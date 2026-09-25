@@ -1702,3 +1702,35 @@ column it stopped one line short of.
 **Open questions / blockers:** none. The half of #145's argument about extreme defaults does *not* transfer here — `0.000` is the worst value on these columns, so truncation understates rather than flatters — and that distinction is written into the new docstring rather than inherited.
 
 **Next session:** the aggregate table's renderers are now uniform across all eight numeric columns; the remaining unread surface here is `validate.py` and `corpus.py`.
+
+---
+
+### 2026-09-25 — #151: the fix said the name is not a key, then used it as one
+
+`plot.py` carries a comment, left by #69, explaining that two results can share
+an embedder name — the same provider run twice produces two files with the same
+name — and that frontier membership must therefore be matched by object
+identity. Eleven lines below it, every point on the chart is labelled with
+exactly that name. So two runs of one provider drew two points, correctly
+coloured red and grey, both reading `openai-3-small`, under a title announcing
+that `openai-3-small` dominates every other model.
+
+The fix leaves unique names completely alone and decorates only the collision.
+That sparseness is the difference from the very similar fix shipped in
+`llm-cost-optimizer` earlier tonight, where every label is widened together —
+numbers at mixed precision read as mixed quantities, but an unadorned name is
+unambiguous, and decorating everything would churn every chart this repo has
+ever produced.
+
+The suffix is the result's position in the sequence, so you can get gaps: `a #1`
+and `a #3`. A per-name counter would read better and point at nothing; the
+position maps to the third file in the sorted directory, which is something you
+can actually open.
+
+Two testing lessons carried forward. Charts in a repo where matplotlib is an
+optional extra can be tested by injecting a fake module — and here that matters
+more than usual, since this render path has no CI coverage and the docstring
+right above the bug says that is how the last caption bug survived. And a
+population rule has to exempt its helper by slicing the function out by
+position, not by matching the text of its lines: both of my neighbour probes
+tripped the text-keyed version for no real reason.
