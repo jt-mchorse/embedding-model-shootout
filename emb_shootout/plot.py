@@ -93,6 +93,52 @@ def _is_colocated(results: Sequence[SweepResult]) -> bool:
     return len(costs) == 1 or len(recalls) == 1
 
 
+def disambiguated_labels(results: Sequence[SweepResult]) -> list[str]:
+    """One label per result, such that no two labels in a chart are equal.
+
+    A name that appears **once** is returned exactly as it is. Only names that
+    collide gain a suffix, and the suffix is the result's 1-based position in
+    the sequence — which is `sorted(results_dir.glob("*.json"))` order on the
+    CLI path, so an operator can map ``#3`` back to the third file.
+
+    That means the ordinals **can have gaps**, and the gaps are the point:
+    ``["a", "b", "a"]`` labels as ``["a #1", "b", "a #3"]``, not ``a #1`` /
+    ``a #2``. A per-name occurrence counter would read more naturally and would
+    point at nothing — "the second `a`" is not a file you can open, while "the
+    third result" is.
+
+    #69 established that two distinct `SweepResult`s can share an
+    `embedder_name` — D-007 writes one file per run, so the same provider run
+    twice yields two same-named results — and stopped keying the frontier
+    *colour* on that name. The annotation eleven lines below it still did, so
+    the chart said "openai-3-small is on the frontier" and "openai-3-small is
+    dominated" with nothing to tell a reader which point was which run (#151).
+
+    **Sparse, not uniform.** This is the string analogue of
+    `llm-cost-optimizer` D-021's set-wide widening, with one deliberate
+    difference: there every label shares the widened format, because a column
+    of numbers at mixed precision reads as mixed quantities. Here the labels are
+    names, an unsuffixed name is not ambiguous about anything, and decorating
+    every point to disambiguate two of them would churn every chart this repo
+    has ever produced. So only the collision is touched.
+
+    **What this is not.** The honest fix for "which run is this point" is a run
+    id on `SweepResult` — the loader drops the filename that actually
+    distinguishes the two, and `render_pareto` takes only
+    `Sequence[SweepResult]`. That is a schema change touching `from_dict`,
+    `to_dict`, every committed result JSON and D-007, and it is deliberately out
+    of scope here. If provenance ever becomes a first-class field, labelling
+    from it is strictly better than an ordinal.
+    """
+    counts: dict[str, int] = {}
+    for r in results:
+        counts[r.embedder_name] = counts.get(r.embedder_name, 0) + 1
+    return [
+        r.embedder_name if counts[r.embedder_name] == 1 else f"{r.embedder_name} #{i + 1}"
+        for i, r in enumerate(results)
+    ]
+
+
 def _default_title(results: Sequence[SweepResult], frontier: Sequence[SweepResult]) -> str:
     """The figure title when the caller supplies none.
 
@@ -106,7 +152,18 @@ def _default_title(results: Sequence[SweepResult], frontier: Sequence[SweepResul
     if _is_colocated(results):
         return "Pareto frontier — all points co-located on at least one axis"
     if len(frontier) == 1:
-        return f"Cost vs recall@5 — {frontier[0].embedder_name} dominates every other model"
+        # The *disambiguated* label, not the bare name (#151). When two runs of
+        # one provider are plotted and one dominates the other, this sentence
+        # named a string that is on the chart twice — once on the frontier and
+        # once dominated — so "X dominates every other model" was unreadable
+        # against a chart showing an X being dominated. Matched by identity for
+        # the reason #69 gives one function down: the name is not a key.
+        labels = disambiguated_labels(results)
+        winner = next(
+            (label for label, r in zip(labels, results, strict=True) if r is frontier[0]),
+            frontier[0].embedder_name,
+        )
+        return f"Cost vs recall@5 — {winner} dominates every other model"
     return "Cost vs recall@5 — Pareto frontier highlighted in red"
 
 
@@ -165,17 +222,23 @@ def render_pareto(
 
     fig, ax = plt.subplots(figsize=(8.0, 5.5))
 
+    # Labels that survive two runs of the same provider (#151). Computed over
+    # the whole sequence, because whether a name needs disambiguating is a
+    # property of the set rather than of the point.
+    labels = disambiguated_labels(results)
+
     # All points first (non-frontier in muted color, frontier in highlight).
-    for r in results:
+    for label, r in zip(labels, results, strict=True):
         x = r.cost_per_million_tokens
         y = _recall_at_5(r)
         if id(r) in frontier_ids:
             ax.scatter(x, y, s=90, color="#d62728", zorder=3, edgecolor="black", linewidth=0.5)
         else:
             ax.scatter(x, y, s=70, color="#7f7f7f", zorder=2, edgecolor="black", linewidth=0.3)
-        # Label every point with the embedder name.
+        # Label every point with its disambiguated name (#151). `r.embedder_name`
+        # is not unique — that is #69's own finding, three lines above.
         ax.annotate(
-            r.embedder_name,
+            label,
             (x, y),
             xytext=(6, 4),
             textcoords="offset points",

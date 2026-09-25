@@ -296,7 +296,7 @@ with `CAPTURE_DEMO_MODULE=os` (or any stdlib module) and
 ## Why these decisions
 
 See [`MEMORY/core_decisions_human.md`](MEMORY/core_decisions_human.md)
-for the prose decisions log. The design decisions span D-002…D-011 —
+for the prose decisions log. The design decisions span D-002…D-012 —
 from the pinned-CPython corpus (D-002) through provider extras (D-004)
 to how the aggregate reports a measurement that was never taken (D-010). [`docs/architecture.md`](docs/architecture.md)
 annotates each decision against the code surface that ships it.
