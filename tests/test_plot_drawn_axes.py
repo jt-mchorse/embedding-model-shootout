@@ -61,7 +61,11 @@ def _result(name: str, cost: float, recall5: float) -> SweepResult:
         recall_at_k={1: recall5 * 0.8, 5: recall5, 10: recall5},
         ndcg_at_10=recall5,
         embed_latency_ms={"p50": 12.0, "p95": 20.0},
-        notes="",
+        # `notes=[]`, not `notes=""` (#153). The empty string was the one input
+        # where the old `list(...)` coercion was harmless by accident —
+        # `list("")` is `[]` — which is exactly why this line could sit here
+        # unnoticed while `notes="a real note"` produced one note per character.
+        notes=[],
     )
 
 
