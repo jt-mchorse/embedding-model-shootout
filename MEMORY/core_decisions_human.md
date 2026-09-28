@@ -281,3 +281,75 @@ exempting the helper the moment the helper is rewritten.
   informative, but it changes a public signature and the CLI to carry provenance
   that is not part of `SweepResult`'s contract.
 - *Add a run id to `SweepResult`.* Deferred: the real fix, and a schema change.
+
+## D-013 — Check the shape before the coercing copy (2026-09-28)
+
+**Decision:** Every `list(...)` or `dict(...)` in `sweep.py` that copies a
+caller-supplied value is preceded by a shape check — `require_sequence` or
+`require_mapping` in `emb_shootout._argcheck`. Five sites.
+
+**Why:** #133 added the copy and #65 validates that every element is a `str`.
+Both are right, and the order defeated them. `list("a note")` does not raise — it
+splats into one entry per character, and every one of those *is* a `str`, so the
+element loop inspected the splatted list and passed.
+
+Measured end to end before any edit: `run_sweep(..., notes="recall looks low for
+this provider")` produced **36 single-character notes**, `to_dict` wrote all 36
+to `results/*.json`, and `from_dict` read them back unchanged.
+
+**`run_sweep` is the sharp site because it is type-clean.** Its parameter is
+`notes: Sequence[str] = ()`, and **a `str` is a `Sequence[str]`** — mypy accepts
+`run_sweep(notes="...")` without a murmur while flagging the
+`SweepResult(notes="...")` spelling, whose field is declared `list[str]`. The
+annotation that looks like it excludes this input is the one that admits it.
+
+**The guard is a runtime check, not a narrowed annotation, and the premise was
+checked rather than assumed.** This repo's CI runs `ruff check`,
+`ruff format --check` and `pytest` — and no mypy — so narrowing to `list[str]`
+would buy nothing at the gate. It would also reject that parameter's own `()`
+default and break the symmetry with `corpus`, `queries` and `k_values`, all
+`Sequence[...]` on purpose. An arm asserts mypy is absent, so adding one later
+turns this reasoning red rather than stale.
+
+**#133's copy-first order is kept and the check goes in front.** Its argument —
+"the container that gets validated has to be the container that gets stored" — is
+sound against a *mutating* caller. The gap is that `list()` accepts any iterable,
+which a shape check in front closes without relitigating the order. Measured: the
+check-after-copy neighbour is 9 red.
+
+**The population walk found a fourth site the issue did not name, and it is the
+worst one.** `validate_k_values` has the same `list(...)` over a `Sequence[int]`.
+`k_values="15"` *was* refused — but by the element loop, with a message naming
+`['1', '5']`, a list the caller never passed. And `k_values=b"\x05"` was
+**accepted outright**, because `list(b"\x05")` is `[5]` and 5 is a valid k: a
+sweep ran at a k nobody asked for.
+
+**The two `dict(...)` coercions are decided, not omitted.**
+`recall_at_k=[(5, 1.0)]` and `embed_latency_ms=[("corpus_total", 1.0)]` were both
+accepted, because `dict(...)` builds a mapping from pairs without raising. Less
+harmful — the mapping is what such a caller probably meant — but the same hole on
+fields declared `dict[int, float]`. Refused, so the rule reads the same at all
+five sites.
+
+**The empty string is why this survived, and it was in the suite.**
+`tests/test_plot_drawn_axes.py` passed `notes=""` and had for months, because
+`list("")` is `[]` — the coercion was harmless *by accident* on exactly that one
+input, the only member of the offending class that produces the right answer. It
+is now `notes=[]`. A rule that exempted the empty string would be a rule about
+*length*, and the defect is about *type*.
+
+**Alternatives considered:**
+- *Put the check after the copy* — rejected, built and run, 9 red. It is
+  satisfied by the splatted list, which *is* the defect.
+- *An element-type loop instead of a shape check* — rejected, built and run, 8
+  red. A `str` is a sequence of `str`, so no element rule can reach it.
+- *Guard only `notes`* — rejected, built and run, 5 red.
+- *Narrow `run_sweep`'s annotation* — rejected on a checked premise: no mypy
+  gate, and it would reject the parameter's own default.
+- *Exempt the empty string* — rejected; that is a rule about length.
+- *Swap to `chunking-strategies-lab#200`'s validate-then-copy order* — rejected;
+  #133's comment is load-bearing and sound for the case it covers.
+
+**Reversibility:** Cheap.
+
+**Related issues:** #153, #133, #65, #143, chunking-strategies-lab#200
