@@ -213,6 +213,38 @@ append-only: the generator must be able to *shrink* its region when a
 provider's JSON leaves `results/`, and markers make replacement and
 preservation the same operation.
 
+## A chart label is never two runs at once (#151, D-012)
+
+#69 established that two distinct `SweepResult`s can share an
+`embedder_name` — D-007 writes one file per run, so the same provider run
+twice yields two same-named results — and stopped keying the frontier
+**colour** on it. The annotation eleven lines below still did, and so did
+`_default_title`. Two runs of one provider therefore drew two points, one
+red and one grey, carrying the identical label, under a title reading
+"openai-3-small dominates every other model" with a dominated
+`openai-3-small` on the same chart.
+
+`disambiguated_labels` returns a unique name exactly as it is and suffixes
+only a *colliding* one with its 1-based position in the sequence. **Sparse,
+not uniform** — the deliberate difference from `llm-cost-optimizer` D-021,
+shipped the same night, whose set-wide widening decorates every label
+because a column of numbers at mixed precision reads as mixed quantities.
+Names are not like that: an unsuffixed name is unambiguous, and decorating
+every point would churn every chart this repo has produced.
+
+The ordinal is the **sequence position**, so `["a", "b", "a"]` becomes
+`a #1` / `a #3` rather than `a #1` / `a #2`. The gap is the feature: "the
+third result" maps to the third entry of
+`sorted(results_dir.glob("*.json"))`, while "the second `a`" is not a file
+anyone can open. `_default_title` picks its winner's label **by identity**,
+the same trap #69 fixed one function down.
+
+What this is not: the honest answer to "which run is this point" is a run id
+on `SweepResult`. The loader drops the filename that distinguishes them and
+`render_pareto` takes only `Sequence[SweepResult]`, so that is a schema
+change touching every committed result JSON and D-007 — deferred, and better
+than an ordinal if it ever lands.
+
 ## A measured latency is never published as zero (#145, applying D-010)
 
 `#127` gave the latency columns an em dash for an **absent** measurement,

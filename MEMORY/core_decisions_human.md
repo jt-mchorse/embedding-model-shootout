@@ -213,3 +213,71 @@ ranks." That argument never depended on how the `0.0` arrived. D-010 closed the
 path where it arrives as a default; extending it to the rounding path is the same
 decision reaching the rest of its own reason. Flagged here rather than assumed,
 because it does widen what D-010 is understood to cover.
+
+---
+
+## D-012 — the chart's labels stop keying on a name #69 proved is not unique
+
+**Date.** 2026-09-25 · **Issue.** #151 · **Reversibility.** cheap
+
+**Decision.** Every surface in `plot.py` that names an embedder goes through
+`disambiguated_labels`, which returns a unique name exactly as it is and
+suffixes only a *colliding* name with its 1-based position in the sequence.
+
+**Why.** #69 established — and the code still says so in a comment — that two
+distinct `SweepResult`s can share an `embedder_name`, because D-007 writes one
+file per run and the same provider run twice yields two same-named results. #69
+stopped keying the frontier **colour** on that name. The annotation eleven lines
+below it still did, and so did `_default_title`.
+
+Measured: two results named `openai-3-small`, one on the frontier and one
+dominated. Post-#69 the colours are right and both labels read
+`openai-3-small`, while the title said "openai-3-small dominates every other
+model" with a dominated `openai-3-small` on the same chart.
+
+**The fix is sparse, and that is the load-bearing difference from
+`llm-cost-optimizer` D-021 shipped the same night.** There the set-wide widening
+is *uniform*, because a column of numbers at mixed precision reads as mixed
+quantities. Here the labels are names: an unsuffixed name is not ambiguous about
+anything, and decorating every point would churn every chart this repo has
+produced in order to disambiguate two of them. Built the uniform neighbour: four
+arms red.
+
+**The ordinal is the sequence position, not a per-name occurrence count, and the
+gaps are the point.** `["a", "b", "a"]` labels as `a #1` / `a #3`. "The third
+result" maps to the third entry of `sorted(results_dir.glob("*.json"))`; "the
+second `a`" is not a file anyone can open. The occurrence-counter neighbour
+reads more naturally, which is exactly why it needed an arm — two red.
+
+**What this deliberately is not.** The honest answer to "which run is this
+point" is a run id on `SweepResult`. The loader drops the filename that actually
+distinguishes the two, and `render_pareto` takes only `Sequence[SweepResult]`.
+That is a schema change touching `from_dict`, `to_dict`, every committed result
+JSON and D-007, and it is out of scope here. If provenance ever becomes a
+first-class field, labelling from it beats an ordinal.
+
+**The title matches the winner by identity**, not by name — the same trap #69
+fixed one function down. A name-keyed lookup returns the first result carrying
+that name, which need not be the frontier point; the arm puts the loser first so
+that version goes red.
+
+**The arms read what the chart was handed**, via a fake `matplotlib` injected
+into `sys.modules` with a recording axes. This render path has no CI coverage,
+which `_default_title`'s own docstring calls out as "how a caption stating the
+opposite of the data survived" — so an `importorskip` arm would skip in exactly
+the place that let the last bug through.
+
+**And the population arm needed a scope, not a text match.** Its first version
+exempted the helper by matching the text of its lines, and two neighbour probes
+that changed only the helper's internals tripped it for no real reason. It now
+slices the function out by position. A text-keyed exemption is a wildcard: it
+keeps exempting whatever resembles the string it was written for, and stops
+exempting the helper the moment the helper is rewritten.
+
+**Alternatives considered.** All built and run except the last.
+- *Decorate every label uniformly.* Rejected: 4 red.
+- *A per-name occurrence counter.* Rejected: 2 red.
+- *Thread the file stem through `render_pareto`.* Rejected for now: more
+  informative, but it changes a public signature and the CLI to carry provenance
+  that is not part of `SweepResult`'s contract.
+- *Add a run id to `SweepResult`.* Deferred: the real fix, and a schema change.
