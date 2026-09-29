@@ -18,7 +18,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from ._argcheck import is_non_empty_str, is_non_negative_finite
+from ._argcheck import (
+    is_non_empty_str,
+    is_non_negative_finite,
+    require_int_sequence,
+    require_mapping,
+    require_str_sequence,
+)
 
 # ----------------------------------------------------------------------
 # Embedder Protocol
@@ -56,6 +62,18 @@ class Query:
     query_id: str
     text: str
     expected_chunk_id: str
+
+
+def _checked_notes(value: object) -> list[str]:
+    """Validate *value* as a sequence of strings, then copy it (#153).
+
+    The ordering, in one place, for the two sites that build a `notes` list
+    outside `SweepResult.__post_init__`. Returning the copy rather than just
+    raising keeps the check and the `list(...)` it guards adjacent, so a future
+    caller cannot reintroduce a bare `list(...)` by copying one line.
+    """
+    require_str_sequence("notes", value)
+    return list(value)  # type: ignore[call-overload]
 
 
 @dataclass(frozen=True)
@@ -100,6 +118,22 @@ class SweepResult:
         # immutable, so there is nothing left to reach through. Without the
         # `notes` element check a nested list would survive the copy — measured,
         # `notes=[inner]` then `inner.append(...)` still mutated the instance.
+        #
+        # The type check runs BEFORE each copy, and that ordering is the #153
+        # fix rather than a tidy-up. `list(...)` and `dict(...)` are *coercing*
+        # constructors: `list("a note")` splats into one entry per character
+        # without raising, and every one of those is a `str`, so the element
+        # loop below then inspects the splatted list and passes. Measured --
+        # `run_sweep(..., notes="recall looks low on the small corpus")` produced
+        # 36 single-character notes that reached `results/*.json` and round-
+        # tripped through `from_dict` unchanged.
+        #
+        # #133's argument for copying first is kept intact: it is about a
+        # *mutating* caller, and it is still right. This adds the case it does
+        # not cover, a *coercing* constructor, without relitigating the order.
+        require_mapping("recall_at_k", self.recall_at_k)
+        require_mapping("embed_latency_ms", self.embed_latency_ms)
+        require_str_sequence("notes", self.notes)
         object.__setattr__(self, "recall_at_k", dict(self.recall_at_k))
         object.__setattr__(self, "embed_latency_ms", dict(self.embed_latency_ms))
         object.__setattr__(self, "notes", list(self.notes))
@@ -364,7 +398,12 @@ class SweepResult:
                 recall_at_k={k: float(v) for k, v in _coerce_recall_keys(d["recall_at_k"]).items()},
                 ndcg_at_10=float(d["ndcg_at_10"]),
                 embed_latency_ms={k: float(v) for k, v in d["embed_latency_ms"].items()},
-                notes=list(d.get("notes", [])),
+                # `require_str_sequence` before the `list(...)`, for the same
+                # reason (#153). This path has no element guard of its own -- it
+                # relies entirely on `__post_init__`, which by then would be
+                # inspecting an already-splatted list. A results JSON carrying
+                # `"notes": "a note"` is the reachable input.
+                notes=_checked_notes(d.get("notes", [])),
             )
         except TypeError as e:
             # A required field present but of a non-coercible type (e.g.
@@ -754,6 +793,14 @@ def validate_k_values(k_values: Sequence[int]) -> None:
     out, because the point of the extraction is that there is exactly one
     definition of a valid ``k_values``.
     """
+    # Shape before emptiness, and before the `list(...)` below (#153). The
+    # element loop already refused `k_values="15"` -- but by reporting
+    # `['1', '5']`, a list the caller never passed -- and it *accepted*
+    # `k_values=b"\x05"` outright, because `list(b"\x05")` is `[5]` and 5 is a
+    # valid k. Found by the population walk in
+    # `tests/test_notes_char_splat.py`, not by the issue, which named the three
+    # `notes` sites.
+    require_int_sequence("k_values", k_values)
     if not k_values:
         raise ValueError("k_values must be non-empty")
     # Type, before sign (#121). The complete rule already lives TWICE in this
@@ -899,7 +946,14 @@ def run_sweep(
             "query_p50": percentile(query_latencies_ms, 50.0),
             "query_p95": percentile(query_latencies_ms, 95.0),
         },
-        notes=list(notes),
+        # The type-clean spelling of #153: `notes` is declared `Sequence[str]`
+        # and **a `str` is a `Sequence[str]`**, so mypy accepts
+        # `run_sweep(notes="...")` without a murmur while `list(...)` splats it.
+        # The annotation that looks like it excludes this input is the one that
+        # admits it, which is why the guard is a runtime check rather than a
+        # narrowing to `list[str]` -- and why narrowing would also reject this
+        # parameter's own `()` default.
+        notes=_checked_notes(notes),
     )
 
 

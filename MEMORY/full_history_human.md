@@ -1734,3 +1734,25 @@ right above the bug says that is how the last caption bug survived. And a
 population rule has to exempt its helper by slicing the function out by
 position, not by matching the text of its lines: both of my neighbour probes
 tripped the text-keyed version for no real reason.
+
+## 2026-09-28 — Issue #153: a string is a sequence of strings
+**Duration:** ~9 min · **Branch:** `session/2026-09-28-0838-issue-153`
+
+- `SweepResult` copies its containers and then validates their elements. The
+  order defeated both halves: `list("a note")` splats into one entry per
+  character, every one of them a `str`, so the element loop inspected the
+  splatted list and passed. One operator note became thirty-six, and they reached
+  the committed results JSON and round-tripped back unchanged.
+- The sharp site is `run_sweep`, because it is type-clean — its parameter is
+  `Sequence[str]` and a `str` satisfies that, so a type checker flags the other
+  spelling and says nothing about this one.
+- The population walk found a fourth site nobody had named: `validate_k_values`
+  accepted a byte string outright, because its elements index to ints and a valid
+  k came out.
+
+**Why this work, this session:** carried across from `chunking-strategies-lab#200`,
+worked earlier tonight, which hit the same fork and went the other way.
+
+**Open questions / blockers:** none.
+
+**Next session:** this repo's only other open issue is a JT-gated decision-revisit.

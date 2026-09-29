@@ -52,6 +52,7 @@ sweep the harness would have accepted, which is worse than the gap it closes.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 
@@ -124,3 +125,89 @@ def is_non_empty_str(value: object) -> bool:
     be less specific than either.
     """
     return isinstance(value, str) and bool(value)
+
+
+def require_sequence(name: str, value: object, *, element: str) -> None:
+    """Raise ``ValueError`` unless *value* is an ordered sequence that is not itself a string.
+
+    **The check that has to run before the copy, not after it** (#153).
+
+    ``SweepResult.__post_init__`` copies ``notes`` with ``list(...)`` and then
+    validates that every element is a ``str``. Both halves are right and the
+    order defeats them: ``list("a note")`` does not raise, it splats into one
+    entry per character, and every one of those *is* a ``str``, so the validator
+    inspects the splatted list and passes. Measured end to end --
+    ``run_sweep(..., notes="recall looks low on the small corpus")`` produced 34
+    single-character notes, ``to_dict`` wrote all 36 to ``results/*.json``, and
+    ``from_dict`` read them back unchanged.
+
+    ``str`` is the whole point of the check, and it is why an element-type loop
+    cannot substitute for one: a string is a perfectly good ``Sequence[str]``
+    whose elements are all ``str``. ``bytes`` and ``bytearray`` are excluded on
+    the same grounds one step further along -- they are sequences whose elements
+    are ``int``, so the element loop *would* catch them, but with a message
+    about ``notes[0]`` being an ``int`` rather than about the value being bytes.
+
+    **A ``Sequence``, not an ``Iterable``.** A ``set`` is iterable and has no
+    order, and ``notes`` is published in the order it was given. A generator is
+    iterable and single-use: validating its elements would consume it and leave
+    the copy empty, which is the mirror of the bug this function exists for.
+    Both are refused with their type named.
+
+    ``tuple`` passes, deliberately. ``run_sweep``'s ``notes`` parameter defaults
+    to ``()`` and its siblings ``corpus`` / ``queries`` / ``k_values`` are all
+    ``Sequence[...]`` on purpose, so a rule that demanded a ``list`` would
+    reject this module's own default.
+
+    **``element`` exists because the population walk found a fourth site the
+    issue did not name.** ``validate_k_values`` has the same ``list(...)`` over a
+    ``Sequence[int]``, and the two harms there are the same shape one step apart:
+    ``k_values="15"`` *was* refused, but by the element loop and with a message
+    naming ``['1', '5']`` — a list the caller never passed — while
+    ``k_values=b"\x05"`` was **accepted outright**, because ``list(b"\x05")`` is
+    ``[5]`` and 5 is a valid k. One rule, two element names, so neither message
+    has to be written twice.
+    """
+    if isinstance(value, (str, bytes, bytearray)):
+        raise ValueError(
+            f"{name} must be a sequence of {element}, not a {type(value).__name__}; "
+            f"got {value!r}. A str is itself a sequence of str and a bytes is a "
+            f"sequence of int, so a coercing copy splats one value into one entry "
+            f"per character or per byte instead of raising."
+        )
+    if not isinstance(value, Sequence):
+        raise ValueError(
+            f"{name} must be an ordered sequence of {element}; got {type(value).__name__}"
+        )
+
+
+def require_str_sequence(name: str, value: object) -> None:
+    """``require_sequence`` for a sequence of strings (``notes``)."""
+    require_sequence(name, value, element="strings")
+
+
+def require_int_sequence(name: str, value: object) -> None:
+    """``require_sequence`` for a sequence of ints (``k_values``)."""
+    require_sequence(name, value, element="ints")
+
+
+def require_mapping(name: str, value: object) -> None:
+    """Raise ``ValueError`` unless *value* is already a mapping (#153).
+
+    The quieter half of the same shape. ``dict([(5, 1.0)])`` builds a mapping
+    from a list of pairs without raising, so ``recall_at_k=[(5, 1.0)]`` and
+    ``embed_latency_ms=[("corpus_total", 1.0)]`` were both **accepted**: the copy
+    coerced them and the validation loop then found well-formed numeric entries.
+
+    Less harmful than the ``notes`` splat -- the resulting mapping is what such a
+    caller probably meant -- but it is the same hole, and the fields are declared
+    ``dict[int, float]`` and ``dict[str, float]``. Refused rather than tolerated
+    so the rule reads the same at all five copy sites; no caller in this package
+    passes pairs.
+    """
+    if not isinstance(value, Mapping):
+        raise ValueError(
+            f"{name} must be a mapping; got {type(value).__name__}. A list of "
+            f"pairs is coerced by dict(...) without raising, which is why this "
+            f"is checked before the copy rather than after it."
+        )

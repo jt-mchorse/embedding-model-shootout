@@ -269,3 +269,38 @@ collision band instead of removing it — `places=3` publishes 0.0004 ms as
 widen-only-on-collision scoping came from a correction: an unconditional
 rule turned `0.5` into `0.50`, churn in a band that never collided, and the
 test for `#127`'s own worked values (`8.1`, `19.4`) is what caught it.
+
+## A string is a sequence of strings (#153, D-013)
+
+`SweepResult.__post_init__` copies its three container fields (#133) and then
+validates that every `notes` element is a `str` (#65). Both halves are right,
+and the order defeated them: `list("a note")` does not raise — it splats into
+one entry per character, and every one of those *is* a `str`, so the element
+loop inspected the splatted list and passed. Measured,
+`run_sweep(..., notes="recall looks low on the small corpus")` produced 34
+single-character notes, `to_dict` wrote all 36 to the committed `results/` JSON files, and
+`from_dict` read them back unchanged.
+
+The shape check now runs in front of each copy, at all five sites: the three
+`notes` copies (`__post_init__`, `from_dict`, `run_sweep`) and the two
+`dict(...)` copies, which accepted a list of pairs on the same reasoning.
+
+`run_sweep` is the sharp one because it is **type-clean**. Its parameter is
+`notes: Sequence[str]`, and a `str` satisfies that — a type checker flags the
+`SweepResult(notes="...")` spelling, whose field is `list[str]`, and says
+nothing about this one. The guard is a runtime check rather than a narrowed
+annotation because this repo runs no type checker in CI at all, narrowing would
+reject that parameter's own `()` default, and `SweepResult` is exported and
+directly constructible — the argument `#143` already made.
+
+The population walk that goes with this found a **fourth** site the issue did
+not name. `validate_k_values` has the same copy over a `Sequence[int]`:
+`k_values="15"` was refused, but by the element loop and with a message naming
+a list the caller never passed, while a byte string was **accepted outright**,
+because its elements index to ints and a valid k came out. A sweep ran at a k
+nobody asked for.
+
+The empty string is why this survived. A test passed `notes=""` for months, and
+`list("")` is `[]` — the coercion was harmless by accident on exactly the one
+input where it is. Refusing it anyway is deliberate: an exemption for the empty
+string would be a rule about length, and the defect is about type.
