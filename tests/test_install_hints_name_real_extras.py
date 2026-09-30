@@ -28,6 +28,7 @@ def _surfaces() -> list[Path]:
     paths = [
         *(_ROOT / "emb_shootout").rglob("*.py"),
         _ROOT / "README.md",
+        _ROOT / ".env.example",
         *(_ROOT / "docs").glob("*.md"),
     ]
     return sorted(p for p in paths if p.exists())
