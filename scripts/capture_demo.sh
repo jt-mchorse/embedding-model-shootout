@@ -116,6 +116,6 @@ banner "done · the four surfaces of the repo are demonstrably wired end-to-end"
 printf 'next stop for a real-provider row:\n'
 printf '  pip install -e .[openai]\n'
 printf '  OPENAI_API_KEY=... emb-shootout sweep run --provider openai \\\n'
-printf '    --corpus data/corpus.jsonl --queries 200 --output results/openai.json\n'
+printf '    --corpus data/corpus.jsonl --queries 50 --seed 42 --output results/openai.json\n'
 printf '  emb-shootout sweep aggregate          # re-renders docs/benchmarks.md\n'
 printf '  emb-shootout sweep plot --out-png docs/pareto.png   # needs .[plot]\n'

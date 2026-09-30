@@ -1222,6 +1222,36 @@ def _absent_or(value: dict, key: object) -> float | None:
     return None if v is None else float(v)
 
 
+def require_comparable(results: Sequence[SweepResult]) -> None:
+    """Refuse to tabulate rows measured on different query sets (#155, D-014).
+
+    `docs/benchmarks.md` states that "all providers run against the same queries
+    by construction, so cross-provider rows in this table are apples-to-apples".
+    Nothing constructed it: this module rendered whatever rows it was handed, and
+    that file's own reproduce command ran `--queries 200` beside a committed
+    50-query baseline. Recall over 200 queries is not recall over 50, even though
+    `build_queries` makes the 50 a prefix of the 200.
+
+    `n_queries` and `n_corpus` are the query-set identity a `SweepResult` records,
+    so they are what this can enforce. The seed is **not** recorded, so two rows
+    with equal counts and different `--seed`s still pass -- said here, and in
+    D-014, rather than implied away.
+    """
+    identities: dict[tuple[int, int], list[str]] = {}
+    for r in results:
+        identities.setdefault((r.n_queries, r.n_corpus), []).append(r.embedder_name)
+    if len(identities) > 1:
+        described = "; ".join(
+            f"n_queries={nq}, n_corpus={nc}: {', '.join(sorted(names))}"
+            for (nq, nc), names in sorted(identities.items())
+        )
+        raise ValueError(
+            "results were measured on different query sets and cannot share one "
+            f"comparison table ({described}). Re-run with the same --corpus, "
+            "--queries and --seed as the committed baseline."
+        )
+
+
 def _aggregate_ks(results: Sequence[SweepResult]) -> list[int]:
     """Union of `recall_at_k` keys across results, sorted ascending."""
     k_set: set[int] = set()
@@ -1286,6 +1316,7 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
     """Render a markdown comparison table over multiple SweepResults."""
     if not results:
         return "_no results to aggregate_\n"
+    require_comparable(results)
     ks = _aggregate_ks(results)
     # Splice the per-k recall columns as ONE segment that contributes nothing —
     # to the header, the separator, AND every data row — when `ks` is empty
@@ -1359,7 +1390,9 @@ def aggregate_json(results: Sequence[SweepResult]) -> dict:
     Returns ``{"results": [<one_dict_per_provider>], "ks": [<int>, ...]}``.
     Rows sorted by ``embedder_name`` to match `aggregate_markdown`'s order,
     so a downstream consumer can cross-check the two formats line-by-line.
+    Refuses incomparable rows exactly as the markdown sibling does (#155).
     """
+    require_comparable(results)
     ks = _aggregate_ks(results)
     rows = []
     for r in sorted(results, key=lambda x: x.embedder_name):

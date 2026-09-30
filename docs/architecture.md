@@ -304,3 +304,23 @@ The empty string is why this survived. A test passed `notes=""` for months, and
 `list("")` is `[]` — the coercion was harmless by accident on exactly the one
 input where it is. Refusing it anyway is deliberate: an exemption for the empty
 string would be a rule about length, and the defect is about type.
+
+## Rows in one table share a query set (#155, D-014)
+
+`docs/benchmarks.md` said "all providers run against the same queries by
+construction, so cross-provider rows in this table are apples-to-apples" —
+directly under a reproduce command running `--queries 200` with no `--seed`,
+beside a committed baseline measured at `--queries 50 --seed 42`. Nothing
+constructed the claim: `SweepResult` records no seed, and the aggregators
+rendered whatever rows they were handed.
+
+`require_comparable` now refuses a result set whose rows disagree on
+`n_queries` or `n_corpus` — the query-set identity a result records — and both
+`aggregate_markdown` and `aggregate_json` call it, so `sweep aggregate` exits 2
+instead of publishing an incomparable row under that sentence. Every documented
+provider command uses the baseline's flags, pinned by a test that derives
+`n_queries` from `results/hash.json`.
+
+What it cannot see is named rather than implied away: the seed is not recorded,
+so equal counts from different seeds still pass, and the corpus is identified
+only by its size. Recording both is #156.
