@@ -33,7 +33,9 @@ voyage = ["voyageai>=0.3"]
 cohere = ["cohere>=5.13"]
 sbert  = ["sentence-transformers>=3.0", "einops>=0.8"]   # einops needed by nomic
 all-providers = [
-  "emb-shootout[openai,voyage,cohere,sbert]",
+  # Self-reference by the DISTRIBUTION name (#158). It said `emb-shootout`,
+  # the console script, so this extra could not install at all.
+  "embedding-model-shootout[openai,voyage,cohere,sbert]",
 ]
 # Optional extra for rendering the cost-vs-recall@5 Pareto plot (#3). The
 # frontier *computation* is dep-free pure Python in `emb_shootout.pareto`;

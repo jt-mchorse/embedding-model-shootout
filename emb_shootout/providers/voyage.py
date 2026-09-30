@@ -1,6 +1,6 @@
 """Voyage embeddings provider.
 
-Lazy-imports `voyageai`; install with `pip install 'emb-shootout[voyage]'`.
+Lazy-imports `voyageai`; install with `pip install -e '.[voyage]'`.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ class VoyageProvider:
         except ImportError as e:
             raise ImportError(
                 "VoyageProvider requires the optional 'voyage' extra. "
-                "Install with: pip install 'emb-shootout[voyage]'"
+                "Install with: pip install -e '.[voyage]'"
             ) from e
         self._voyage = voyageai
         self.client = voyageai.Client(api_key=api_key or os.environ.get("VOYAGE_API_KEY"))

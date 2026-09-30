@@ -1,6 +1,6 @@
 """Nomic embeddings provider via sentence-transformers.
 
-Lazy-imports `sentence_transformers`; install with `pip install 'emb-shootout[sbert]'`.
+Lazy-imports `sentence_transformers`; install with `pip install -e '.[sbert]'`.
 The model weights download on first use (~550MB for `nomic-embed-text-v1.5`).
 
 `nomic-embed-text-v1.5` requires `trust_remote_code=True` because it
@@ -43,7 +43,7 @@ class NomicProvider:
         except ImportError as e:
             raise ImportError(
                 "NomicProvider requires the optional 'sbert' extra. "
-                "Install with: pip install 'emb-shootout[sbert]'"
+                "Install with: pip install -e '.[sbert]'"
             ) from e
         self._model_cls = SentenceTransformer
         kwargs: dict = {"trust_remote_code": trust_remote_code}

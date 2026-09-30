@@ -1,6 +1,6 @@
 """OpenAI text-embedding-3 provider.
 
-Lazy-imports the `openai` SDK; install with `pip install 'emb-shootout[openai]'`.
+Lazy-imports the `openai` SDK; install with `pip install -e '.[openai]'`.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ class OpenAIProvider:
         except ImportError as e:
             raise ImportError(
                 "OpenAIProvider requires the optional 'openai' extra. "
-                "Install with: pip install 'emb-shootout[openai]'"
+                "Install with: pip install -e '.[openai]'"
             ) from e
         self._openai = openai
         self.client = openai.OpenAI(api_key=api_key or os.environ.get("OPENAI_API_KEY"))
