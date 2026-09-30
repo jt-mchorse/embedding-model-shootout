@@ -1778,3 +1778,14 @@ worked earlier tonight, which hit the same fork and went the other way.
 **Open questions / blockers:** #157 is open here too (MEMORY conflict only).
 
 **Next session:** the reproducibility-table finding (3.11 / 3.14 numbers) sits under #115 (Python pinning, JT-gated).
+
+## 2026-09-30T09:42:38Z — #160: the docs called the corpus interpreter "pinned"; nothing pins it
+
+Two README sentences and the architecture diagram said the corpus is built "on a
+pinned Python version". It isn't: the package accepts any Python from 3.11, CI
+runs 3.11 and 3.12, and the README's own reproducibility table shows 3.11 and 3.14
+building different corpora. Whether to pin is still open as #115, and that is
+JT's call, so this change doesn't make it. It only rewords the three sentences to
+describe what happens today. The new test allows the word "pinned" again the
+moment `requires-python` really pins one minor version, so whatever #115 decides
+keeps the docs honest without anyone editing the test.
