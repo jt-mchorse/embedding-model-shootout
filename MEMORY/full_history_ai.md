@@ -1786,3 +1786,20 @@ context_for_next_session:
   - D_002_CITATIONS_README_300_AND_ARCHITECTURE_175_LEFT_AS_IS_they_name_the_decision_as_recorded_not_the_current_state_and_MEMORY_core_decisions_is_untouched
   - vsas_frontier_svg_REGENERATES_DIFFERENTLY_BY_DESIGN_its_x_axis_is_wall_clock_p95_latency_so_the_audits_replot_dirties_committed_plots_finding_IS_NOT_A_DEFECT_there
 followups: []
+
+---
+session: 2026-09-30T09:47:14Z
+issue: 162
+focus: env_example_for_three_provider_keys
+phase: shipped
+duration_min: 0
+delta:
+  files_changed: 3
+  tests_added: 5
+  suite: "958 passed; ruff check and ruff format --check clean"
+decisions_made: []
+measured: "reads found: OPENAI_API_KEY, VOYAGE_API_KEY, COHERE_API_KEY, one per provider constructor, all explicit. Probes: file absent 3 red of 5; COHERE_API_KEY dropped 1 red."
+context_for_next_session:
+  - PART_OF_portfolio_ops_80_same_lock_as_lco_238_and_leh_272_SDK_IMPLICIT_IS_EMPTY_HERE_because_every_provider_passes_api_key_or_os_environ_get_explicitly
+  - remaining_for_ops_80_vsas_and_mcp_github_gists
+followups: []

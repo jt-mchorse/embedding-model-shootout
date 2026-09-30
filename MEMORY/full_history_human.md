@@ -1789,3 +1789,11 @@ JT's call, so this change doesn't make it. It only rewords the three sentences t
 describe what happens today. The new test allows the word "pinned" again the
 moment `requires-python` really pins one minor version, so whatever #115 decides
 keeps the docs honest without anyone editing the test.
+
+## 2026-09-30T09:47:14Z — #162: added .env.example
+
+The portfolio handoff asks every repo for a `.env.example`; this one had none. The
+README showed `OPENAI_API_KEY` in its sweep example, but the Voyage and Cohere key
+variables were findable only in the provider code. The new file lists all three,
+with the extra each provider needs, and a test derives the names from the source
+so the file can't drift. Part of portfolio-ops#80.
