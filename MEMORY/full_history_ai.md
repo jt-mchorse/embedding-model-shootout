@@ -1729,3 +1729,23 @@ context_for_next_session:
 decisions_made: [D-013]
 followups: []
 ---
+
+---
+session: 2026-09-30T08:22Z
+issue: 155
+focus: A_REPRODUCE_COMMAND_RAN_200_UNSEEDED_QUERIES_UNDER_A_SENTENCE_SAYING_SAME_QUERIES_BY_CONSTRUCTION_AND_NOTHING_CONSTRUCTED_IT
+phase: shipped
+duration_min: 5   # 08:17 hunt start -> 2026-09-30T08:22Z close, from date -u and the issue timestamps
+delta:
+  files_changed: 7
+  tests_added: 16
+  suite: "953 -> 969 green"
+decisions_made: ["D-014"]
+measured: "probes (969 each): refusal removed 7 red, old docs 2 red, queries-only 2 red; the command finder locates 4 documented commands"
+context_for_next_session:
+  - BY_CONSTRUCTION_IS_A_CLAIM_ABOUT_CODE_find_the_code_that_constructs_it_here_NONE_DID_the_aggregator_rendered_any_rows_and_the_result_type_did_not_even_record_the_seed
+  - TWO_DOCUMENTS_GAVE_TWO_COMMANDS_FOR_THE_SAME_STEP_the_README_was_right_the_hand_kept_prose_in_the_generated_file_and_the_demo_script_were_wrong_PIN_EVERY_DOCUMENTED_COMMAND_TO_THE_ARTIFACT_IT_REPRODUCES_derive_the_number_from_the_artifact
+  - GOTCHA_A_145_LOCK_REQUIRES_THE_PHRASE_apples_to_apples_TO_SURVIVE_REGENERATION_rewriting_that_sentence_must_keep_it
+  - FILED_156_priority_low_record_seed_and_corpus_fingerprint
+followups: ["#156"]
+---

@@ -1756,3 +1756,14 @@ worked earlier tonight, which hit the same fork and went the other way.
 **Open questions / blockers:** none.
 
 **Next session:** this repo's only other open issue is a JT-gated decision-revisit.
+
+## 2026-09-30 — Issue #155: rows in one table share a query set (D-014)
+**Duration:** ~5 min · **Branch:** session/2026-09-30-0819-issue-155
+
+- `docs/benchmarks.md`'s reproduce command (and the demo's printed next step) ran 200 unseeded queries beside the committed 50-query / seed-42 baseline, under a sentence saying rows are comparable by construction. Nothing constructed it. The aggregator now refuses rows that disagree on `n_queries` or `n_corpus`, and every documented command is pinned to the baseline's flags.
+
+**Why this work, this session:** found by running the documented commands against each other.
+
+**Open questions / blockers:** #156 (record the seed and a corpus fingerprint) is the remaining gap.
+
+**Next session:** #156 if wanted.
