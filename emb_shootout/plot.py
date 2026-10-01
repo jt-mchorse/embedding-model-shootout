@@ -210,9 +210,12 @@ def render_pareto(
     if out_png is None and out_svg is None:
         raise ValueError("must provide at least one of out_png or out_svg")
 
-    plt = _import_matplotlib()
-
+    # Before the matplotlib import (#167): an incomparable result set is bad
+    # input whether or not the plotting extra is installed, and it must not be
+    # reported as "matplotlib missing" (exit 3) instead of refused (exit 2).
     frontier = pareto_frontier(results)
+
+    plt = _import_matplotlib()
     # Match frontier membership by object identity, not `embedder_name`:
     # `pareto_frontier` returns the actual input objects, and two distinct
     # results can share a name (D-007 writes one file per run, so the same

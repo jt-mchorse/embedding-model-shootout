@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from .sweep import SweepResult
+from .sweep import SweepResult, require_comparable
 
 #: The frontier's quality axis, fixed by D-008 (`cost_per_million_tokens` x
 #: `recall_at_k[5]`). Named rather than inlined so the two places that need it
@@ -92,6 +92,14 @@ def pareto_frontier(results: Sequence[SweepResult]) -> list[SweepResult]:
     error names the input rather than surfacing partway through a dominance
     scan with half a frontier already built.
     """
+    # Rows measured on different query sets cannot be ranked against each other
+    # any more than they can share a table (#167). `require_comparable` (#155,
+    # D-014) was called by the two aggregators and not here, so `sweep plot`
+    # drew a frontier -- and titled it "X dominates every other model" -- over
+    # recall@5 from 5 queries beside recall@5 from 200, rows `sweep aggregate`
+    # refused at exit 2. Here, not in the renderer, so every consumer of the
+    # frontier (the plot, the notebooks) is held to it.
+    require_comparable(results)
     for result in results:
         _recall_at_5(result)  # precondition: every point can be placed on the axis
 
