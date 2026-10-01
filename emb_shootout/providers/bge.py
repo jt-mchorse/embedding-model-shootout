@@ -1,6 +1,6 @@
 """BGE (BAAI General Embedding) provider via sentence-transformers.
 
-Lazy-imports `sentence_transformers`; install with `pip install 'emb-shootout[sbert]'`.
+Lazy-imports `sentence_transformers`; install with `pip install -e '.[sbert]'`.
 The model weights download on first use (~110MB for `bge-small-en-v1.5`).
 """
 
@@ -38,7 +38,7 @@ class BGEProvider:
         except ImportError as e:
             raise ImportError(
                 "BGEProvider requires the optional 'sbert' extra. "
-                "Install with: pip install 'emb-shootout[sbert]'"
+                "Install with: pip install -e '.[sbert]'"
             ) from e
         self._model_cls = SentenceTransformer
         self.encoder = (

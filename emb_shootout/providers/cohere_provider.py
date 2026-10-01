@@ -1,6 +1,6 @@
 """Cohere embeddings provider.
 
-Lazy-imports `cohere`; install with `pip install 'emb-shootout[cohere]'`.
+Lazy-imports `cohere`; install with `pip install -e '.[cohere]'`.
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ class CohereProvider:
         except ImportError as e:
             raise ImportError(
                 "CohereProvider requires the optional 'cohere' extra. "
-                "Install with: pip install 'emb-shootout[cohere]'"
+                "Install with: pip install -e '.[cohere]'"
             ) from e
         self._cohere = cohere
         self.client = cohere.ClientV2(api_key=api_key or os.environ.get("COHERE_API_KEY"))

@@ -186,7 +186,7 @@ emb-shootout sweep run --provider hash \
   --corpus data/corpus.jsonl --queries 50 --seed 42 --output results/hash.json
 
 # Real providers each need their SDK + API key:
-pip install 'emb-shootout[openai]'
+pip install -e '.[openai]'
 OPENAI_API_KEY=sk-... emb-shootout sweep run --provider openai \
   --corpus data/corpus.jsonl --queries 50 --seed 42 --output results/openai.json
 

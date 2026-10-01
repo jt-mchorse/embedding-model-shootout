@@ -1767,3 +1767,14 @@ worked earlier tonight, which hit the same fork and went the other way.
 **Open questions / blockers:** #156 (record the seed and a corpus fingerprint) is the remaining gap.
 
 **Next session:** #156 if wanted.
+
+## 2026-09-30 — Issue #158: install hints name a distribution that exists
+**Duration:** ~0 min · **Branch:** session/2026-09-30-0921-issue-158
+
+- Every provider's missing-SDK error, the README and the docs said `pip install 'emb-shootout[openai]'`, but `emb-shootout` is the console script, not the distribution, so the command failed; `all-providers` self-referenced the same wrong name. Hints now read `pip install -e '.[<extra>]'`, the extra self-references `embedding-model-shootout`, and a lock checks every hint.
+
+**Why this work, this session:** found by the fresh-clone Quickstart audit.
+
+**Open questions / blockers:** #157 is open here too (MEMORY conflict only).
+
+**Next session:** the reproducibility-table finding (3.11 / 3.14 numbers) sits under #115 (Python pinning, JT-gated).

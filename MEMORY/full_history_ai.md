@@ -1749,3 +1749,22 @@ context_for_next_session:
   - FILED_156_priority_low_record_seed_and_corpus_fingerprint
 followups: ["#156"]
 ---
+
+---
+session: 2026-09-30T09:22Z
+issue: 158
+focus: EVERY_PROVIDER_ERROR_TOLD_THE_USER_TO_INSTALL_A_DISTRIBUTION_THAT_DOES_NOT_EXIST
+phase: shipped
+duration_min: 0   # computed from the plan comment timestamp and date -u
+delta:
+  files_changed: 10
+  tests_added: 19
+  suite: "953 -> 972 green"
+decisions_made: []
+measured: "before: pip install 'emb-shootout[openai]' and -e '.[all-providers]' both 'No matching distribution'; after: dry-run of all-providers resolves; probe with the old code 12 red"
+context_for_next_session:
+  - THE_CONSOLE_SCRIPT_NAME_IS_NOT_THE_DISTRIBUTION_NAME_grep_install_hints_against_project_name
+  - A_RUNTIME_ERROR_HINT_IS_A_DOCUMENTED_COMMAND_run_it
+  - BRANCH_NOTE_157_ALSO_OPEN_MEMORY_conflicts_only
+followups: []
+---

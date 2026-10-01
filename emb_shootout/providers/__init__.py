@@ -8,7 +8,7 @@ hermetically.
 
 Production runs:
 
-    pip install 'emb-shootout[openai]'
+    pip install -e '.[openai]'
     OPENAI_API_KEY=sk-... emb-shootout sweep run --provider openai \\
         --corpus data/corpus.jsonl --output results/openai.json
 """

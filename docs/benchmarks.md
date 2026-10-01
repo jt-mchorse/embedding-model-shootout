@@ -32,7 +32,7 @@ queries. When they don't, that's the interesting finding.
 emb-shootout corpus build --out data/corpus.jsonl
 
 # Run a provider. Each non-hash provider needs its own API key + the
-# matching extra installed (e.g., pip install 'emb-shootout[openai]').
+# matching extra installed (e.g., pip install -e '.[openai]').
 OPENAI_API_KEY=sk-... emb-shootout sweep run --provider openai \
   --corpus data/corpus.jsonl --queries 50 --seed 42 --output results/openai.json
 
