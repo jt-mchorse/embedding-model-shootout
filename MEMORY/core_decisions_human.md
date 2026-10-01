@@ -353,3 +353,20 @@ is now `notes=[]`. A rule that exempted the empty string would be a rule about
 **Reversibility:** Cheap.
 
 **Related issues:** #153, #133, #65, #143, chunking-strategies-lab#200
+
+## D-014 — Rows in one comparison table share a query set (2026-09-30)
+**Decision:** `require_comparable` refuses a result set whose rows disagree on `n_queries` or `n_corpus`. Both aggregators call it, and `sweep aggregate` exits 2. Every documented provider command uses the committed baseline's flags, pinned by a test that derives `n_queries` from `results/hash.json`.
+
+**Why:** `docs/benchmarks.md` said "all providers run against the same queries by construction, so cross-provider rows in this table are apples-to-apples" directly under a reproduce command running `--queries 200` with no seed, beside a baseline measured at `--queries 50 --seed 42`. `capture_demo.sh`'s printed next step said the same, and the CLI default is 200. The README already had the right flags, so this was drift, not a convention. And nothing constructed the claim: `SweepResult` records no seed, and the aggregators rendered whatever rows they were handed.
+
+Refuse, not annotate: the table sits under a sentence claiming its rows are comparable, and an annotated incomparable row is still published under it. The gap that remains is named in the doc — the seed isn't recorded, so equal counts from different seeds still pass, and the corpus is identified only by its size — and filed as #156.
+
+**Alternatives considered:**
+- Annotate mixed rows — rejected: they're still published under the apples-to-apples sentence.
+- Check only `n_queries` — rejected, built and run, 2 red: a different Python builds a different corpus.
+- Change the CLI default to 50 — deferred: the refusal already makes a mismatch loud at aggregate time.
+- Record the seed now — deferred to #156 (field-lock churn and a baseline regeneration).
+
+**Reversibility:** Cheap.
+
+**Related issues:** #155, #156, #145, #2

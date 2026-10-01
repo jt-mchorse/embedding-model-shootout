@@ -34,13 +34,16 @@ emb-shootout corpus build --out data/corpus.jsonl
 # Run a provider. Each non-hash provider needs its own API key + the
 # matching extra installed (e.g., pip install 'emb-shootout[openai]').
 OPENAI_API_KEY=sk-... emb-shootout sweep run --provider openai \
-  --corpus data/corpus.jsonl --queries 200 --output results/openai.json
+  --corpus data/corpus.jsonl --queries 50 --seed 42 --output results/openai.json
 
 # Aggregate everything in results/ into this file.
 emb-shootout sweep aggregate --results-dir results --out docs/benchmarks.md
 ```
 
 The query set is derived deterministically from the corpus at sweep time
-(seed `42` by default, configurable). All providers run against the same
-queries by construction, so cross-provider rows in this table are
-apples-to-apples.
+from `--queries` and `--seed`, so a provider row is comparable to the
+baseline only when it uses the baseline's flags (`--queries 50 --seed 42`,
+the ones that produced `results/hash.json`). `sweep aggregate` refuses a set
+of results whose `n_queries` or `n_corpus` disagree, so cross-provider rows
+in this table are apples-to-apples by construction (#155). The seed itself is not recorded in
+a result file, so matching `--seed` is still the operator's job.

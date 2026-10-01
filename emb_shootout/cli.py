@@ -198,10 +198,17 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
             sys.stderr.write(f"failed to read {p}: {e}\n")
             return 2
     out_path = Path(args.out)
-    if args.format == "json":
-        rendered = json.dumps(aggregate_json(results), indent=2, sort_keys=True) + "\n"
-    else:
-        rendered = aggregate_markdown(results)
+    # Rows from different query sets cannot share a table (#155, D-014); both
+    # aggregators refuse them, and that is operator input, so exit 2.
+    try:
+        if args.format == "json":
+            rendered = json.dumps(aggregate_json(results), indent=2, sort_keys=True) + "\n"
+        else:
+            rendered = aggregate_markdown(results)
+    except ValueError as e:
+        sys.stderr.write(f"{e}\n")
+        return 2
+    if args.format != "json":
         # Preserve the destination's non-generated prose when it marks a region
         # for us (#145, D-011). Before this, `--out docs/benchmarks.md` -- the
         # command that file's own opening paragraph tells the operator to run --
