@@ -186,7 +186,7 @@ emb-shootout corpus build --out data/corpus.jsonl
 emb-shootout sweep run --provider hash \
   --corpus data/corpus.jsonl --queries 50 --seed 42 --output results/hash.json
 
-# Real providers each need their SDK + API key:
+# Real providers each need their SDK + API key (all three keys are in .env.example):
 pip install -e '.[openai]'
 OPENAI_API_KEY=sk-... emb-shootout sweep run --provider openai \
   --corpus data/corpus.jsonl --queries 50 --seed 42 --output results/openai.json
