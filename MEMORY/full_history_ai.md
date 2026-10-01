@@ -1803,3 +1803,23 @@ context_for_next_session:
   - PART_OF_portfolio_ops_80_same_lock_as_lco_238_and_leh_272_SDK_IMPLICIT_IS_EMPTY_HERE_because_every_provider_passes_api_key_or_os_environ_get_explicitly
   - remaining_for_ops_80_vsas_and_mcp_github_gists
 followups: []
+
+---
+session: 2026-10-01T09:13Z
+issue: 167
+focus: D_014_NAMED_TWO_CONSUMERS_OF_THE_ROWS_AND_THERE_WERE_THREE
+phase: shipped
+duration_min: 10   # issue filed ~10 min before this block, from date -u
+delta:
+  files_changed: 4
+  tests_added: 7
+  suite: "999 -> 1006 green (1 skipped)"
+decisions_made: []
+measured: "17de55c copy: mixed 5/200-query results -> aggregate exit 2, plot exit 0 with 'X dominates every other model'. Revert probes, control 1006: no check in pareto_frontier 5 red, matplotlib import before the check 1 (only after adding the no-matplotlib arm; it was 0 red first)."
+context_for_next_session:
+  - A_DECISION_THAT_LISTS_ITS_CONSUMERS_BY_NAME_aggregate_markdown_AND_aggregate_json_IS_A_SURVEY_grep_the_package_for_every_other_consumer_of_the_same_rows
+  - THE_ORDER_ARM_WAS_0_RED_AT_FIRST_BECAUSE_MATPLOTLIB_IS_INSTALLED_LOCALLY_the_missing_extra_path_needed_its_own_monkeypatched_arm
+  - MERGE_ORDER_164_166_THEN_THIS_all_append_MEMORY_and_164_extends_require_comparable_with_fingerprints_which_this_then_inherits
+  - ems_THIRD_HUNT_ALSO_FOUND_a_lone_surrogate_embedder_name_crashing_markdown_aggregate_and_plot_at_exit_1_and_whitespace_only_names_rendering_a_blank_cell_NOT_FILED_YET
+followups: []
+---

@@ -1797,3 +1797,14 @@ README showed `OPENAI_API_KEY` in its sweep example, but the Voyage and Cohere k
 variables were findable only in the provider code. The new file lists all three,
 with the extra each provider needs, and a test derives the names from the source
 so the file can't drift. Part of portfolio-ops#80.
+
+## 2026-10-01 — Issue #167: the Pareto plot refuses incomparable rows, as aggregate does
+**Duration:** ~10 min · **Branch:** session/2026-10-01-0935-issue-plot
+
+- `sweep plot` drew a frontier, titled "X dominates every other model", over recall@5 from 5 queries beside recall@5 from 200. `sweep aggregate` refused those same rows at exit 2. D-014's check reached the two aggregators it named but not the frontier. `pareto_frontier` now calls it first, the check runs before matplotlib is imported, and the CLI exits 2 with no image written. 7 tests; both revert probes are red. The ordering arm needed a simulated missing matplotlib before it went red.
+
+**Why this work, this session:** found by this run's third hunt wave.
+
+**Open questions / blockers:** none. Merge after #164 and #166; #164's fingerprints then reach the plot too.
+
+**Next session:** a lone-surrogate `embedder_name` crashes the markdown aggregate and the plot; whitespace-only names render blank cells.
