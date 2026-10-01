@@ -324,3 +324,27 @@ provider command uses the baseline's flags, pinned by a test that derives
 What it cannot see is named rather than implied away: the seed is not recorded,
 so equal counts from different seeds still pass, and the corpus is identified
 only by its size. Recording both is #156.
+
+## A result records its query set's identity (#156, D-015)
+
+`run_sweep` computes `corpus_fingerprint` and `query_fingerprint` — sha256 over
+the sorted `(chunk_id, text)` and `(query_id, text, expected_chunk_id)` tuples —
+from what it scored, and `sweep run` records `--seed` beside them as
+`query_seed`. `require_comparable` compares each fingerprint among the rows that
+carry it, after the counts:
+
+| two `sweep run`s, `--queries 50` | before | after |
+|---|---|---|
+| `--seed 42` and `--seed 7` (recall@5 0.520 vs 0.620) | one table, exit 0 | exit 2, both seeds named |
+| `--seed 42` twice | one table | one table |
+
+The fingerprint, not the seed, is the compared key: it changes with `--seed`
+and with anything else that changes what `build_queries` produces, while two
+recorded seeds are provenance. The corpus fingerprint hashes the text, not only
+the ids, because #115 shows the corpus depends on the interpreter.
+
+The three fields are optional and written only when recorded, so a result
+from before #156 round-trips to the same bytes and is held to the counts. The
+committed `results/hash.json` is one: regenerating it re-measures the latencies
+the README quotes, and #115 already escalates regenerating that artifact, so the
+two are left to land together.
