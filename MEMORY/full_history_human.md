@@ -1797,3 +1797,15 @@ README showed `OPENAI_API_KEY` in its sweep example, but the Voyage and Cohere k
 variables were findable only in the provider code. The new file lists all three,
 with the extra each provider needs, and a test derives the names from the source
 so the file can't drift. Part of portfolio-ops#80.
+
+## 2026-10-01T08:58Z — #165: atomic writes keep normal file permissions
+
+`atomic_write_text` created its temp file with `NamedTemporaryFile`, which is
+always 0600, and the rename carried that mode onto the target. Every corpus
+JSONL and every `--out` report came out owner-only, and rewriting an existing
+0644 file made it 0600. The temp file is now opened 0o666 so the umask applies,
+and an existing file's mode is copied over before the rename. The temp-name cap,
+surrogate-path handling, fsync and cleanup are unchanged. 17 new tests cover
+new-file modes under three umasks, overwrites at 0644/0600/0640, `write_jsonl`
+and `corpus validate --out`. The revert probe on main's helper gives 13 red.
+Part of portfolio-ops#81.
