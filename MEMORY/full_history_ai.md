@@ -1768,3 +1768,21 @@ context_for_next_session:
   - BRANCH_NOTE_157_ALSO_OPEN_MEMORY_conflicts_only
 followups: []
 ---
+
+---
+session: 2026-09-30T09:42:38Z
+issue: 160
+focus: the_prose_said_pinned_and_the_same_readme_measured_that_nothing_pins_it
+phase: shipped
+duration_min: 0
+delta:
+  files_changed: 3
+  tests_added: 4
+  suite: "957 passed; ruff check and ruff format --check clean"
+decisions_made: []
+measured: "requires-python is >=3.11 and CI runs 3.11 and 3.12; the README's own table: 3.11 builds 11108 chunks, 3.14 builds 12010. Revert of README and architecture.md: 2 red of 4."
+context_for_next_session:
+  - DID_NOT_DECIDE_115_it_is_JT_gated_the_fix_only_stops_the_present_tense_claim_and_the_test_keys_on_requires_python_so_IF_115_PINS_A_MINOR_THE_PHRASE_IS_ALLOWED_AGAIN_WITHOUT_EDITING_THE_TEST
+  - D_002_CITATIONS_README_300_AND_ARCHITECTURE_175_LEFT_AS_IS_they_name_the_decision_as_recorded_not_the_current_state_and_MEMORY_core_decisions_is_untouched
+  - vsas_frontier_svg_REGENERATES_DIFFERENTLY_BY_DESIGN_its_x_axis_is_wall_clock_p95_latency_so_the_audits_replot_dirties_committed_plots_finding_IS_NOT_A_DEFECT_there
+followups: []

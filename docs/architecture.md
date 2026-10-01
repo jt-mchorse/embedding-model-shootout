@@ -7,7 +7,7 @@ flowchart LR
     classDef shipped fill:#dcffe4,stroke:#22863a,color:#000
     classDef opkey   fill:#fff5b4,stroke:#c69400,color:#000
 
-    Py["CPython stdlib<br/>(pinned interpreter)"]:::shipped --> Insp["inspect-based loader<br/>emb_shootout.corpus.build_corpus()"]:::shipped
+    Py["CPython stdlib<br/>(building interpreter; pin open in #115)"]:::shipped --> Insp["inspect-based loader<br/>emb_shootout.corpus.build_corpus()"]:::shipped
     Insp --> Chunks["Chunks<br/>(chunk_id, text, module,<br/>qualname, kind, source)"]:::shipped
     Chunks --> JSONL[("data/corpus.jsonl<br/>≥10k records<br/>(#1)")]:::shipped
 

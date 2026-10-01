@@ -17,7 +17,8 @@ every model, and every number reproducible from a fresh clone.
 The repo today ships five things, the five closed issues map to them:
 
 1. **Corpus** ([#1], [D-002], [D-003]) — CPython standard-library
-   docstrings, regenerated from `inspect` on a pinned Python version. On
+   docstrings, regenerated from `inspect` by the interpreter that runs the
+   build (not pinned yet; see #115). On
    CPython 3.14 the curated module list yields **12,010 chunks**,
    comfortably above the ≥10k acceptance bar. Not committed as data;
    pinning the Python version pins the corpus.
@@ -87,8 +88,8 @@ baseline is grounded by a real measurement and only its numbers are quoted.
   ([D-008] documents the honest no-frontier rendering until a second
   point exists).
 - **Methodology choices that close common shootout escape hatches.** The
-  corpus is reproduced from source on a pinned Python version, not
-  fetched ([D-002]); the chunk shape is one stdlib member per chunk
+  corpus is reproduced from source by the building interpreter, not
+  fetched ([D-002]; which interpreter is not pinned yet, see #115); the chunk shape is one stdlib member per chunk
   ([D-003]) so chunking effects don't confound the embedding comparison;
   the query set is derived from the corpus at sweep time with a fixed
   seed ([D-005]), not pre-committed, so corpus and queries cannot drift;
