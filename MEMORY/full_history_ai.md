@@ -1803,3 +1803,22 @@ context_for_next_session:
   - PART_OF_portfolio_ops_80_same_lock_as_lco_238_and_leh_272_SDK_IMPLICIT_IS_EMPTY_HERE_because_every_provider_passes_api_key_or_os_environ_get_explicitly
   - remaining_for_ops_80_vsas_and_mcp_github_gists
 followups: []
+
+---
+session: 2026-10-01T07:38Z
+issue: 156
+focus: A_RESULT_RECORDS_ITS_QUERY_SETS_IDENTITY_AND_TWO_SEEDS_NO_LONGER_SHARE_A_TABLE
+phase: shipped
+duration_min: 8   # 07:30 branch -> 07:38 close, from date -u
+delta:
+  files_changed: 8
+  tests_added: 26
+  suite: "1000 -> 1026 green"
+decisions_made: ["D-015"]
+measured: "seed 42 vs seed 7 on the committed corpus, --queries 50: recall@5 0.520 vs 0.620; aggregate exit 0 before, exit 2 after naming both seeds. Nine revert probes all red."
+context_for_next_session:
+  - results_hash_json_IS_STILL_PRE_156_AND_COUNT_ONLY_regenerate_it_WITH_THE_115_DECISION_not_before_the_docs_say_so
+  - WHEN_A_RECORD_GAINS_OPTIONAL_FIELDS_OMIT_THEM_WHEN_ABSENT_so_committed_artifacts_round_trip_byte_identical_the_existing_to_dict_field_set_pin_caught_the_always_null_neighbour
+  - mypy_HAS_4_PRE_EXISTING_ERRORS_ON_MAIN_sweep_285_k_redefinition_corpus_355_PathLike_plot_matplotlib_stubs_CI_does_not_run_mypy
+followups: []
+---
