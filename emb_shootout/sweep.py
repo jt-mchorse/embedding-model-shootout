@@ -11,6 +11,8 @@ cross-provider comparison meaningful.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 import re
 import time
@@ -89,6 +91,12 @@ class SweepResult:
     ndcg_at_10: float
     embed_latency_ms: dict[str, float]  # {"corpus_total": ..., "query_p50": ..., "query_p95": ...}
     notes: list[str] = field(default_factory=list)
+    # The query-set identity beyond its two counts (#156, D-015). `None` means
+    # "not recorded": a result written before #156 has none of the three, and
+    # `require_comparable` compares a field only when both rows carry it.
+    query_seed: int | None = None
+    corpus_fingerprint: str | None = None
+    query_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         # Copy the three mutable fields in before anything else (#133).
@@ -293,9 +301,27 @@ class SweepResult:
         for i, note in enumerate(self.notes):
             if not isinstance(note, str):
                 raise ValueError(f"notes[{i}] must be a string; got {note!r}")
+        # The three identity fields (#156). Strict, with no coercion on either
+        # path: `from_dict` hands the raw JSON values straight to this check,
+        # so a fingerprint is exactly what `fingerprint_corpus` /
+        # `fingerprint_queries` produce and a seed is a real JSON integer.
+        if self.query_seed is not None and (
+            not isinstance(self.query_seed, int) or isinstance(self.query_seed, bool)
+        ):
+            raise ValueError(f"query_seed must be an int or absent; got {self.query_seed!r}")
+        for name in ("corpus_fingerprint", "query_fingerprint"):
+            value = getattr(self, name)
+            if value is not None and (
+                not isinstance(value, str) or _FINGERPRINT_RE.fullmatch(value) is None
+            ):
+                raise ValueError(
+                    f"{name} must be 64 lowercase hex characters (a sha256) or absent; "
+                    f"got {value!r}"
+                )
 
     def to_dict(self) -> dict[str, Any]:
-        # Explicit nine-field contract (#47) — no `asdict(self)`. A
+        # Explicit nine-field contract (#47), plus the three optional #156
+        # identity fields at the end — no `asdict(self)`. A
         # future internal-only field on SweepResult can no longer
         # silently leak into the JSON consumed by the sweep + Pareto
         # frontier scripts. `recall_at_k` keys are stringified (JSON
@@ -313,6 +339,19 @@ class SweepResult:
             "ndcg_at_10": self.ndcg_at_10,
             "embed_latency_ms": dict(self.embed_latency_ms),
             "notes": list(self.notes),
+            # The #156 identity fields are written only when recorded, so a
+            # result built without them -- every file written before #156,
+            # including the committed `results/hash.json` -- round-trips to the
+            # same bytes rather than gaining three `null`s.
+            **{
+                name: value
+                for name, value in (
+                    ("query_seed", self.query_seed),
+                    ("corpus_fingerprint", self.corpus_fingerprint),
+                    ("query_fingerprint", self.query_fingerprint),
+                )
+                if value is not None
+            },
         }
 
     @staticmethod
@@ -404,6 +443,12 @@ class SweepResult:
                 # inspecting an already-splatted list. A results JSON carrying
                 # `"notes": "a note"` is the reachable input.
                 notes=_checked_notes(d.get("notes", [])),
+                # Optional and uncoerced (#156): `__post_init__` checks the raw
+                # values, so `"seed": 42.0` or `"seed": true` is refused rather
+                # than silently becoming 42 / 1.
+                query_seed=d.get("query_seed"),
+                corpus_fingerprint=d.get("corpus_fingerprint"),
+                query_fingerprint=d.get("query_fingerprint"),
             )
         except TypeError as e:
             # A required field present but of a non-coercible type (e.g.
@@ -865,6 +910,38 @@ def validate_k_values(k_values: Sequence[int]) -> None:
         raise ValueError(f"k_values must not contain duplicates; got duplicate {dup_k}")
 
 
+_FINGERPRINT_RE = re.compile(r"[0-9a-f]{64}")
+
+
+def _fingerprint(rows: list[list[str]]) -> str:
+    # Sorted, so the fingerprint names the *set* that was scored: retrieval
+    # breaks cosine ties on `chunk_id`, never on position, so two orderings of
+    # one corpus score identically and must not read as different query sets.
+    # JSON rather than a delimiter join, so no text can forge a boundary.
+    canonical = json.dumps(sorted(rows), ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def fingerprint_corpus(corpus: Sequence[CorpusChunk]) -> str:
+    """sha256 over the corpus's ``(chunk_id, text)`` pairs (#156).
+
+    The corpus is built from the running interpreter's stdlib docstrings, so
+    two builds can agree on their size and still differ (#115 measured 3.11 vs
+    3.14 at different sizes; nothing makes equal sizes impossible). The text is
+    hashed, not only the ids, for that reason.
+    """
+    return _fingerprint([[c.chunk_id, c.text] for c in corpus])
+
+
+def fingerprint_queries(queries: Sequence[Query]) -> str:
+    """sha256 over the queries' ``(query_id, text, expected_chunk_id)`` (#156).
+
+    This, not the seed, is the query set's identity: it changes with ``--seed``
+    *and* with anything else that changes what ``build_queries`` produces.
+    """
+    return _fingerprint([[q.query_id, q.text, q.expected_chunk_id] for q in queries])
+
+
 def run_sweep(
     corpus: Sequence[CorpusChunk],
     queries: Sequence[Query],
@@ -872,6 +949,7 @@ def run_sweep(
     embedder: Embedder,
     k_values: Sequence[int] = (1, 5, 10),
     notes: Sequence[str] = (),
+    query_seed: int | None = None,
 ) -> SweepResult:
     """End-to-end sweep: embed → retrieve → score.
 
@@ -954,6 +1032,13 @@ def run_sweep(
         # narrowing to `list[str]` -- and why narrowing would also reject this
         # parameter's own `()` default.
         notes=_checked_notes(notes),
+        # Computed from what was scored, not passed in, so a caller cannot
+        # record an identity for a query set it did not run (#156). The seed is
+        # the caller's to give: `run_sweep` sees the queries, not how they were
+        # built. It is provenance, and `require_comparable` does not compare it.
+        query_seed=query_seed,
+        corpus_fingerprint=fingerprint_corpus(corpus),
+        query_fingerprint=fingerprint_queries(queries),
     )
 
 
@@ -1232,10 +1317,13 @@ def require_comparable(results: Sequence[SweepResult]) -> None:
     50-query baseline. Recall over 200 queries is not recall over 50, even though
     `build_queries` makes the 50 a prefix of the 200.
 
-    `n_queries` and `n_corpus` are the query-set identity a `SweepResult` records,
-    so they are what this can enforce. The seed is **not** recorded, so two rows
-    with equal counts and different `--seed`s still pass -- said here, and in
-    D-014, rather than implied away.
+    `n_queries` and `n_corpus` are compared on every row. Counts alone let two
+    rows with equal sizes and different `--seed`s through (D-014 said so), so
+    since #156 (D-015) a result also records `corpus_fingerprint` and
+    `query_fingerprint`, and each is compared **among the rows that carry it**:
+    a result written before #156 has neither and is held to the counts only.
+    The seed is recorded too but not compared -- the query fingerprint already
+    changes with it, and with anything else that changes the queries.
     """
     identities: dict[tuple[int, int], list[str]] = {}
     for r in results:
@@ -1245,11 +1333,30 @@ def require_comparable(results: Sequence[SweepResult]) -> None:
             f"n_queries={nq}, n_corpus={nc}: {', '.join(sorted(names))}"
             for (nq, nc), names in sorted(identities.items())
         )
-        raise ValueError(
-            "results were measured on different query sets and cannot share one "
-            f"comparison table ({described}). Re-run with the same --corpus, "
-            "--queries and --seed as the committed baseline."
-        )
+        _refuse_incomparable(described)
+    for name in ("corpus_fingerprint", "query_fingerprint"):
+        groups: dict[str, list[str]] = {}
+        for r in results:
+            value = getattr(r, name)
+            if value is not None:
+                label = r.embedder_name
+                if r.query_seed is not None:
+                    label += f" (seed {r.query_seed})"
+                groups.setdefault(value, []).append(label)
+        if len(groups) > 1:
+            described = "; ".join(
+                f"{name}={value[:12]}: {', '.join(sorted(labels))}"
+                for value, labels in sorted(groups.items())
+            )
+            _refuse_incomparable(described)
+
+
+def _refuse_incomparable(described: str) -> None:
+    raise ValueError(
+        "results were measured on different query sets and cannot share one "
+        f"comparison table ({described}). Re-run with the same --corpus, "
+        "--queries and --seed as the committed baseline."
+    )
 
 
 def _aggregate_ks(results: Sequence[SweepResult]) -> list[int]:

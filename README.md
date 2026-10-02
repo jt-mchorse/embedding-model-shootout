@@ -198,7 +198,11 @@ emb-shootout sweep aggregate --results-dir results --out docs/benchmarks.md
 Six providers wired (`hash`, `openai`, `voyage`, `cohere`, `bge`, `nomic`).
 The query set is derived deterministically from the corpus at sweep time
 (seed `42` by default), so all providers run against the same queries by
-construction — cross-provider rows are apples-to-apples.
+construction — cross-provider rows are apples-to-apples. Each result records
+a fingerprint of the corpus and of the query set it scored (and the seed), and
+`sweep aggregate` refuses rows that disagree (#156). The committed
+`results/hash.json` predates the fingerprints, so comparisons against it check
+the counts only until it is regenerated (#115).
 
 `embed` is a bring-your-own seam, so the sweep validates what a provider
 hands back before scoring it. Four things get a published number wrong
@@ -297,7 +301,7 @@ with `CAPTURE_DEMO_MODULE=os` (or any stdlib module) and
 ## Why these decisions
 
 See [`MEMORY/core_decisions_human.md`](MEMORY/core_decisions_human.md)
-for the prose decisions log. The design decisions span D-002…D-014 —
+for the prose decisions log. The design decisions span D-002…D-015 —
 from the pinned-CPython corpus (D-002) through provider extras (D-004)
 to how the aggregate reports a measurement that was never taken (D-010). [`docs/architecture.md`](docs/architecture.md)
 annotates each decision against the code surface that ships it.

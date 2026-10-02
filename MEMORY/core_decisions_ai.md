@@ -163,3 +163,18 @@
   reversibility: cheap
   related_issues: ["#155", "#156", "#145", "#2"]
   superseded_by: null
+
+- id: D-015
+  date: 2026-10-01
+  decision: SweepResult_GAINS_THREE_OPTIONAL_IDENTITY_FIELDS_query_seed_corpus_fingerprint_query_fingerprint_THE_FINGERPRINTS_ARE_COMPUTED_BY_run_sweep_FROM_WHAT_IT_SCORED_AND_require_comparable_COMPARES_EACH_FINGERPRINT_AMONG_THE_ROWS_THAT_CARRY_IT_THE_SEED_IS_PROVENANCE_AND_IS_NOT_COMPARED
+  rationale: D_014_named_the_gap_counts_alone_let_equal_size_different_seed_rows_share_a_table_MEASURED_through_the_CLI_on_the_committed_corpus_seed_42_recall_at_5_0_520_vs_seed_7_0_620_same_embedder_aggregate_EXIT_0_one_table
+  THE_FINGERPRINT_NOT_THE_SEED_IS_THE_KEY: "the query fingerprint changes with --seed AND with any change to build_queries; two recorded seeds are only a claim about how the queries were built. Built and ran the compare-the-seed-too neighbour: 1 red (equal fingerprints, different seeds refused)."
+  COMPUTED_NOT_PASSED: run_sweep_hashes_its_own_corpus_and_queries_so_a_caller_cannot_record_an_identity_for_a_query_set_it_did_not_score_the_seed_is_the_callers_to_give_because_run_sweep_never_sees_it
+  SORTED_JSON_ENCODED_AND_TEXT_INCLUSIVE: "sorted because retrieval breaks cosine ties on chunk_id never on position; JSON because a delimiter join lets a boundary move (built: 1 red); the corpus text is hashed not only the ids because #115 shows the corpus depends on the interpreter (ids-only neighbour: 1 red)"
+  OPTIONAL_AND_OMITTED_WHEN_ABSENT: "written only when recorded, so every pre-#156 result including the committed results/hash.json reloads and re-serialises to the SAME BYTES (always-emit-null neighbour: 3 red, including the existing to_dict field-set pin). Compared only among rows that carry it, so a legacy row is held to the counts."
+  THE_BASELINE_IS_NOT_REGENERATED_HERE: regenerating_results_hash_json_re_measures_README_quoted_latencies_and_issue_115_already_escalates_regenerating_that_artifact_with_a_schema_change_to_JT_so_both_land_together_the_README_and_docs_benchmarks_md_now_SAY_comparisons_against_the_committed_baseline_are_count_only_until_then
+  alternatives_rejected: ["COMPARE_THE_SEED_REJECTED_BUILT_AND_RUN_1_RED", "HASH_ONLY_THE_CHUNK_IDS_REJECTED_BUILT_AND_RUN_1_RED", "DELIMITER_JOIN_REJECTED_BUILT_AND_RUN_1_RED", "ALWAYS_EMIT_NULL_REJECTED_BUILT_AND_RUN_3_RED", "REGENERATE_results_hash_json_NOW_DEFERRED_TO_115"]
+  measured: "suite 1000 -> 1026 green (26 new arms); ruff clean; mypy unchanged (4 pre-existing errors, same count on main, CI does not run mypy). Probes, one full-suite subprocess each, control 1026: no fingerprint comparison 6 red, query-fingerprint-only 2, CLI drops seed 2, unsorted 1, ids-only 1, delimiter join 1, always-emit-null 3, no seed validation 3, compare-seed neighbour 1."
+  reversibility: cheap
+  related_issues: ["#156", "#155", "#115"]
+  superseded_by: null
