@@ -1832,3 +1832,11 @@ Part of portfolio-ops#81.
 **Open questions / blockers:** none. Merge after #164 and #166; #164's fingerprints then reach the plot too.
 
 **Next session:** a lone-surrogate `embedder_name` crashes the markdown aggregate and the plot; whitespace-only names render blank cells.
+
+## 2026-10-02 — the hash embedder no longer maps every one-word text to one vector (#174)
+
+The same defect fixed in prompt-regression-suite today: the hermetic hash
+embedder builds word pairs, so every one-word text got the same fallback vector,
+and "json" vs "asyncio" scored a perfect 1.0. Short texts are now embedded as
+themselves. No committed number changes, because no committed corpus chunk is a
+single word. 4 new tests.
