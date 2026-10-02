@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from .._argcheck import require_non_negative_finite, require_positive_int
+from .._argcheck import refuse_bare_string, require_non_negative_finite, require_positive_int
 
 DEFAULT_MODEL = "nomic-ai/nomic-embed-text-v1.5"
 DEFAULT_DIM = 768
@@ -57,6 +57,7 @@ class NomicProvider:
         self.batch_size = batch_size
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        refuse_bare_string("texts", texts)  # #169: before any client/encoder use
         # Nomic's documentation prescribes a "search_document: " or "search_query: "
         # prefix; for the sweep harness's documents we use the document prefix.
         # Operators evaluating asymmetric search would override this.

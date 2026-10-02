@@ -181,6 +181,33 @@ def require_sequence(name: str, value: object, *, element: str) -> None:
         )
 
 
+def refuse_bare_string(name: str, value: object) -> None:
+    """Raise ``ValueError`` if *value* is a bare ``str``/``bytes`` (#169).
+
+    The other half of ``require_sequence``'s first arm, for the parameters that
+    must keep accepting **any** iterable: ``build_corpus(modules)`` and every
+    provider's ``embed(texts)``. A generator or a ``set`` is a legitimate
+    argument to both, so the ``Sequence`` half of ``require_sequence`` does not
+    apply -- only the shape a coercing copy cannot see.
+
+    Measured on ``main`` before this: ``build_corpus("json")`` iterated
+    ``"j"``, ``"s"``, ``"o"``, ``"n"``, each failed to import and was skipped *by
+    design*, and the corpus came back empty with no error;
+    ``HashEmbedderProvider().embed("hello world")`` returned 11 one-character
+    vectors, and on the three API providers that is a billed request per
+    character batch.
+
+    Called first in every ``embed`` -- before ``self`` is touched -- so the
+    refusal can never reach a client or an encoder.
+    """
+    if isinstance(value, (str, bytes, bytearray)):
+        fix = f"pass [{value!r}]" if isinstance(value, str) else "decode it to str first"
+        raise ValueError(
+            f"{name} must be an iterable of strings, not a bare {type(value).__name__}: "
+            f"{value!r} would be split into its characters -- {fix}"
+        )
+
+
 def require_str_sequence(name: str, value: object) -> None:
     """``require_sequence`` for a sequence of strings (``notes``)."""
     require_sequence(name, value, element="strings")
