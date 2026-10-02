@@ -1822,3 +1822,22 @@ context_for_next_session:
   - mypy_HAS_4_PRE_EXISTING_ERRORS_ON_MAIN_sweep_285_k_redefinition_corpus_355_PathLike_plot_matplotlib_stubs_CI_does_not_run_mypy
 followups: []
 ---
+
+---
+session: 2026-10-01T08:58Z
+issue: 165
+focus: ATOMIC_WRITE_TEXT_CREATED_EVERY_FILE_0600_AND_AN_OVERWRITE_DEMOTED_0644_TO_0600_NamedTemporaryFile_mode_carried_by_os_replace
+phase: shipped
+duration_min: 2   # 08:56 plan comment -> 08:58 code commit, from date -u (recipe ported from python-async-llm-pipelines#125)
+delta:
+  files_changed: 2
+  tests_added: 17
+  suite: "1000 -> 1017 green; ruff check and ruff format --check clean"
+decisions_made: []
+measured: "main with umask 022: new 0o600, overwrite of 0o644 -> 0o600. Revert probes: main's io_utils.py 13 failed of 1017; 0o600 open with the mode copy kept 5 failed; 0o666 open with the mode copy dropped 4 failed"
+context_for_next_session:
+  - TEMP_FILE_NOW_os_open_O_EXCL_0o666_WITH_secrets_token_hex_4_SAME_8_CHAR_RANDOM_COMPONENT_SO_THE_200_BYTE_BASE_CAP_IS_UNCHANGED
+  - os_fdopen_OWNS_THE_FD_io_open_ALREADY_CLOSES_IT_ON_FAILURE_do_not_add_an_os_close_it_is_EBADF
+  - BRANCH_NOTE_164_IS_ALSO_OPEN_MEMORY_conflict_only
+followups: ["portfolio-ops#81"]
+---
