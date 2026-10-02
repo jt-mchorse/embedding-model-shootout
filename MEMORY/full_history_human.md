@@ -1832,3 +1832,20 @@ Part of portfolio-ops#81.
 **Open questions / blockers:** none. Merge after #164 and #166; #164's fingerprints then reach the plot too.
 
 **Next session:** a lone-surrogate `embedder_name` crashes the markdown aggregate and the plot; whitespace-only names render blank cells.
+
+## 2026-10-02 — build_corpus and every provider's embed refuse a bare string (#169)
+
+`build_corpus("json")` iterated `j`, `s`, `o`, `n`. Each failed to import and
+was skipped by design, so the corpus came back empty with no error.
+`embed("hello world")` returned 11 one-character vectors, and on the three API
+providers that is a billed request per character batch. One helper now runs
+first in all six `embed` methods, before the instance is touched, and at the
+`build_corpus` call. `build_corpus` was a generator function, so a check in its
+body would not have run until iteration began; it now returns a private
+generator instead. A population test walks the providers package and checks
+every `embed` on an instance built without `__init__`, so it works without the
+optional extras installed. 40 new tests. One process note: on this issue I
+wrote the code before posting the plan comment, and said so on the issue.
+Separately, two default corpus walks in one process can differ, because
+importing a package's submodules adds attributes the second walk then finds.
+That was already the case before this change; it is in #115's territory.
