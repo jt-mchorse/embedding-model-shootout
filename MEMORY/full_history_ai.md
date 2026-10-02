@@ -1877,3 +1877,8 @@ context_for_next_session:
   - SAME_RULE_AS_prompt_regression_suite_D_016_lco_HashEmbedder_ALREADY_HANDLED_IT_no_other_repo_has_an_ngram_embedder
 followups: []
 ---
+# correction (2026-10-02, same session, #174): data/corpus.jsonl is gitignored, not
+# committed -- the corpus is built from the stdlib at run time (D-002). The "0 of 12010"
+# one-token count was measured on the locally built corpus, which is what the sweep
+# embeds, so the claim holds; the word "committed" was wrong and CI went red on the
+# arm that read data/. The arm now builds its sample with build_corpus().
