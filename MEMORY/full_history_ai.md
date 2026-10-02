@@ -1861,3 +1861,21 @@ context_for_next_session:
   - ems_THIRD_HUNT_ALSO_FOUND_a_lone_surrogate_embedder_name_crashing_markdown_aggregate_and_plot_at_exit_1_and_whitespace_only_names_rendering_a_blank_cell_NOT_FILED_YET
 followups: []
 ---
+
+---
+session: 2026-10-02T12:05Z
+issue: 172
+focus: corpus_build_SILENTLY_SKIPPED_A_MISTYPED_MODULE_WHILE_build_corpus_DOCSTRING_SAID_THE_CLI_REPORTS_THE_SKIPPED_SET
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 3
+  suite: "1050 -> 1053 green; ruff clean"
+decisions_made: []
+measured: "main: --module json --module csvv -> modules_requested 2, no mention of csvv, exit 0. Revert of cli.py: 3 of 3 red."
+context_for_next_session:
+  - A_PROSE_ASSERTION_IS_A_TEST_CASE_the_docstring_promised_a_report_nobody_emitted
+  - unimportable_modules_IS_APPENDED_AT_THE_END_OF_corpus_py_ON_PURPOSE_170_rewrites_build_corpus_BODY_and_this_avoids_a_code_conflict
+  - EXIT_STAYS_0_skipping_optional_stdlib_modules_is_by_design_telnetlib_is_gone_on_3_13_plus_THE_REPORT_IS_THE_FIX
+followups: []
+---

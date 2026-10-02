@@ -19,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from .corpus import DEFAULT_MODULES, build_corpus, write_jsonl
+from .corpus import DEFAULT_MODULES, build_corpus, unimportable_modules, write_jsonl
 from .io_utils import atomic_write_text
 
 
@@ -37,10 +37,16 @@ def _cmd_corpus_build(args: argparse.Namespace) -> int:
     except OSError as e:
         sys.stderr.write(f"failed to write {out_path}: {e}\n")
         return 2
+    # `build_corpus`'s docstring promises the skipped set is reported here
+    # (#172); a mistyped `--module` used to vanish at exit 0.
+    skipped = unimportable_modules(modules)
+    for name in skipped:
+        sys.stderr.write(f"skipped module {name!r}: it does not import on this interpreter\n")
     summary = {
         "out": str(out_path),
         "chunk_count": count,
         "modules_requested": len(modules),
+        "modules_skipped": skipped,
     }
     sys.stdout.write(json.dumps(summary, sort_keys=True) + "\n")
     return 0
