@@ -105,6 +105,8 @@ def test_collects_multiple_findings_not_failing_fast(tmp_path: Path) -> None:
         ({"chunk_id": "x", "text": 123}, "non_string_text"),
         ({"chunk_id": "", "text": "x"}, "empty_chunk_id"),
         ({"chunk_id": "x", "text": ""}, "empty_text"),
+        ({"chunk_id": "a\ud800", "text": "x"}, "unencodable_chunk_id"),
+        ({"chunk_id": "x", "text": "ok \udfff"}, "unencodable_text"),
     ],
 )
 def test_one_positive_case_per_finding_code(tmp_path: Path, row: dict | str, code: str) -> None:

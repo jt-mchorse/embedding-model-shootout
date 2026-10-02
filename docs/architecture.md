@@ -125,10 +125,11 @@ until that second point exists).
   JSONL in collecting mode and returns a `ValidationReport` with one
   `ValidationFinding` per malformed row (#45). Same pattern as
   `eval_harness.dataset.validate_dataset` and `prompt_regression.validate`
-  in the sister repos: ten finding codes (`malformed_json`,
+  in the sister repos: twelve finding codes (`malformed_json`,
   `not_an_object`, `missing_chunk_id`, `missing_text`,
   `non_string_chunk_id`, `non_string_text`, `empty_chunk_id`,
-  `empty_text`, `duplicate_chunk_id`, `empty`), CLI exit codes 0 / 1 / 2
+  `empty_text`, `unencodable_chunk_id`, `unencodable_text` (a lone
+  surrogate, #176), `duplicate_chunk_id`, `empty`), CLI exit codes 0 / 1 / 2
   uniform with `eval-harness validate`. Pre-flight before `sweep run`
   spends embed time on a broken corpus.
 - **`notebooks/reproduce.ipynb`** + **`notebooks/_verify.py`** —
