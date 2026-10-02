@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from .._argcheck import require_non_negative_finite, require_positive_int
+from .._argcheck import refuse_bare_string, require_non_negative_finite, require_positive_int
 
 DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
 DEFAULT_DIM = 384
@@ -51,6 +51,7 @@ class BGEProvider:
         self.batch_size = batch_size
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        refuse_bare_string("texts", texts)  # #169: before any client/encoder use
         items = list(texts)
         # SentenceTransformer.encode returns numpy by default; convert to list.
         arr = self.encoder.encode(
