@@ -1798,6 +1798,30 @@ variables were findable only in the provider code. The new file lists all three,
 with the extra each provider needs, and a test derives the names from the source
 so the file can't drift. Part of portfolio-ops#80.
 
+## 2026-10-01 — Issue #156: a result records its query set's identity (D-015)
+**Duration:** ~8 min · **Branch:** session/2026-10-01-0738-issue-156
+
+- `sweep run` now records the seed and a sha256 fingerprint of the corpus and of the query set it scored. `sweep aggregate` refuses rows whose fingerprints disagree. Before, the same embedder at seed 42 and seed 7 (recall@5 0.520 vs 0.620) shared one table at exit 0.
+- The fields are optional and omitted when absent, so older result files, including the committed baseline, round-trip byte-identically. 26 new arms; nine revert probes are all red.
+
+**Why this work, this session:** the one non-gated open issue in this repo, split out of #155 on purpose.
+
+**Open questions / blockers:** `results/hash.json` is not regenerated, so comparisons against it stay count-only until #115 (JT-gated) is decided.
+
+**Next session:** regenerate the baseline together with the #115 decision.
+
+## 2026-10-01T08:58Z — #165: atomic writes keep normal file permissions
+
+`atomic_write_text` created its temp file with `NamedTemporaryFile`, which is
+always 0600, and the rename carried that mode onto the target. Every corpus
+JSONL and every `--out` report came out owner-only, and rewriting an existing
+0644 file made it 0600. The temp file is now opened 0o666 so the umask applies,
+and an existing file's mode is copied over before the rename. The temp-name cap,
+surrogate-path handling, fsync and cleanup are unchanged. 17 new tests cover
+new-file modes under three umasks, overwrites at 0644/0600/0640, `write_jsonl`
+and `corpus validate --out`. The revert probe on main's helper gives 13 red.
+Part of portfolio-ops#81.
+
 ## 2026-10-01 — Issue #167: the Pareto plot refuses incomparable rows, as aggregate does
 **Duration:** ~10 min · **Branch:** session/2026-10-01-0935-issue-plot
 

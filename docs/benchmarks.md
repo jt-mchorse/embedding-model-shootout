@@ -45,5 +45,9 @@ from `--queries` and `--seed`, so a provider row is comparable to the
 baseline only when it uses the baseline's flags (`--queries 50 --seed 42`,
 the ones that produced `results/hash.json`). `sweep aggregate` refuses a set
 of results whose `n_queries` or `n_corpus` disagree, so cross-provider rows
-in this table are apples-to-apples by construction (#155). The seed itself is not recorded in
-a result file, so matching `--seed` is still the operator's job.
+in this table are apples-to-apples by construction (#155). Since #156 a result
+also records a fingerprint of the corpus and of the query set it scored, plus
+the seed, and `sweep aggregate` refuses rows whose fingerprints disagree. A
+result written before #156 has no fingerprints and is held to the counts only;
+the committed `results/hash.json` is one, until it is regenerated (#115), so
+matching `--seed` against it is still the operator's job.

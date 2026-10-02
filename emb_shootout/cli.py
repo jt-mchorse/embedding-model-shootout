@@ -134,7 +134,9 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
     try:
         queries = build_queries(corpus, n=args.queries, seed=args.seed)
         embedder = PROVIDER_REGISTRY[args.provider]()
-        result = run_sweep(corpus, queries, embedder=embedder, k_values=(1, 5, 10))
+        result = run_sweep(
+            corpus, queries, embedder=embedder, k_values=(1, 5, 10), query_seed=args.seed
+        )
     except ValueError as e:
         sys.stderr.write(f"error: {e}\n")
         return 2
