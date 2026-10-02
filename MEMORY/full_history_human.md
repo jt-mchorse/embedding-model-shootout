@@ -1832,3 +1832,12 @@ Part of portfolio-ops#81.
 **Open questions / blockers:** none. Merge after #164 and #166; #164's fingerprints then reach the plot too.
 
 **Next session:** a lone-surrogate `embedder_name` crashes the markdown aggregate and the plot; whitespace-only names render blank cells.
+
+## 2026-10-02 — corpus build says which modules it skipped (#172)
+
+`build_corpus` skips modules that can't be imported on purpose, since which
+optional standard-library modules exist depends on the Python version. Its
+docstring promised that the CLI reports the skipped ones, but the CLI never
+did, so a typo like `--module csvv` disappeared without a trace. The summary
+JSON now lists `modules_skipped`, and each skipped module is named on stderr.
+The exit code is unchanged. 3 new tests.
