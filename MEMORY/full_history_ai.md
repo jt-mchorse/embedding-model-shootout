@@ -1861,3 +1861,21 @@ context_for_next_session:
   - ems_THIRD_HUNT_ALSO_FOUND_a_lone_surrogate_embedder_name_crashing_markdown_aggregate_and_plot_at_exit_1_and_whitespace_only_names_rendering_a_blank_cell_NOT_FILED_YET
 followups: []
 ---
+
+---
+session: 2026-10-02T09:40Z
+issue: 176
+focus: PRE_FLIGHT_PASSED_WHAT_THE_RUN_CRASHES_ON_AFTER_EMBEDDING
+phase: shipped
+duration_min: 12
+delta:
+  files_changed: 4
+  tests_added: 7
+  suite: "full suite green; ruff check and ruff format --check clean"
+decisions_made: []
+measured: "main: one-row surrogate corpus -> validate 'ok ... findings=0' exit 0; sweep run --provider hash -> 'utf-8 codec can't encode \\ud800'. Revert probe (Cs check -> if False), one subprocess per id, 37 ids: 6 red, the surrogate-pair control green by design."
+context_for_next_session:
+  - fingerprint_corpus_ENCODES_UTF8_AFTER_ALL_EMBEDDING_so_any_unencodable_text_costs_a_full_paid_embed_before_failing
+  - THE_EMBEDDER_NAME_SURROGATE_FROM_THE_10_01_THIRD_HUNT_IS_STILL_UNFILED_different_population_results_rows_not_corpus_rows
+followups: []
+---
