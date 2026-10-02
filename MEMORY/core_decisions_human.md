@@ -370,3 +370,21 @@ Refuse, not annotate: the table sits under a sentence claiming its rows are comp
 **Reversibility:** Cheap.
 
 **Related issues:** #155, #156, #145, #2
+
+## D-015 — A result records its query set's identity; the fingerprints are compared, the seed is not (2026-10-01)
+**Decision:** `SweepResult` gains three optional fields: `query_seed`, `corpus_fingerprint` and `query_fingerprint`. `run_sweep` computes both fingerprints from what it scored. `require_comparable` compares each fingerprint among the rows that carry it. The seed is recorded as provenance and is not compared.
+
+**Why:** D-014 named the gap: matching counts let rows built from different seeds share a table. Measured through the CLI on the committed corpus, the same embedder scored recall@5 0.520 at seed 42 and 0.620 at seed 7, and `sweep aggregate` published both rows in one table at exit 0. The query fingerprint is the identity because it changes with the seed *and* with anything else that changes the queries, whereas a recorded seed only says how the queries were built. The corpus fingerprint hashes the text as well as the ids, because #115 shows the corpus depends on the interpreter.
+
+The fields are written only when recorded, so every earlier result file round-trips to the same bytes and is held to the counts only. `results/hash.json` is not regenerated here: that re-measures latencies the README quotes, and #115 already escalates regenerating it, so the two changes should land together.
+
+**Alternatives considered:**
+- Compare the seed too — rejected, built and run, 1 red.
+- Hash only the chunk ids — rejected, built and run, 1 red.
+- Join fields with a delimiter instead of JSON — rejected, built and run, 1 red.
+- Always write the fields, as `null` when unrecorded — rejected, built and run, 3 red.
+- Regenerate the baseline now — deferred to #115.
+
+**Reversibility:** Cheap.
+
+**Related issues:** #156, #155, #115
