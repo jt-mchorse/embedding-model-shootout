@@ -7,13 +7,10 @@ measured on `main`, `cos("json", "asyncio") == 1.0`.
 
 from __future__ import annotations
 
-import json
 import math
-from pathlib import Path
 
+from emb_shootout import build_corpus
 from emb_shootout.providers.hash_embedder import HashEmbedderProvider
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 def _cos(a: list[float], b: list[float]) -> float:
@@ -40,9 +37,11 @@ def test_the_empty_text_keeps_its_sentinel() -> None:
     assert sum(abs(v) for v in vec) == 1.0
 
 
-def test_committed_corpus_texts_embed_bit_identically() -> None:
-    # Every committed chunk has >= 2 tokens, so the new branch never runs for
-    # them; the old rule is spelled out here to prove the vectors are unchanged.
+def test_corpus_texts_embed_bit_identically() -> None:
+    # The corpus is built from the stdlib at run time (D-002; `data/` is not
+    # committed). Every chunk `build_corpus` produces has >= 2 tokens, so the new
+    # branch never runs for them; the old rule is spelled out here to prove the
+    # vectors the sweep embeds are unchanged.
     def old(text: str, dim: int) -> list[float]:
         import hashlib
 
@@ -58,7 +57,7 @@ def test_committed_corpus_texts_embed_bit_identically() -> None:
         return [v / n for v in vec]
 
     provider = HashEmbedderProvider()
-    lines = (ROOT / "data" / "corpus.jsonl").read_text(encoding="utf-8").splitlines()[:500]
-    texts = [json.loads(line)["text"] for line in lines]
+    texts = [c.text for c in build_corpus(["json", "csv", "pathlib", "asyncio"])][:500]
+    assert len(texts) > 100
     assert all(len(t.split()) >= 2 for t in texts)
     assert provider.embed(texts) == [old(t, provider.dim) for t in texts]
