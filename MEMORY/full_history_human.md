@@ -1821,3 +1821,14 @@ surrogate-path handling, fsync and cleanup are unchanged. 17 new tests cover
 new-file modes under three umasks, overwrites at 0644/0600/0640, `write_jsonl`
 and `corpus validate --out`. The revert probe on main's helper gives 13 red.
 Part of portfolio-ops#81.
+
+## 2026-10-01 — Issue #167: the Pareto plot refuses incomparable rows, as aggregate does
+**Duration:** ~10 min · **Branch:** session/2026-10-01-0935-issue-plot
+
+- `sweep plot` drew a frontier, titled "X dominates every other model", over recall@5 from 5 queries beside recall@5 from 200. `sweep aggregate` refused those same rows at exit 2. D-014's check reached the two aggregators it named but not the frontier. `pareto_frontier` now calls it first, the check runs before matplotlib is imported, and the CLI exits 2 with no image written. 7 tests; both revert probes are red. The ordering arm needed a simulated missing matplotlib before it went red.
+
+**Why this work, this session:** found by this run's third hunt wave.
+
+**Open questions / blockers:** none. Merge after #164 and #166; #164's fingerprints then reach the plot too.
+
+**Next session:** a lone-surrogate `embedder_name` crashes the markdown aggregate and the plot; whitespace-only names render blank cells.

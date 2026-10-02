@@ -282,6 +282,11 @@ def _cmd_sweep_plot(args: argparse.Namespace) -> int:
     except RuntimeError as exc:  # matplotlib missing
         sys.stderr.write(f"{exc}\n")
         return 3
+    except ValueError as exc:
+        # Incomparable rows (#167) -- the refusal `sweep aggregate` already maps
+        # to exit 2 -- and any other bad-input refusal from the frontier.
+        sys.stderr.write(f"error: {exc}\n")
+        return 2
     except OSError as exc:
         # The fourth write seam: render_pareto does p.parent.mkdir(...) +
         # fig.savefig(p, ...), either of which can raise OSError on an unwritable
