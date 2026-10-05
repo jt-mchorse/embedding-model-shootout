@@ -1891,3 +1891,13 @@ single word. 4 new tests.
 **Open questions / blockers:** none.
 
 **Next session:** the surrogate `embedder_name` (results rows, not corpus rows) noted on 10-01 is still unfiled.
+
+## 2026-10-05 — a near-perfect score no longer prints as perfect (#178)
+
+An earlier fix (#149) stopped tiny recall and NDCG scores from printing as
+`0.000`. Its reasoning only looked at that end of the range. At the other end,
+three-decimal rounding turned 0.9995 (one missed query in 2,000) into `1.000`,
+identical to a perfect score. Such values are now printed with enough decimals
+to tell them apart, while a genuine 1.0 still prints `1.000`. The one-line
+summary that `sweep run` prints used plain rounding at both ends and now uses
+the same rule. The committed benchmark table is unchanged.
