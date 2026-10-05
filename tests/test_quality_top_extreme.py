@@ -83,6 +83,26 @@ def test_the_sweep_run_summary_line_uses_the_table_renderer(
     payload["ndcg_at_10"] = ndcg
     stub = SweepResult.from_dict(payload)
     monkeypatch.setattr(sweep_mod, "run_sweep", lambda *a, **k: stub)
+    # Its own corpus: `data/` is gitignored (built by `corpus build`), so a path
+    # into it exists only in a checkout that ran the build -- not in CI.
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "chunk_id": f"mod{i}",
+                    "kind": "module",
+                    "module": f"mod{i}",
+                    "qualname": f"mod{i}",
+                    "source": "python-stdlib",
+                    "text": f"mod{i}\n\nModule {i} parses and formats records of kind {i}.",
+                }
+            )
+            + "\n"
+            for i in range(12)
+        ),
+        encoding="utf-8",
+    )
     out = tmp_path / "r.json"
     rc = main(
         [
@@ -91,7 +111,7 @@ def test_the_sweep_run_summary_line_uses_the_table_renderer(
             "--provider",
             "hash",
             "--corpus",
-            str(_REPO_ROOT / "data" / "corpus.jsonl"),
+            str(corpus),
             "--queries",
             "5",
             "--output",
