@@ -1833,6 +1833,46 @@ Part of portfolio-ops#81.
 
 **Next session:** a lone-surrogate `embedder_name` crashes the markdown aggregate and the plot; whitespace-only names render blank cells.
 
+## 2026-10-02 — build_corpus and every provider's embed refuse a bare string (#169)
+
+`build_corpus("json")` iterated `j`, `s`, `o`, `n`. Each failed to import and
+was skipped by design, so the corpus came back empty with no error.
+`embed("hello world")` returned 11 one-character vectors, and on the three API
+providers that is a billed request per character batch. One helper now runs
+first in all six `embed` methods, before the instance is touched, and at the
+`build_corpus` call. `build_corpus` was a generator function, so a check in its
+body would not have run until iteration began; it now returns a private
+generator instead. A population test walks the providers package and checks
+every `embed` on an instance built without `__init__`, so it works without the
+optional extras installed. 40 new tests. One process note: on this issue I
+wrote the code before posting the plan comment, and said so on the issue.
+Separately, two default corpus walks in one process can differ, because
+importing a package's submodules adds attributes the second walk then finds.
+That was already the case before this change; it is in #115's territory.
+
+## 2026-10-02 — the test session fails if any test rewrites a committed file (portfolio-ops#79)
+
+Ported from python-async-llm-pipelines#115, where a test overwrote a committed
+artifact on every CI run. The overwrite only happened on Linux, so nobody
+noticed. `tests/_committed_files_guard.py` records a hash of every git-tracked
+file when the session starts and fails the session if any changed or
+disappeared. It covers every tracked file, not only `docs/`, because committed
+outputs live in different places in each repo and no current test writes any of
+them. A self-test runs a real inner pytest session in a throwaway git repo
+using the same guard file. A test that writes a tracked file fails that
+session, a test that deletes one fails it, and a test that writes only under
+`tmp_path` passes. Checked here by running a throwaway test that appended to
+`README.md`: the session failed and named the file.
+
+## 2026-10-02 — corpus build says which modules it skipped (#172)
+
+`build_corpus` skips modules that can't be imported on purpose, since which
+optional standard-library modules exist depends on the Python version. Its
+docstring promised that the CLI reports the skipped ones, but the CLI never
+did, so a typo like `--module csvv` disappeared without a trace. The summary
+JSON now lists `modules_skipped`, and each skipped module is named on stderr.
+The exit code is unchanged. 3 new tests.
+
 ## 2026-10-02 — the hash embedder no longer maps every one-word text to one vector (#174)
 
 The same defect fixed in prompt-regression-suite today: the hermetic hash
