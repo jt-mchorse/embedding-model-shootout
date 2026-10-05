@@ -39,6 +39,7 @@ exit 2 alongside other I/O errors — same convention as the harness.
 from __future__ import annotations
 
 import json
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -222,4 +223,24 @@ def _validate_row(obj: dict[str, Any], line_no: int) -> list[ValidationFinding]:
                     code=f"empty_{field}",
                 )
             )
+            continue
+        # A lone surrogate (category `Cs`) is valid JSON escape syntax, so the
+        # row loads, but it is not a character and cannot be encoded as UTF-8:
+        # the `hash` provider dies at embed time, and every provider dies in
+        # `fingerprint_corpus` -- which runs after the whole corpus has been
+        # embedded (#176). Same rule as chunking-strategies-lab#216.
+        for i, ch in enumerate(value):
+            if unicodedata.category(ch) == "Cs":
+                findings.append(
+                    ValidationFinding(
+                        line_no=line_no,
+                        reason=(
+                            f"field {field!r} contains the lone surrogate "
+                            f"U+{ord(ch):04X} at index {i}; it cannot be encoded "
+                            "as UTF-8, so `sweep run` would crash on it"
+                        ),
+                        code=f"unencodable_{field}",
+                    )
+                )
+                break
     return findings

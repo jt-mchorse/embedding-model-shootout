@@ -1880,3 +1880,14 @@ embedder builds word pairs, so every one-word text got the same fallback vector,
 and "json" vs "asyncio" scored a perfect 1.0. Short texts are now embedded as
 themselves. No committed number changes, because no committed corpus chunk is a
 single word. 4 new tests.
+
+## 2026-10-02 — Issue #176: `corpus validate` refuses a lone surrogate
+**Duration:** ~12 min · **Branch:** fix/176-validate-lone-surrogate · **PR:** #177
+
+- The pre-flight said "ok" to a corpus that `sweep run` then crashed on. A lone surrogate loads from JSON but cannot be UTF-8 encoded, and the run's corpus fingerprint encodes it only after every chunk has been embedded. There are two new finding codes, `unencodable_chunk_id` and `unencodable_text`, using the same rule as chunking-strategies-lab#216. 7 tests, including an end-to-end validate-then-sweep arm. Reverting the check turns 6 tests red.
+
+**Why this work, this session:** found by the run's writer/reader-parity hunt as the unported sibling of csl#216 and leh#217.
+
+**Open questions / blockers:** none.
+
+**Next session:** the surrogate `embedder_name` (results rows, not corpus rows) noted on 10-01 is still unfiled.
