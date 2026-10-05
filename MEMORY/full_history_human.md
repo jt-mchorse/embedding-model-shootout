@@ -1863,3 +1863,12 @@ using the same guard file. A test that writes a tracked file fails that
 session, a test that deletes one fails it, and a test that writes only under
 `tmp_path` passes. Checked here by running a throwaway test that appended to
 `README.md`: the session failed and named the file.
+
+## 2026-10-02 — corpus build says which modules it skipped (#172)
+
+`build_corpus` skips modules that can't be imported on purpose, since which
+optional standard-library modules exist depends on the Python version. Its
+docstring promised that the CLI reports the skipped ones, but the CLI never
+did, so a typo like `--module csvv` disappeared without a trace. The summary
+JSON now lists `modules_skipped`, and each skipped module is named on stderr.
+The exit code is unchanged. 3 new tests.

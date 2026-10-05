@@ -365,3 +365,22 @@ def write_jsonl(chunks: Iterable[Chunk], path: PathLike[str] | str) -> int:
     rendered = ("\n".join(rendered_lines) + "\n") if rendered_lines else ""
     atomic_write_text(path, rendered)
     return count
+
+
+def unimportable_modules(modules: Iterable[str]) -> list[str]:
+    """The requested modules `build_corpus` skips, sorted (#172).
+
+    `build_corpus` skips a module that fails to import -- by design, because
+    which optional stdlib pieces exist depends on the interpreter -- and its
+    docstring promises "the set of skipped modules is reported by the CLI in
+    JSON output". It wasn't: a typo like `--module csvv` vanished at exit 0.
+    Same `except Exception` rule as `build_corpus`, so the two cannot disagree
+    about what was skipped.
+    """
+    skipped = set()
+    for name in modules:
+        try:
+            importlib.import_module(name)
+        except Exception:
+            skipped.add(name)
+    return sorted(skipped)
