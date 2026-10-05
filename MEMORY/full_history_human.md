@@ -1891,3 +1891,12 @@ single word. 4 new tests.
 **Open questions / blockers:** none.
 
 **Next session:** the surrogate `embedder_name` (results rows, not corpus rows) noted on 10-01 is still unfiled.
+
+## 2026-10-05 — the corpus build gives the same corpus every time (#182)
+
+The docs promise the same corpus from the same Python version. In practice
+every build differed, because 51 function signatures included memory
+addresses from their default values. So two providers swept on separately
+built corpora couldn't be compared. The addresses are now stripped, and three
+builds under different hash seeds are identical. The committed results weren't
+re-measured; that belongs with the open cross-version question (#115).
