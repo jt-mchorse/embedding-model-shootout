@@ -1872,3 +1872,11 @@ docstring promised that the CLI reports the skipped ones, but the CLI never
 did, so a typo like `--module csvv` disappeared without a trace. The summary
 JSON now lists `modules_skipped`, and each skipped module is named on stderr.
 The exit code is unchanged. 3 new tests.
+
+## 2026-10-02 — the hash embedder no longer maps every one-word text to one vector (#174)
+
+The same defect fixed in prompt-regression-suite today: the hermetic hash
+embedder builds word pairs, so every one-word text got the same fallback vector,
+and "json" vs "asyncio" scored a perfect 1.0. Short texts are now embedded as
+themselves. No committed number changes, because no committed corpus chunk is a
+single word. 4 new tests.

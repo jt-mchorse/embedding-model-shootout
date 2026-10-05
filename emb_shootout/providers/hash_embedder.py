@@ -56,6 +56,13 @@ class HashEmbedderProvider:
         tokens = [t for t in text.lower().split() if t]
         if self.ngram == 1:
             ngrams = list(tokens)
+        elif 0 < len(tokens) < self.ngram:
+            # Too short for one full n-gram: the whole token sequence is its one
+            # gram (#174; prompt-regression-suite D-016's rule). It used to fall
+            # through to the `e0` sentinel below, so every one-word text embedded
+            # to the same vector -- `cos("json", "asyncio") == 1.0`. Texts with
+            # >= `ngram` tokens are untouched.
+            ngrams = [" ".join(tokens)]
         else:
             ngrams = [
                 " ".join(tokens[i : i + self.ngram]) for i in range(len(tokens) - self.ngram + 1)
