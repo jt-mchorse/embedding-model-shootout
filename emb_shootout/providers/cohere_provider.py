@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 from collections.abc import Sequence
 
-from .._argcheck import require_non_negative_finite, require_positive_int
+from .._argcheck import refuse_bare_string, require_non_negative_finite, require_positive_int
 
 DEFAULT_MODEL = "embed-english-v3.0"
 DEFAULT_DIM = 1024
@@ -54,6 +54,7 @@ class CohereProvider:
         self.input_type = input_type
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        refuse_bare_string("texts", texts)  # #169: before any client/encoder use
         out: list[list[float]] = []
         items = list(texts)
         for start in range(0, len(items), self.batch_size):

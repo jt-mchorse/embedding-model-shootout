@@ -1863,6 +1863,27 @@ followups: []
 ---
 
 ---
+session: 2026-10-02T07:44Z
+issue: 169
+focus: build_corpus_AND_ALL_SIX_PROVIDER_embed_METHODS_SPLIT_A_BARE_STRING_INTO_CHARACTERS_AN_EMPTY_CORPUS_AND_A_BILLED_REQUEST_PER_CHARACTER_BATCH
+phase: shipped
+duration_min: 6
+delta:
+  files_changed: 9
+  tests_added: 40
+  suite: "1050 -> 1090 green; ruff check and format clean"
+decisions_made: []
+measured: "revert probe ONE SUBPROCESS PER ID, 40 ids counted: baseline 0, all six embed guards removed 25 red, ONE provider (openai) removed 4 red, build_corpus guard removed 4 red, guard moved INSIDE the generator body 4 red."
+context_for_next_session:
+  - PROCESS_SLIP_I_WROTE_THE_CODE_BEFORE_POSTING_THE_PLAN_COMMENT_ON_169_disclosed_on_the_issue
+  - THE_POPULATION_ARM_WALKS_emb_shootout_providers_WITH_pkgutil_AND_PINS_THE_SIX_NAMES_and_calls_embed_on_object___new___cls_SO_ANY_SELF_ACCESS_BEFORE_THE_CHECK_IS_AN_AttributeError_NOT_THE_ValueError_works_without_the_optional_extras
+  - build_corpus_WAS_A_GENERATOR_FUNCTION_SO_A_CHECK_IN_ITS_BODY_RUNS_AT_THE_FIRST_next_NOT_AT_THE_CALL_it_is_now_a_plain_function_returning_the_private_generator__build_corpus
+  - TWO_DEFAULT_build_corpus_WALKS_IN_ONE_PROCESS_DIFFER_at_index_3327_email_message_from_binary_file_vs_email_base64mime_because_IMPORTING_SUBMODULES_ADDS_ATTRIBUTES_the_ems_115_territory_PRE_EXISTING_not_caused_here_my_first_arm_compared_them_and_was_rewritten
+  - require_sequence_STAYS_FOR_notes_AND_k_values_WHICH_MUST_BE_ORDERED_refuse_bare_string_IS_FOR_THE_TWO_PARAMETERS_THAT_MUST_KEEP_ACCEPTING_ANY_ITERABLE
+followups: []
+---
+
+---
 session: 2026-10-02T07:55Z
 issue: "portfolio-ops#79"
 focus: PORT_THE_TESTS_MAY_NOT_REWRITE_A_COMMITTED_FILE_SESSION_GUARD_WIDENED_FROM_docs_TO_EVERY_GIT_TRACKED_FILE
