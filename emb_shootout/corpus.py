@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from os import PathLike
 from typing import Any
 
+from ._argcheck import refuse_bare_string
 from .io_utils import atomic_write_text
 
 # Curated module list. Chosen for breadth across the stdlib so the corpus
@@ -317,7 +318,17 @@ def build_corpus(modules: Iterable[str] | None = None) -> Iterator[Chunk]:
     includes (e.g., `readline` on Windows). The set of skipped modules
     is reported by the CLI in JSON output for visibility.
     """
+    # Checked here, at the call, rather than inside the generator below:
+    # `build_corpus("json")` iterated "j", "s", "o", "n", each failed to import
+    # and was skipped by design, and the corpus came back EMPTY with no error
+    # (#169). A generator body would not run until the first `next()`.
+    if modules is not None:
+        refuse_bare_string("modules", modules)
     modules_list = list(modules) if modules is not None else list(DEFAULT_MODULES)
+    return _build_corpus(modules_list)
+
+
+def _build_corpus(modules_list: list[str]) -> Iterator[Chunk]:
     seen_chunk_ids: set[str] = set()
     for mod_name in modules_list:
         try:
@@ -354,3 +365,22 @@ def write_jsonl(chunks: Iterable[Chunk], path: PathLike[str] | str) -> int:
     rendered = ("\n".join(rendered_lines) + "\n") if rendered_lines else ""
     atomic_write_text(path, rendered)
     return count
+
+
+def unimportable_modules(modules: Iterable[str]) -> list[str]:
+    """The requested modules `build_corpus` skips, sorted (#172).
+
+    `build_corpus` skips a module that fails to import -- by design, because
+    which optional stdlib pieces exist depends on the interpreter -- and its
+    docstring promises "the set of skipped modules is reported by the CLI in
+    JSON output". It wasn't: a typo like `--module csvv` vanished at exit 0.
+    Same `except Exception` rule as `build_corpus`, so the two cannot disagree
+    about what was skipped.
+    """
+    skipped = set()
+    for name in modules:
+        try:
+            importlib.import_module(name)
+        except Exception:
+            skipped.add(name)
+    return sorted(skipped)

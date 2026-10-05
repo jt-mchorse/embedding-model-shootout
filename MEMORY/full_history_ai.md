@@ -1863,6 +1863,84 @@ followups: []
 ---
 
 ---
+session: 2026-10-02T07:44Z
+issue: 169
+focus: build_corpus_AND_ALL_SIX_PROVIDER_embed_METHODS_SPLIT_A_BARE_STRING_INTO_CHARACTERS_AN_EMPTY_CORPUS_AND_A_BILLED_REQUEST_PER_CHARACTER_BATCH
+phase: shipped
+duration_min: 6
+delta:
+  files_changed: 9
+  tests_added: 40
+  suite: "1050 -> 1090 green; ruff check and format clean"
+decisions_made: []
+measured: "revert probe ONE SUBPROCESS PER ID, 40 ids counted: baseline 0, all six embed guards removed 25 red, ONE provider (openai) removed 4 red, build_corpus guard removed 4 red, guard moved INSIDE the generator body 4 red."
+context_for_next_session:
+  - PROCESS_SLIP_I_WROTE_THE_CODE_BEFORE_POSTING_THE_PLAN_COMMENT_ON_169_disclosed_on_the_issue
+  - THE_POPULATION_ARM_WALKS_emb_shootout_providers_WITH_pkgutil_AND_PINS_THE_SIX_NAMES_and_calls_embed_on_object___new___cls_SO_ANY_SELF_ACCESS_BEFORE_THE_CHECK_IS_AN_AttributeError_NOT_THE_ValueError_works_without_the_optional_extras
+  - build_corpus_WAS_A_GENERATOR_FUNCTION_SO_A_CHECK_IN_ITS_BODY_RUNS_AT_THE_FIRST_next_NOT_AT_THE_CALL_it_is_now_a_plain_function_returning_the_private_generator__build_corpus
+  - TWO_DEFAULT_build_corpus_WALKS_IN_ONE_PROCESS_DIFFER_at_index_3327_email_message_from_binary_file_vs_email_base64mime_because_IMPORTING_SUBMODULES_ADDS_ATTRIBUTES_the_ems_115_territory_PRE_EXISTING_not_caused_here_my_first_arm_compared_them_and_was_rewritten
+  - require_sequence_STAYS_FOR_notes_AND_k_values_WHICH_MUST_BE_ORDERED_refuse_bare_string_IS_FOR_THE_TWO_PARAMETERS_THAT_MUST_KEEP_ACCEPTING_ANY_ITERABLE
+followups: []
+---
+
+---
+session: 2026-10-02T07:55Z
+issue: "portfolio-ops#79"
+focus: PORT_THE_TESTS_MAY_NOT_REWRITE_A_COMMITTED_FILE_SESSION_GUARD_WIDENED_FROM_docs_TO_EVERY_GIT_TRACKED_FILE
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 6
+  suite: "1056 green under the guard; ruff check and format clean"
+decisions_made: []
+measured: "full suite under the guard = 0 tracked files changed; a throwaway test appending to README.md fails the session with 'rewrote committed files: [README.md]' (README restored from a cp copy, tree clean after); unwiring the conftest import turns the wiring arm red."
+context_for_next_session:
+  - tests_committed_files_guard_py_IS_SELF_CONTAINED_AND_IDENTICAL_ACROSS_7_REPOS_its_self_test_COPIES_IT_VERBATIM_AS_AN_INNER_SESSIONS_CONFTEST_in_a_throwaway_git_repo_writer_FAILS_deleter_FAILS_tmp_path_writer_PASSES
+  - EVERY_TRACKED_FILE_NOT_A_DIRECTORY_LIST_the_2026_10_01_probe_found_ZERO_tracked_files_modified_by_any_suite_so_the_wider_rule_costs_nothing_A_NEW_TEST_THAT_REGENERATES_A_COMMITTED_ARTIFACT_MUST_WRITE_TO_tmp_path_AND_COMPARE
+  - THE_CORPUS_ARM_test_this_checkout_is_what_the_guard_snapshots_FAILS_UNTIL_THE_FILE_IS_COMMITTED_that_is_by_design
+followups: []
+---
+
+---
+session: 2026-10-02T12:05Z
+issue: 172
+focus: corpus_build_SILENTLY_SKIPPED_A_MISTYPED_MODULE_WHILE_build_corpus_DOCSTRING_SAID_THE_CLI_REPORTS_THE_SKIPPED_SET
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 3
+  suite: "1050 -> 1053 green; ruff clean"
+decisions_made: []
+measured: "main: --module json --module csvv -> modules_requested 2, no mention of csvv, exit 0. Revert of cli.py: 3 of 3 red."
+context_for_next_session:
+  - A_PROSE_ASSERTION_IS_A_TEST_CASE_the_docstring_promised_a_report_nobody_emitted
+  - unimportable_modules_IS_APPENDED_AT_THE_END_OF_corpus_py_ON_PURPOSE_170_rewrites_build_corpus_BODY_and_this_avoids_a_code_conflict
+  - EXIT_STAYS_0_skipping_optional_stdlib_modules_is_by_design_telnetlib_is_gone_on_3_13_plus_THE_REPORT_IS_THE_FIX
+followups: []
+---
+
+---
+session: 2026-10-02T13:40Z
+issue: 174
+focus: HashEmbedderProvider_MAPPED_EVERY_ONE_WORD_TEXT_TO_e0_SIBLING_OF_prs_196
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 4
+  suite: "1050 -> 1054 green; ruff clean"
+decisions_made: []
+measured: "main: cos(json, asyncio) = 1.0. Committed corpus: 0 of 12010 chunks are one-token, queries >= 6 words, so no committed number moves (pinned by a 500-chunk bit-identity arm). Revert: 1 of 4 red; controls by design."
+context_for_next_session:
+  - SAME_RULE_AS_prompt_regression_suite_D_016_lco_HashEmbedder_ALREADY_HANDLED_IT_no_other_repo_has_an_ngram_embedder
+followups: []
+---
+# correction (2026-10-02, same session, #174): data/corpus.jsonl is gitignored, not
+# committed -- the corpus is built from the stdlib at run time (D-002). The "0 of 12010"
+# one-token count was measured on the locally built corpus, which is what the sweep
+# embeds, so the claim holds; the word "committed" was wrong and CI went red on the
+# arm that read data/. The arm now builds its sample with build_corpus().
+
+---
 session: 2026-10-02T09:40Z
 issue: 176
 focus: PRE_FLIGHT_PASSED_WHAT_THE_RUN_CRASHES_ON_AFTER_EMBEDDING

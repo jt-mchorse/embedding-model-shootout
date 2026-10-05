@@ -14,7 +14,7 @@ import math
 from collections.abc import Sequence
 from typing import Literal
 
-from .._argcheck import require_positive_int
+from .._argcheck import refuse_bare_string, require_positive_int
 
 Tokenizer = Literal["word"]
 
@@ -47,6 +47,7 @@ class HashEmbedderProvider:
         self.cost_per_million_tokens = 0.0
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        refuse_bare_string("texts", texts)  # #169: before any client/encoder use
         return [self._embed_one(t) for t in texts]
 
     def _embed_one(self, text: str) -> list[float]:
@@ -55,6 +56,13 @@ class HashEmbedderProvider:
         tokens = [t for t in text.lower().split() if t]
         if self.ngram == 1:
             ngrams = list(tokens)
+        elif 0 < len(tokens) < self.ngram:
+            # Too short for one full n-gram: the whole token sequence is its one
+            # gram (#174; prompt-regression-suite D-016's rule). It used to fall
+            # through to the `e0` sentinel below, so every one-word text embedded
+            # to the same vector -- `cos("json", "asyncio") == 1.0`. Texts with
+            # >= `ngram` tokens are untouched.
+            ngrams = [" ".join(tokens)]
         else:
             ngrams = [
                 " ".join(tokens[i : i + self.ngram]) for i in range(len(tokens) - self.ngram + 1)
