@@ -23,6 +23,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import json
+import re
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from os import PathLike
@@ -214,6 +215,9 @@ class Chunk:
         }
 
 
+_ADDRESS = re.compile(r" at 0x[0-9a-fA-F]+")
+
+
 def _safe_signature(obj: object) -> str:
     """Best-effort ``str(inspect.signature(obj))``; '' on failure.
 
@@ -222,9 +226,15 @@ def _safe_signature(obj: object) -> str:
     signature doesn't invalidate the chunk.
     """
     try:
-        return str(inspect.signature(obj))  # type: ignore[arg-type]
+        sig = str(inspect.signature(obj))  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return ""
+    # A default whose repr names its memory address -- `timeout=<object object
+    # at 0x1008b4890>` (a sentinel), `<weakref at 0x...>` -- differs on every
+    # process, so two builds on one interpreter gave two corpora: 51 chunks
+    # changed, the fingerprint changed, and `sweep aggregate` refused rows
+    # swept on separate builds. The address is not text anyone reads (#182).
+    return _ADDRESS.sub("", sig)
 
 
 def _classify(obj: object, parent: object | None) -> str:
