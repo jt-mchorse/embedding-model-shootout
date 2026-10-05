@@ -1891,3 +1891,10 @@ single word. 4 new tests.
 **Open questions / blockers:** none.
 
 **Next session:** the surrogate `embedder_name` (results rows, not corpus rows) noted on 10-01 is still unfiled.
+
+## 2026-10-05 — the regenerated benchmark page doesn't quote a stale number (#180)
+
+`docs/benchmarks.md` regenerates its table and keeps the surrounding text. One
+sentence quoted the table's recall@5, so regenerating from any other results
+left the old number under a new table. The sentence now refers to the table,
+and a test fails if the kept text quotes one of the table's numbers again.
