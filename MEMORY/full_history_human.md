@@ -1892,6 +1892,23 @@ single word. 4 new tests.
 
 **Next session:** the surrogate `embedder_name` (results rows, not corpus rows) noted on 10-01 is still unfiled.
 
+## 2026-10-05 — a near-perfect score no longer prints as perfect (#178)
+
+An earlier fix (#149) stopped tiny recall and NDCG scores from printing as
+`0.000`. Its reasoning only looked at that end of the range. At the other end,
+three-decimal rounding turned 0.9995 (one missed query in 2,000) into `1.000`,
+identical to a perfect score. Such values are now printed with enough decimals
+to tell them apart, while a genuine 1.0 still prints `1.000`. The one-line
+summary that `sweep run` prints used plain rounding at both ends and now uses
+the same rule. The committed benchmark table is unchanged.
+
+## 2026-10-05 — the regenerated benchmark page doesn't quote a stale number (#180)
+
+`docs/benchmarks.md` regenerates its table and keeps the surrounding text. One
+sentence quoted the table's recall@5, so regenerating from any other results
+left the old number under a new table. The sentence now refers to the table,
+and a test fails if the kept text quotes one of the table's numbers again.
+
 ## 2026-10-05 — the corpus build gives the same corpus every time (#182)
 
 The docs promise the same corpus from the same Python version. In practice

@@ -1959,6 +1959,44 @@ followups: []
 ---
 
 ---
+session: 2026-10-05T08:11Z
+duration_min: 3   # computed: first repro 08:08Z -> 08:11Z
+issue: 178
+branch: session/2026-10-05-0809-issue-178
+focus: _format_quality_WIDENED_ONLY_THE_ZERO_END_0_9995_ROUNDED_UP_TO_1_000_THE_BEST_VALUE_AND_THE_SWEEP_RUN_LINE_HAD_NEITHER_RULE
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 13
+  suite: "1110 -> 1123 green; ruff clean; docs/benchmarks.md regenerates with zero diff"
+decisions_made: []
+measured: "_format_quality(0.9995) '1.000' on main, now '0.9995'; two 2000-query rows 1.0 vs 0.9995 rendered identically, now differ. Probes: top end 6 red, CLI bare .3f 2 red, hard-coded-range neighbour 3 red, fixed-four-places neighbour 1 red"
+context_for_next_session:
+  - FOUND_BY_READING_149S_OWN_SCOPE_ARGUMENT_it_said_the_extreme_default_half_does_NOT_transfer_because_0_is_the_worst_value_TRUE_AT_ONE_END_THE_OTHER_END_IS_THE_BEST_VALUE
+  - THE_CLI_SUMMARY_LINE_WAS_A_SECOND_SURFACE_THE_RULE_NEVER_REACHED_grep_every_format_spec_on_the_same_field
+followups: []
+---
+
+---
+session: 2026-10-05T08:41Z
+duration_min: 2   # computed: started 08:40Z -> 08:41Z
+issue: 180
+branch: session/2026-10-05-0841-issue-180
+focus: REGENERATED_BENCHMARKS_MD_PRESERVED_A_SENTENCE_QUOTING_RECALL_AT_5_0_52_WHICH_ANY_OTHER_RESULT_LEAVES_STALE
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 2
+  suite: "1110 -> 1112 green; regeneration zero diff"
+decisions_made: []
+measured: "old sentence flagged by the lock (non-vacuity arm); restoring it 1 red"
+context_for_next_session:
+  - A_REGENERATED_FILES_PRESERVED_PROSE_MUST_NOT_QUOTE_GENERATED_NUMBERS_the_145_splice_keeps_prose_verbatim
+  - README_QUOTES_OF_THE_COMMITTED_NUMBERS_ARE_HAND_MAINTAINED_AND_TIED_TO_115_left_alone
+followups: []
+---
+
+---
 session: 2026-10-05T09:11Z
 duration_min: 2   # computed: started 09:09Z -> 09:11Z
 issue: 182

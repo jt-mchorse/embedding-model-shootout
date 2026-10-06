@@ -1251,7 +1251,20 @@ def _format_quality(value: float) -> str:
     here: `_recall_cell` returns the em dash before calling this, which keeps
     `#127`'s three-way distinction intact.
     """
-    return _format_no_fabricated_zero(value, places=_QUALITY_PLACES, sig_figs=_QUALITY_SIG_FIGS)
+    narrow = _format_no_fabricated_zero(value, places=_QUALITY_PLACES, sig_figs=_QUALITY_SIG_FIGS)
+    # The other extreme (#178). `1.0` is the *best* recall/nDCG, so the argument
+    # above -- truncation understates, nobody is flattered -- holds at the bottom
+    # only. At the top `.3f` rounds UP into the best value: 1999/2000 = 0.9995
+    # published `1.000`, byte-identical to a perfect row, while `aggregate_json`
+    # carried 0.9995. Widen until a non-perfect score no longer reads as one; a
+    # genuine 1.0 keeps `1.000`.
+    if value != 1.0 and float(narrow) == 1.0:
+        for places in range(_QUALITY_PLACES + 1, 18):
+            wide = f"{value:.{places}f}"
+            if float(wide) != 1.0:
+                return wide
+        return repr(value)
+    return narrow
 
 
 def _format_no_fabricated_zero(value: float, *, places: int, sig_figs: int) -> str:
