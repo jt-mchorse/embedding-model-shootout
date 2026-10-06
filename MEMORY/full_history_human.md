@@ -1901,3 +1901,10 @@ identical to a perfect score. Such values are now printed with enough decimals
 to tell them apart, while a genuine 1.0 still prints `1.000`. The one-line
 summary that `sweep run` prints used plain rounding at both ends and now uses
 the same rule. The committed benchmark table is unchanged.
+
+## 2026-10-05 — the regenerated benchmark page doesn't quote a stale number (#180)
+
+`docs/benchmarks.md` regenerates its table and keeps the surrounding text. One
+sentence quoted the table's recall@5, so regenerating from any other results
+left the old number under a new table. The sentence now refers to the table,
+and a test fails if the kept text quotes one of the table's numbers again.

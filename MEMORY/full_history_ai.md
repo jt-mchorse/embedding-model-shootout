@@ -1976,3 +1976,22 @@ context_for_next_session:
   - THE_CLI_SUMMARY_LINE_WAS_A_SECOND_SURFACE_THE_RULE_NEVER_REACHED_grep_every_format_spec_on_the_same_field
 followups: []
 ---
+
+---
+session: 2026-10-05T08:41Z
+duration_min: 2   # computed: started 08:40Z -> 08:41Z
+issue: 180
+branch: session/2026-10-05-0841-issue-180
+focus: REGENERATED_BENCHMARKS_MD_PRESERVED_A_SENTENCE_QUOTING_RECALL_AT_5_0_52_WHICH_ANY_OTHER_RESULT_LEAVES_STALE
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 2
+  suite: "1110 -> 1112 green; regeneration zero diff"
+decisions_made: []
+measured: "old sentence flagged by the lock (non-vacuity arm); restoring it 1 red"
+context_for_next_session:
+  - A_REGENERATED_FILES_PRESERVED_PROSE_MUST_NOT_QUOTE_GENERATED_NUMBERS_the_145_splice_keeps_prose_verbatim
+  - README_QUOTES_OF_THE_COMMITTED_NUMBERS_ARE_HAND_MAINTAINED_AND_TIED_TO_115_left_alone
+followups: []
+---

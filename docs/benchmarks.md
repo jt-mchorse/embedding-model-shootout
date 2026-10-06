@@ -19,7 +19,7 @@ against the corpus with their API key and commits the resulting
 | hash-embedder-128d-ngram2 | 128 | 12010 | 50 | 0.320 | 0.520 | 0.620 | 0.449 | 429 | 0.013 | 0.017 | $0.000 |
 <!-- emb-shootout:table:end -->
 
-`hash-embedder-128d-ngram2`'s recall@5 of **0.52** isn't the takeaway — it's
+`hash-embedder-128d-ngram2`'s recall@5 in the table isn't the takeaway — it's
 the *lower bound*. A SHA-256 bag-of-bigrams projection is a useless
 embedder; the real embedders should score substantially higher on the same
 queries. When they don't, that's the interesting finding.
