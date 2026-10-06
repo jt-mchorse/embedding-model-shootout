@@ -116,7 +116,7 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
     # provider modules whose optional deps may not be installed.
     from .providers import PROVIDER_REGISTRY
     from .queries import build_queries
-    from .sweep import run_sweep
+    from .sweep import _format_quality, run_sweep
 
     if args.provider not in PROVIDER_REGISTRY:
         sys.stderr.write(
@@ -164,8 +164,10 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
         # `k_values=(1, 5, 10)` above, so 5 is always present, and a default
         # here would silently print `recall@5=0.000` if that tuple ever changed.
         # A KeyError naming the missing key is the better failure.
-        f"{result.embedder_name}: recall@5={result.recall_at_k[5]:.3f} "
-        f"NDCG@10={result.ndcg_at_10:.3f} → {out_path}\n"
+        # Through the table's renderer (#178): a bare `.3f` here printed a
+        # 1-in-4000 recall as `0.000` (#149's harm) and 0.9995 as `1.000`.
+        f"{result.embedder_name}: recall@5={_format_quality(result.recall_at_k[5])} "
+        f"NDCG@10={_format_quality(result.ndcg_at_10)} → {out_path}\n"
     )
     return 0
 
