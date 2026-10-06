@@ -1995,3 +1995,22 @@ context_for_next_session:
   - README_QUOTES_OF_THE_COMMITTED_NUMBERS_ARE_HAND_MAINTAINED_AND_TIED_TO_115_left_alone
 followups: []
 ---
+
+---
+session: 2026-10-05T09:11Z
+duration_min: 2   # computed: started 09:09Z -> 09:11Z
+issue: 182
+branch: session/2026-10-05-0910-issue-182
+focus: CORPUS_BUILD_WAS_NONDETERMINISTIC_ON_ONE_INTERPRETER_51_SIGNATURE_REPRS_CARRIED_MEMORY_ADDRESSES
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 2
+  suite: "1110 -> 1112 green; ruff clean"
+decisions_made: []
+measured: "main: three builds, three sha1s, 51 ' at 0x' chunks; after: three builds under PYTHONHASHSEED=1,2,3 byte-identical, 0 addresses, 12020 chunks. Both arms red against main. A first pattern requiring '>' after the address missed the weakref repr ('at 0x...; to ...')"
+context_for_next_session:
+  - SAME_INTERPRETER_INSTABILITY_IS_NOT_115_which_is_cross_version_COMMITTED_RESULTS_LEFT_FOR_JTS_115_DECISION
+  - CHECK_DETERMINISM_ACROSS_PROCESSES_AND_HASH_SEEDS_NOT_TWO_CALLS_IN_ONE_PROCESS_addresses_can_repeat_within_a_process
+followups: []
+---

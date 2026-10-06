@@ -1908,3 +1908,12 @@ the same rule. The committed benchmark table is unchanged.
 sentence quoted the table's recall@5, so regenerating from any other results
 left the old number under a new table. The sentence now refers to the table,
 and a test fails if the kept text quotes one of the table's numbers again.
+
+## 2026-10-05 — the corpus build gives the same corpus every time (#182)
+
+The docs promise the same corpus from the same Python version. In practice
+every build differed, because 51 function signatures included memory
+addresses from their default values. So two providers swept on separately
+built corpora couldn't be compared. The addresses are now stripped, and three
+builds under different hash seeds are identical. The committed results weren't
+re-measured; that belongs with the open cross-version question (#115).
