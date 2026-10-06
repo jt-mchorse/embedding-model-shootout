@@ -19,6 +19,7 @@ Contract this test pins:
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -116,3 +117,42 @@ def test_surface_3_aggregate_renders_benchmarks_md_header(capture_output: str) -
 def test_capture_demo_script_exists_and_is_executable() -> None:
     assert SCRIPT.exists(), f"missing {SCRIPT}"
     assert os.access(SCRIPT, os.X_OK), f"{SCRIPT} should be executable"
+
+
+# --- #184: the interpreter the stages run on, and the closing count -----------
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+def test_an_emb_shootout_first_on_path_is_never_run(tmp_path: Path) -> None:
+    """Every stage ran bare `emb-shootout`: exit 127 with an unactivated .venv,
+    and another install's code (and Python, and so corpus) otherwise (#184)."""
+    marker = "STALE-EMB-SHOOTOUT-FROM-PATH"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake = fake_bin / "emb-shootout"
+    fake.write_text(f"#!/bin/sh\necho {marker}\nexit 0\n")
+    fake.chmod(0o755)
+    env = dict(os.environ)
+    env["CAPTURE_PACE_SECONDS"] = "0"
+    env["PATH"] = os.pathsep.join([str(fake_bin), str(Path(sys.executable).parent), env["PATH"]])
+    r = subprocess.run(  # noqa: S603
+        ["bash", str(SCRIPT)],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=False,
+    )
+    assert r.returncode == 0, r.stderr[-1500:]
+    assert marker not in r.stdout + r.stderr, "a stage ran the emb-shootout on PATH"
+    assert "| embedder | dim |" in r.stdout, "stage 3 rendered no table"
+
+
+def test_the_closing_banner_counts_the_surfaces_the_opening_one_does() -> None:
+    text = SCRIPT.read_text(encoding="utf-8")
+    opening = re.search(r"printf '(\w+) surfaces · ", text)
+    closing = re.search(r'banner "done · the (\w+) surfaces', text)
+    assert opening is not None
+    assert closing is not None
+    assert opening.group(1) == closing.group(1)

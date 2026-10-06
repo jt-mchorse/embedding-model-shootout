@@ -76,6 +76,21 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# This checkout's code on one resolved interpreter, as the sibling demo
+# scripts do. Every stage ran the bare console script `emb-shootout`, which is
+# bound to whichever install created it: with the repo's .venv present but not
+# activated this exited 127, and another install's script would record its own
+# code on its own Python -- and for this repo the Python version changes the
+# corpus itself (D-002, #115) (#184).
+if [ -x "$REPO_ROOT/.venv/bin/python" ]; then
+  PYTHON_BIN="$REPO_ROOT/.venv/bin/python"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="python"
+else
+  PYTHON_BIN="python3"
+fi
+EMB=("$PYTHON_BIN" -m emb_shootout.cli)
+
 CORPUS_PATH="$TMPDIR_DEMO/corpus.jsonl"
 RESULTS_DIR="$TMPDIR_DEMO/results"
 RESULT_JSON="$RESULTS_DIR/hash.json"
@@ -86,18 +101,19 @@ banner "embedding-model-shootout · 60-second demo"
 printf 'three surfaces · hash baseline · no API key, no network\n'
 printf 'single-module corpus (CAPTURE_DEMO_MODULE=%s) keeps the recording snappy.\n' "$MODULE"
 printf 'full-corpus headline numbers live in docs/benchmarks.md and README "Takeaways".\n'
+printf 'every `emb-shootout` below runs as `%s -m emb_shootout.cli` (this checkout).\n' "${PYTHON_BIN#"$REPO_ROOT"/}"
 pace
 
 banner "1/3 · corpus build (D-002 reproducible from source + D-003 one-member-per-chunk)"
 printf 'emb-shootout corpus build --module %s --out <tmp>\n\n' "$MODULE"
-emb-shootout corpus build --module "$MODULE" --out "$CORPUS_PATH"
+"${EMB[@]}" corpus build --module "$MODULE" --out "$CORPUS_PATH"
 pace
 
 banner "2/3 · sweep run · hash baseline (D-004 dep-free Embedder Protocol)"
 printf 'emb-shootout sweep run --provider hash --corpus <tmp> --queries %s\n' "$QUERIES"
 printf '  queries derived from corpus at sweep time, seed=42 (D-005).\n'
 printf '  recall@1/5/10 + NDCG@10 + latency p50/p95 written to <tmp>/results/hash.json.\n\n'
-emb-shootout sweep run \
+"${EMB[@]}" sweep run \
   --provider hash \
   --corpus  "$CORPUS_PATH" \
   --queries "$QUERIES" \
@@ -107,12 +123,12 @@ pace
 banner "3/3 · aggregate · markdown table (D-007 one-json-per-provider, aggregator merges)"
 printf 'emb-shootout sweep aggregate --results-dir <tmp> --out <tmp>.md\n'
 printf '  same format that docs/benchmarks.md ships (locked by test_benchmarks_md_snapshot).\n\n'
-emb-shootout sweep aggregate --results-dir "$RESULTS_DIR" --out "$BENCH_MD"
+"${EMB[@]}" sweep aggregate --results-dir "$RESULTS_DIR" --out "$BENCH_MD"
 printf '\n─── rendered table ──────────────────────────────────────────────────\n\n'
 cat "$BENCH_MD"
 pace
 
-banner "done · the four surfaces of the repo are demonstrably wired end-to-end"
+banner "done · the three surfaces above are demonstrably wired end-to-end"
 printf 'next stop for a real-provider row:\n'
 printf '  pip install -e .[openai]\n'
 printf '  OPENAI_API_KEY=... emb-shootout sweep run --provider openai \\\n'
