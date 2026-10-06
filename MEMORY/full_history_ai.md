@@ -1959,6 +1959,25 @@ followups: []
 ---
 
 ---
+session: 2026-10-05T08:11Z
+duration_min: 3   # computed: first repro 08:08Z -> 08:11Z
+issue: 178
+branch: session/2026-10-05-0809-issue-178
+focus: _format_quality_WIDENED_ONLY_THE_ZERO_END_0_9995_ROUNDED_UP_TO_1_000_THE_BEST_VALUE_AND_THE_SWEEP_RUN_LINE_HAD_NEITHER_RULE
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 13
+  suite: "1110 -> 1123 green; ruff clean; docs/benchmarks.md regenerates with zero diff"
+decisions_made: []
+measured: "_format_quality(0.9995) '1.000' on main, now '0.9995'; two 2000-query rows 1.0 vs 0.9995 rendered identically, now differ. Probes: top end 6 red, CLI bare .3f 2 red, hard-coded-range neighbour 3 red, fixed-four-places neighbour 1 red"
+context_for_next_session:
+  - FOUND_BY_READING_149S_OWN_SCOPE_ARGUMENT_it_said_the_extreme_default_half_does_NOT_transfer_because_0_is_the_worst_value_TRUE_AT_ONE_END_THE_OTHER_END_IS_THE_BEST_VALUE
+  - THE_CLI_SUMMARY_LINE_WAS_A_SECOND_SURFACE_THE_RULE_NEVER_REACHED_grep_every_format_spec_on_the_same_field
+followups: []
+---
+
+---
 session: 2026-10-05T08:41Z
 duration_min: 2   # computed: started 08:40Z -> 08:41Z
 issue: 180
