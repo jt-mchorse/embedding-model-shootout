@@ -1927,3 +1927,13 @@ install's code on its Python, which for this repo changes the corpus itself.
 The script now picks the repo's own interpreter, as the sibling repos' demo
 scripts do, and runs the package as a module. Its closing line also said "four
 surfaces" after running three; it now says three.
+
+## 2026-10-07 — Nomic and Cohere embed queries as queries (#186, D-016)
+
+Both providers have separate modes for documents and for search queries, but
+the benchmark sent queries in document mode, which would skew their results
+in the comparison. Providers can now offer an optional query method, which the
+benchmark uses for queries (decision D-016). Also filed for JT: about three
+quarters of the corpus is duplicated docstrings (Python's `int` docstring
+appears 1,700 times), which caps every provider's recall, and fixing it
+changes every published number.
