@@ -2014,3 +2014,22 @@ context_for_next_session:
   - CHECK_DETERMINISM_ACROSS_PROCESSES_AND_HASH_SEEDS_NOT_TWO_CALLS_IN_ONE_PROCESS_addresses_can_repeat_within_a_process
 followups: []
 ---
+
+---
+session: 2026-10-06T08:50Z
+duration_min: 1   # computed: plan comment 08:49:21Z -> 08:50Z (date -u); reproduced from ~08:48Z
+issue: 184
+branch: session/2026-10-06-0849-issue-184
+focus: capture_demo_RAN_BARE_emb_shootout_WITH_NO_INTERPRETER_RESOLUTION_exit_127_with_an_unactivated_venv_and_the_closing_banner_said_four_surfaces_after_three
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 2
+  suite: "1127 -> 1129 passed; ruff, format clean"
+decisions_made: []
+measured: "env -u VIRTUAL_ENV PATH=/usr/bin:/bin: main exit 127 at stage 1, fixed exit 0 with the table. Revert probe: both arms rc 1."
+context_for_next_session:
+  - THIRD_REPO_TODAY_WITH_A_CAPTURE_STAGE_ON_A_BARE_CONSOLE_SCRIPT_vsas_178_pyasync_142_ems_184_ALL_CLOSED_with_python_m_and_a_fake_on_PATH_test
+  - FOR_THIS_REPO_THE_INTERPRETER_CHANGES_THE_CORPUS_not_just_the_code_D_002_115
+followups: []
+---

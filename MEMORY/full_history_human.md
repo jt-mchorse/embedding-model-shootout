@@ -1917,3 +1917,13 @@ addresses from their default values. So two providers swept on separately
 built corpora couldn't be compared. The addresses are now stripped, and three
 builds under different hash seeds are identical. The committed results weren't
 re-measured; that belongs with the open cross-version question (#115).
+
+## 2026-10-06 — the demo runs this checkout's code on a known Python (#184)
+
+Every stage of the demo script ran the `emb-shootout` command from the
+shell's PATH. With the repo's virtualenv present but not activated it failed
+immediately, and with some other install on the PATH it would record that
+install's code on its Python, which for this repo changes the corpus itself.
+The script now picks the repo's own interpreter, as the sibling repos' demo
+scripts do, and runs the package as a module. Its closing line also said "four
+surfaces" after running three; it now says three.
