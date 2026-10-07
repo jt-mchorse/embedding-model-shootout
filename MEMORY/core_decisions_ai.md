@@ -178,3 +178,13 @@
   reversibility: cheap
   related_issues: ["#156", "#155", "#115"]
   superseded_by: null
+
+- id: D-016
+  date: 2026-10-07
+  decision: EMBED_STAYS_THE_ONE_REQUIRED_METHOD_D_004_A_PROVIDER_WHOSE_MODEL_IS_ASYMMETRIC_ADDS_AN_OPTIONAL_embed_query_AND_run_sweep_PREFERS_IT_FOR_QUERIES
+  rationale: nomic_prefixed_every_query_search_document_and_cohere_sent_input_type_search_document_for_queries_both_vendors_document_asymmetric_retrieval_so_their_rows_measured_a_mode_the_vendor_calls_wrong
+  scope: nomic_search_query_prefix_and_cohere_query_input_type_default_search_query_configurable_voyage_and_bge_unchanged_voyage_leaves_input_type_unset_which_its_api_allows
+  alternatives_rejected: ["A_REQUIRED_SECOND_METHOD_ON_THE_PROTOCOL_REJECTED_every_symmetric_provider_would_need_a_copy_of_embed", "A_MODE_FLAG_ON_embed_REJECTED_changes_the_one_signature_D_004_fixes", "A_CONSTRUCTOR_TOGGLE_REJECTED_one_instance_embeds_both_corpus_and_queries_in_one_sweep"]
+  reversibility: cheap
+  related_issues: ["#186"]
+  superseded_by: null

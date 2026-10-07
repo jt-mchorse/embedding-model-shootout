@@ -388,3 +388,22 @@ The fields are written only when recorded, so every earlier result file round-tr
 **Reversibility:** Cheap.
 
 **Related issues:** #156, #155, #115
+
+## D-016 — queries go through an optional `embed_query` (2026-10-07)
+
+**Decision:** `embed` stays the one required provider method (D-004). A provider
+whose model is trained asymmetrically adds an optional `embed_query`, and
+`run_sweep` uses it for queries. Nomic uses the `search_query: ` prefix and
+Cohere uses `input_type="search_query"` (configurable). Voyage and BGE are
+unchanged.
+
+**Why:** Both Nomic and Cohere document separate query and document modes, and
+the sweep embedded queries as documents, so their rows would have been measured
+in a mode the vendors call wrong.
+
+**Alternatives rejected:** A required second Protocol method, which every
+symmetric provider would have to duplicate. A mode flag on `embed`, which
+changes D-004's single signature. A constructor toggle, which can't work when
+one instance embeds both the corpus and the queries in one sweep.
+
+**Reversibility:** Cheap.
