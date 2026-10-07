@@ -2051,5 +2051,19 @@ context_for_next_session:
   - ROUTING_A_CALL_THROUGH_A_LOCAL_NAME_HID_IT_FROM_AN_AST_CENSUS_KEYED_ON_THE_ATTRIBUTE_SPELLING_update_the_census_with_the_seam
   - GOTCHA_I_GUESSED_THE_NEXT_ISSUE_NUMBER_AND_WAS_OFF_BY_ONE_create_the_issue_BEFORE_writing_its_number_into_code
   - JT_GATED_ems_corpus_duplication_filed_high_with_three_options
+session: 2026-10-07T10:12Z
+duration_min: 5
+issue: 189
+branch: session/2026-10-07-ems-reader-surrogate
+focus: THE_SWEEP_READER_MIRRORED_THE_VALIDATOR_EXCEPT_THE_RULE_ADDED_LATER
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 8
+  suite: "1137 passed (junitxml); ruff, format clean"
+decisions_made: []
+measured: "reader accepted a 21-row corpus with \\ud800 on main; fix refuses at line 21. Revert 4/8 red."
+context_for_next_session:
+  - TWO_LOADERS_THAT_MIRROR_EACH_OTHER_BY_HAND_DRIFT_ON_THE_NEXT_RULE_share_a_helper_per_rule
 followups: []
 ---
