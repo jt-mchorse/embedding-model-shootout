@@ -349,3 +349,14 @@ from before #156 round-trips to the same bytes and is held to the counts. The
 committed `results/hash.json` is one: regenerating it re-measures the latencies
 the README quotes, and #115 already escalates regenerating that artifact, so the
 two are left to land together.
+
+## Queries are embedded in query mode where the model has one (#186, D-016)
+
+`embed` is still the one required provider method (D-004). Nomic and Cohere
+train their models asymmetrically, with one mode for documents and another for
+queries, so each also defines an optional `embed_query`, and `run_sweep` uses
+it for queries through `_query_embed_fn`. Nomic prefixes `search_query: `.
+Cohere sends `input_type="search_query"`, configurable as `query_input_type`.
+Before this, both embedded queries as documents. The embed-seam census in
+`tests/test_sweep_embed_arity.py` counts a call through the selected method as
+a seam, so the query path keeps its arity guard.

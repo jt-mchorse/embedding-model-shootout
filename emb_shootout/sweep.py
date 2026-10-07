@@ -44,6 +44,20 @@ class Embedder(Protocol):
         """Return one float vector per input text. All vectors share `self.dim`."""
 
 
+def _query_embed_fn(embedder: Embedder):
+    """The method that embeds QUERIES: `embed_query` when the provider has one.
+
+    `embed` stays the one required method (D-004). A provider whose model is
+    trained asymmetrically -- Nomic's `search_query:` prefix, Cohere's
+    `input_type="search_query"` -- adds an optional `embed_query`, and the sweep
+    prefers it for queries (D-016, #186). Without it both vendors' rows were
+    measured with queries embedded as documents, a mode their own docs say is
+    wrong for retrieval.
+    """
+    fn = getattr(embedder, "embed_query", None)
+    return fn if callable(fn) else embedder.embed
+
+
 # ----------------------------------------------------------------------
 # Data shapes
 # ----------------------------------------------------------------------
@@ -983,9 +997,10 @@ def run_sweep(
     # Embed queries one at a time so we can capture per-query latency.
     query_latencies_ms: list[float] = []
     query_vectors: list[list[float]] = []
+    embed_query = _query_embed_fn(embedder)
     for q in queries:
         t0 = time.perf_counter()
-        vecs = embedder.embed([q.text])
+        vecs = embed_query([q.text])
         query_latencies_ms.append((time.perf_counter() - t0) * 1000.0)
         # Same contract as the corpus call above. Indexing `[0]` straight off
         # the result raised `IndexError` on an empty return and silently scored

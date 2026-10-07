@@ -57,11 +57,21 @@ class NomicProvider:
         self.batch_size = batch_size
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        """Embed DOCUMENTS, with Nomic's prescribed `search_document: ` prefix."""
         refuse_bare_string("texts", texts)  # #169: before any client/encoder use
-        # Nomic's documentation prescribes a "search_document: " or "search_query: "
-        # prefix; for the sweep harness's documents we use the document prefix.
-        # Operators evaluating asymmetric search would override this.
-        prefixed = [f"search_document: {t}" for t in texts]
+        return self._encode([f"search_document: {t}" for t in texts])
+
+    def embed_query(self, texts: Sequence[str]) -> list[list[float]]:
+        """Embed QUERIES, with `search_query: ` (#186, D-016).
+
+        `nomic-embed-text-v1.5` is trained with task prefixes; a query embedded
+        with the document prefix is out of distribution for retrieval. The sweep
+        calls this for queries; it used to send them through `embed`.
+        """
+        refuse_bare_string("texts", texts)
+        return self._encode([f"search_query: {t}" for t in texts])
+
+    def _encode(self, prefixed: list[str]) -> list[list[float]]:
         arr = self.encoder.encode(
             prefixed,
             batch_size=self.batch_size,

@@ -204,6 +204,20 @@ def test_every_embed_call_site_is_guarded() -> None:
     # Parse rather than grep: the guard's own docstring quotes the expression
     # it replaced, and a text scan counts that prose as a call site.
     tree = ast.parse(Path(sweep_module.__file__).read_text(encoding="utf-8"))
+    # Since D-016 (#186) queries are embedded through the method
+    # `_query_embed_fn(embedder)` picks, bound to a local name. A call through
+    # that name is an embed seam too, or this census would stop seeing the
+    # query seam -- the exact blind spot it exists to close.
+    query_fn_names = {
+        target.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Call)
+        and isinstance(node.value.func, ast.Name)
+        and node.value.func.id == "_query_embed_fn"
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
     embed_calls = 0
     guards = 0
     for node in ast.walk(tree):
@@ -212,10 +226,10 @@ def test_every_embed_call_site_is_guarded() -> None:
         func = node.func
         if (
             isinstance(func, ast.Attribute)
-            and func.attr == "embed"
+            and func.attr in ("embed", "embed_query")
             and isinstance(func.value, ast.Name)
             and func.value.id == "embedder"
-        ):
+        ) or (isinstance(func, ast.Name) and func.id in query_fn_names):
             embed_calls += 1
         elif isinstance(func, ast.Name) and func.id == "_require_one_vector_per_text":
             guards += 1
