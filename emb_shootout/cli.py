@@ -174,6 +174,7 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
 
 def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
     from .sweep import (
+        TABLE_BEGIN_MARKER,
         SweepResult,
         aggregate_json,
         aggregate_markdown,
@@ -218,7 +219,24 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
     except ValueError as e:
         sys.stderr.write(f"{e}\n")
         return 2
-    if args.format != "json":
+    if args.format == "json":
+        # The splice below is the markdown arm's only. `--out` defaults to
+        # `docs/benchmarks.md` for both formats, so `--format json` with no
+        # `--out` -- #23's documented CI form -- replaced that whole file with
+        # JSON at exit 0, deleting the prose #145 (D-011) protects (#193). A
+        # destination carrying the table marker is a markdown artifact whose
+        # prose the generator does not own; JSON never goes there.
+        try:
+            marked = TABLE_BEGIN_MARKER in out_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            marked = False  # same as the markdown arm: nothing to preserve
+        if marked:
+            sys.stderr.write(
+                f"refusing to write --format json over {out_path}: it is a markdown "
+                f"artifact carrying {TABLE_BEGIN_MARKER}; pass --out <path>.json\n"
+            )
+            return 2
+    else:
         # Preserve the destination's non-generated prose when it marks a region
         # for us (#145, D-011). Before this, `--out docs/benchmarks.md` -- the
         # command that file's own opening paragraph tells the operator to run --
@@ -480,7 +498,11 @@ def _build_parser() -> argparse.ArgumentParser:
     aggregate.add_argument(
         "--out",
         default="docs/benchmarks.md",
-        help="Output path (default: %(default)s; switch with --format json).",
+        help=(
+            "Output path (default: %(default)s, the markdown artifact). With "
+            "--format json pass --out <path>.json: JSON is refused over a file "
+            "carrying the generated-table marker."
+        ),
     )
     aggregate.add_argument(
         "--format",
