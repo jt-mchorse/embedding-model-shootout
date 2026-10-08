@@ -91,8 +91,8 @@ def main() -> int:
             f"    {pt.embedder_name}: $/M={pt.cost_per_million_tokens}, "
             f"recall@5={pt.recall_at_k.get(5, 0.0):.3f}"
         )
-    # frontier-check:begin -- kept identical in notebooks/_verify.py and
-    # notebooks/reproduce.ipynb (tests/test_reproduce_frontier_check.py).
+    # frontier-check:begin -- kept identical in _verify.py, reproduce.ipynb and
+    # _build_notebook.py, which writes the notebook (#197; locked by a test).
     # Holds for any valid result set: the frontier is non-empty and drawn from the
     # inputs, and a dominated result is simply left off it. This used to assert
     # `len(frontier) == len(results)`, which is true only while no result is
