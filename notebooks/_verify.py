@@ -1,10 +1,9 @@
 """Script form of `notebooks/reproduce.ipynb`.
 
 Lets us verify the whole reproduction flow runs end-to-end without
-installing jupyter, then keeps the notebook in lockstep. If this script
-diverges from the notebook in the future, the test suite's
-`test_notebook_in_sync_with_verify_py` (added with the notebook) will
-catch it.
+installing jupyter. The two are kept in step by hand; the one block a test
+holds identical in both is the frontier check in step 5
+(`tests/test_reproduce_frontier_check.py`, #197).
 
 Run:
     .venv/bin/python notebooks/_verify.py
@@ -92,10 +91,18 @@ def main() -> int:
             f"    {pt.embedder_name}: $/M={pt.cost_per_million_tokens}, "
             f"recall@5={pt.recall_at_k.get(5, 0.0):.3f}"
         )
-    # With only the hash baseline committed, the frontier is trivially
-    # itself — one point. Acceptance: the count matches the number of
-    # provider result files.
-    assert len(frontier) == len(results)
+    # frontier-check:begin -- kept identical in notebooks/_verify.py and
+    # notebooks/reproduce.ipynb (tests/test_reproduce_frontier_check.py).
+    # Holds for any valid result set: the frontier is non-empty and drawn from the
+    # inputs, and a dominated result is simply left off it. This used to assert
+    # `len(frontier) == len(results)`, which is true only while no result is
+    # dominated, so the first dominated provider row failed the reproducer (#197).
+    on_frontier = {id(pt) for pt in frontier}
+    assert frontier, "a non-empty result set has a non-empty frontier"
+    assert on_frontier <= {id(r) for r in results}, "frontier points must be input results"
+    dominated = [r.embedder_name for r in results if id(r) not in on_frontier]
+    print(f"dominated: {dominated or 'none'}")
+    # frontier-check:end
 
     print()
     print("All steps completed without error.")
