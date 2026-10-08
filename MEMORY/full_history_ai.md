@@ -2067,3 +2067,21 @@ context_for_next_session:
   - TWO_LOADERS_THAT_MIRROR_EACH_OTHER_BY_HAND_DRIFT_ON_THE_NEXT_RULE_share_a_helper_per_rule
 followups: []
 ---
+---
+session: 2026-10-08T08:10Z
+duration_min: 15
+issue: 193
+branch: session/2026-10-08-issue-193
+focus: SWEEP_AGGREGATE_FORMAT_JSON_WITH_THE_DEFAULT_OUT_OVERWROTE_DOCS_BENCHMARKS_MD_THE_145_SPLICE_WAS_ON_THE_MARKDOWN_ARM_ONLY
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 6
+  suite: "1141 -> 1147 passed; ruff check and ruff format --check clean"
+decisions_made: []
+measured: "main, scratch copy: 'sweep aggregate --format json' rc=0, docs/benchmarks.md 53 -> 25 lines of JSON, disclosure and markers gone. Fix: JSON over a file carrying TABLE_BEGIN_MARKER exits 2, file byte-identical. Revert probe (cli.py from origin/main, pycache cleared): 2 red (default and explicit marked --out), 4 controls green by design."
+context_for_next_session:
+  - A_TERNARY_HAS_TWO_ARMS_the_D_011_splice_sat_inside_if_format_not_json_and_both_arms_share_one_default_out
+  - JSON_DEFAULT_OUT_LEFT_AS_IS_a_refusal_closes_the_data_loss_without_choosing_a_new_cli_default_for_JT
+followups: []
+---
