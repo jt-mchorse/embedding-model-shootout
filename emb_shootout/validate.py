@@ -45,6 +45,20 @@ from pathlib import Path
 from typing import Any
 
 
+def first_lone_surrogate(value: str) -> tuple[int, int] | None:
+    """``(index, codepoint)`` of the first lone surrogate in ``value``, or None.
+
+    The one definition of #176's rule, shared by `validate_corpus` and the
+    fail-fast reader `sweep run` uses (`cli._read_corpus_jsonl`). The reader was
+    written to mirror the validator "so the two loaders agree on a valid row",
+    and #177 added this rule to the validator only (#189).
+    """
+    for i, ch in enumerate(value):
+        if unicodedata.category(ch) == "Cs":
+            return i, ord(ch)
+    return None
+
+
 @dataclass(frozen=True)
 class ValidationFinding:
     """One row-level issue surfaced by ``validate_corpus``.
@@ -229,18 +243,18 @@ def _validate_row(obj: dict[str, Any], line_no: int) -> list[ValidationFinding]:
         # the `hash` provider dies at embed time, and every provider dies in
         # `fingerprint_corpus` -- which runs after the whole corpus has been
         # embedded (#176). Same rule as chunking-strategies-lab#216.
-        for i, ch in enumerate(value):
-            if unicodedata.category(ch) == "Cs":
-                findings.append(
-                    ValidationFinding(
-                        line_no=line_no,
-                        reason=(
-                            f"field {field!r} contains the lone surrogate "
-                            f"U+{ord(ch):04X} at index {i}; it cannot be encoded "
-                            "as UTF-8, so `sweep run` would crash on it"
-                        ),
-                        code=f"unencodable_{field}",
-                    )
+        hit = first_lone_surrogate(value)
+        if hit is not None:
+            i, cp = hit
+            findings.append(
+                ValidationFinding(
+                    line_no=line_no,
+                    reason=(
+                        f"field {field!r} contains the lone surrogate "
+                        f"U+{cp:04X} at index {i}; it cannot be encoded "
+                        "as UTF-8, so `sweep run` would crash on it"
+                    ),
+                    code=f"unencodable_{field}",
                 )
-                break
+            )
     return findings

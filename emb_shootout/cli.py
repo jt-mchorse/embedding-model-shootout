@@ -320,6 +320,7 @@ def _cmd_sweep_plot(args: argparse.Namespace) -> int:
 def _read_corpus_jsonl(path: Path) -> list:
     """Read a corpus JSONL produced by `corpus build` and adapt to CorpusChunk."""
     from .sweep import CorpusChunk
+    from .validate import first_lone_surrogate
 
     chunks: list[CorpusChunk] = []
     seen_ids: dict[str, int] = {}
@@ -358,6 +359,18 @@ def _read_corpus_jsonl(path: Path) -> list:
                     )
                 if value == "":
                     raise ValueError(f"{path}:{line_no}: field {corpus_field!r} must not be empty")
+                # #176's rule, which #177 added to `validate_corpus` only (#189).
+                # A lone surrogate loads from JSON, and an HTTP provider SDK
+                # escapes it rather than failing, so the whole corpus was
+                # embedded -- and billed -- before `fingerprint_corpus` raised a
+                # raw UnicodeEncodeError at exit 1.
+                hit = first_lone_surrogate(value)
+                if hit is not None:
+                    raise ValueError(
+                        f"{path}:{line_no}: field {corpus_field!r} contains the lone "
+                        f"surrogate U+{hit[1]:04X} at index {hit[0]}; it cannot be "
+                        "encoded as UTF-8"
+                    )
             # `duplicate_chunk_id` was the one `validate_corpus` finding code
             # this reader didn't have, because #75 unified the *row-level*
             # checks and uniqueness is a file-level property — exactly the kind

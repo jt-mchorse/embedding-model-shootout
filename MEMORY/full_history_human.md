@@ -1937,3 +1937,9 @@ benchmark uses for queries (decision D-016). Also filed for JT: about three
 quarters of the corpus is duplicated docstrings (Python's `int` docstring
 appears 1,700 times), which caps every provider's recall, and fixing it
 changes every published number.
+## 2026-10-07 — the sweep refuses a corrupt corpus before paying to embed it (#189)
+
+The corpus validator rejected text containing an unencodable character, but the
+loader the sweep actually uses didn't, so a paid embedding provider would embed
+the whole corpus and then crash. Both now share one check, and the sweep stops
+at load time with the line number.
