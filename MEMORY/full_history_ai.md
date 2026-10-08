@@ -2033,3 +2033,23 @@ context_for_next_session:
   - FOR_THIS_REPO_THE_INTERPRETER_CHANGES_THE_CORPUS_not_just_the_code_D_002_115
 followups: []
 ---
+
+---
+session: 2026-10-07T08:27Z
+duration_min: 8
+issue: 186
+branch: session/2026-10-07-ems-query-mode
+focus: NOMIC_AND_COHERE_EMBEDDED_QUERIES_AS_DOCUMENTS_RUN_SWEEP_HAD_NO_QUERY_MODE
+phase: shipped
+delta:
+  files_changed: 7
+  tests_added: 5
+  suite: "1134 passed (junitxml); ruff, format clean"
+decisions_made: [D-016]
+measured: "stubbed SDKs through run_sweep: main sends search_document for queries on both. Revert: sweep 2/5, providers 4/5. Census anti-vacuity: deleting the query guard turns it red."
+context_for_next_session:
+  - ROUTING_A_CALL_THROUGH_A_LOCAL_NAME_HID_IT_FROM_AN_AST_CENSUS_KEYED_ON_THE_ATTRIBUTE_SPELLING_update_the_census_with_the_seam
+  - GOTCHA_I_GUESSED_THE_NEXT_ISSUE_NUMBER_AND_WAS_OFF_BY_ONE_create_the_issue_BEFORE_writing_its_number_into_code
+  - JT_GATED_ems_corpus_duplication_filed_high_with_three_options
+followups: []
+---

@@ -25,6 +25,7 @@ class CohereProvider:
         batch_size: int = 96,
         api_key: str | None = None,
         input_type: str = "search_document",
+        query_input_type: str = "search_query",
     ) -> None:
         # Validate batch_size before the lazy import so a misconfigured caller
         # gets a fast ValueError instead of a slow ImportError-then-network-init
@@ -52,9 +53,21 @@ class CohereProvider:
         self.cost_per_million_tokens = cost_per_million_tokens
         self.batch_size = batch_size
         self.input_type = input_type
+        # Cohere's v3 models are asymmetric: documents and queries take
+        # different `input_type`s (#186, D-016). Queries used `input_type` too.
+        self.query_input_type = query_input_type
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        """Embed DOCUMENTS (`input_type`, default `search_document`)."""
         refuse_bare_string("texts", texts)  # #169: before any client/encoder use
+        return self._embed(texts, self.input_type)
+
+    def embed_query(self, texts: Sequence[str]) -> list[list[float]]:
+        """Embed QUERIES (`query_input_type`, default `search_query`; #186)."""
+        refuse_bare_string("texts", texts)
+        return self._embed(texts, self.query_input_type)
+
+    def _embed(self, texts: Sequence[str], input_type: str) -> list[list[float]]:
         out: list[list[float]] = []
         items = list(texts)
         for start in range(0, len(items), self.batch_size):
@@ -62,7 +75,7 @@ class CohereProvider:
             response = self.client.embed(
                 model=self.model,
                 texts=batch,
-                input_type=self.input_type,
+                input_type=input_type,
                 embedding_types=["float"],
             )
             for vec in response.embeddings.float:
