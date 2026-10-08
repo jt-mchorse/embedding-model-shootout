@@ -108,8 +108,11 @@ def atomic_write_text(path: str | Path, text: str, encoding: str = "utf-8") -> N
     Parent directories are created with `mkdir(parents=True,
     exist_ok=True)` so callers don't have to gate on the parent
     themselves.
+
+    A symlinked destination is written THROUGH, as `Path.write_text` does
+    (#195): see `_resolve_symlinked_target`.
     """
-    target = Path(path)
+    target = _resolve_symlinked_target(Path(path))
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp_path: Path | None = None
     try:
@@ -158,6 +161,30 @@ def _create_temp(target: Path) -> tuple[int, Path]:
             continue
         return fd, candidate
     raise FileExistsError(f"could not create a unique temp file beside {target}")
+
+
+def _resolve_symlinked_target(target: Path) -> Path:
+    """The file a write to *target* lands in: through a symlink, as `write_text` does (#195).
+
+    `os.replace` renames onto the LINK, not the file it points at. So a
+    symlinked `--out` became a regular file and the linked file kept its old
+    contents, while the `Path.write_text` this helper replaced writes through
+    the link. `_copy_existing_mode` already followed the link (`os.stat`), so
+    the linked file's mode was copied onto a file that then replaced the link
+    instead (sibling of python-async-llm-pipelines#157).
+
+    Resolving here also places the temp file beside the RESOLVED file, which
+    keeps the rename on one filesystem when the link points at a different
+    one, and hands `_create_temp` the resolved basename to cap. A dangling
+    link resolves to the path it names, and the write creates that file, as
+    `write_text` would. With a link loop, non-strict `realpath` returns the
+    path unresolved, and the `os.stat` in `_copy_existing_mode` raises
+    `OSError` (ELOOP), which the CLI write-seam guards translate to exit 2. A
+    plain path comes back unchanged.
+    """
+    if not target.is_symlink():
+        return target
+    return Path(os.path.realpath(target))
 
 
 def _copy_existing_mode(target: Path, tmp_path: Path) -> None:
