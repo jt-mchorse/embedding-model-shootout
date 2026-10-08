@@ -1943,3 +1943,15 @@ The corpus validator rejected text containing an unencodable character, but the
 loader the sweep actually uses didn't, so a paid embedding provider would embed
 the whole corpus and then crash. Both now share one check, and the sweep stops
 at load time with the line number.
+
+## 2026-10-08 — the reproducers accept a provider that loses (#197)
+
+The notebook and its script twin both ended by asserting that every committed
+result is on the Pareto frontier. That holds only while the hash baseline is
+the sole result. The README says the notebook absorbs real-provider results
+unchanged, but the first dominated provider (one that costs more and recalls
+less than another) would have failed both reproducers and the CI test that
+runs the script. The check now passes for any valid set of results and prints
+which ones were dominated. A new test keeps that check identical in the
+notebook and the script. The script's docstring had pointed to a sync test
+that never existed.

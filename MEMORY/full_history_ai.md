@@ -2067,3 +2067,23 @@ context_for_next_session:
   - TWO_LOADERS_THAT_MIRROR_EACH_OTHER_BY_HAND_DRIFT_ON_THE_NEXT_RULE_share_a_helper_per_rule
 followups: []
 ---
+
+---
+session: 2026-10-08T08:11Z
+duration_min: 20
+issue: 197
+branch: session/2026-10-08-issue-197
+focus: THE_REPRODUCERS_ASSERTED_len_frontier_EQ_len_results_SO_THE_FIRST_DOMINATED_PROVIDER_ROW_BROKE_BOTH_AND_CI
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 3
+  suite: "1145 collected (junitxml), 0 failures, 1 skip; ruff check and ruff format --check clean"
+decisions_made: []
+measured: "main: scratch tree with hash.json + voyage ($0.06, 0.84) + openai-large ($0.13, 0.80): _verify.py prints frontier size 2 then AssertionError, exit 1. Fixed: exit 0, prints dominated list. Revert probe (notebooks restored from origin/main, pycache cleared): 3 of 3 red, each on the old assert."
+context_for_next_session:
+  - VERIFY_PY_DOCSTRING_NAMED_A_SYNC_TEST_test_notebook_in_sync_with_verify_py_THAT_NEVER_EXISTED_now_one_block_is_held_identical_by_markers
+  - THE_STEP_3_FRESH_SWEEP_VS_COMMITTED_COMPARISON_STAYS_WITH_115
+  - A_SCRATCH_TREE_SUBPROCESS_NEEDS_PYTHONPATH_TO_THE_CHECKOUT_the_editable_install_points_at_the_main_clone
+followups: []
+---
