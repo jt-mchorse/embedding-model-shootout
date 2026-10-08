@@ -1943,3 +1943,9 @@ The corpus validator rejected text containing an unencodable character, but the
 loader the sweep actually uses didn't, so a paid embedding provider would embed
 the whole corpus and then crash. Both now share one check, and the sweep stops
 at load time with the line number.
+## 2026-10-08 — writing to a symlinked --out updates the linked file (#195)
+
+When `--out` was a symlink, the atomic writer replaced the link with a
+plain file and left the file it pointed at unchanged. It now writes
+through the link, the way a plain write does, and keeps that file's
+permissions. Same fix as python-async-llm-pipelines #157.
