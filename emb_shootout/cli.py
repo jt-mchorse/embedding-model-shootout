@@ -139,7 +139,7 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
     # corpus-read seam above and the aggregate/plot seams (#75/#77).
     try:
         queries = build_queries(corpus, n=args.queries, seed=args.seed)
-        embedder = PROVIDER_REGISTRY[args.provider]()
+        embedder = _build_provider(PROVIDER_REGISTRY, args.provider)
         result = run_sweep(
             corpus, queries, embedder=embedder, k_values=(1, 5, 10), query_seed=args.seed
         )
@@ -333,6 +333,24 @@ def _cmd_sweep_plot(args: argparse.Namespace) -> int:
     }
     sys.stdout.write(json.dumps(summary, sort_keys=True) + "\n")
     return 0
+
+
+def _build_provider(registry: dict, name: str) -> object:
+    """Construct provider *name*, any failure a ValueError naming it (#202).
+
+    A provider constructor makes no paid request, so whatever it raises is
+    setup: a missing optional extra (`ImportError`), a missing API key (the
+    SDK client's own error, e.g. `openai.OpenAIError`), or a model that cannot
+    be loaded. None of those is a `ValueError`, so each escaped `sweep run`'s
+    `except ValueError` as a traceback at exit 1, a code the command does not
+    define. Same seam llm-eval-harness#338 closed for its judge client.
+    """
+    try:
+        return registry[name]()
+    except ValueError:
+        raise
+    except Exception as e:
+        raise ValueError(f"could not set up provider {name!r}: {type(e).__name__}: {e}") from e
 
 
 def _read_corpus_jsonl(path: Path) -> list:
