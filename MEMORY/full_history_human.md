@@ -1968,3 +1968,15 @@ When `--out` was a symlink, the atomic writer replaced the link with a
 plain file and left the file it pointed at unchanged. It now writes
 through the link, the way a plain write does, and keeps that file's
 permissions. Same fix as python-async-llm-pipelines #157.
+
+## 2026-10-08 — the reproducers accept a provider that loses (#197)
+
+The notebook and its script twin both ended by asserting that every committed
+result is on the Pareto frontier. That holds only while the hash baseline is
+the sole result. The README says the notebook absorbs real-provider results
+unchanged, but the first dominated provider (one that costs more and recalls
+less than another) would have failed both reproducers and the CI test that
+runs the script. The check now passes for any valid set of results and prints
+which ones were dominated. A new test keeps that check identical in the
+notebook and the script. The script's docstring had pointed to a sync test
+that never existed.
