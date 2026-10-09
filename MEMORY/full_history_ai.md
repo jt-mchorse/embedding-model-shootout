@@ -2068,6 +2068,24 @@ context_for_next_session:
 followups: []
 ---
 ---
+session: 2026-10-08T07:50Z
+duration_min: 20
+issue: 191
+branch: session/2026-10-08-issue-191
+focus: EMBEDDER_NAME_GUARD_REFUSED_EMPTY_STRING_FOR_THE_BLANK_CELL_HARM_AND_ADMITTED_WHITESPACE_ONLY_AND_LONE_SURROGATE_NAMES
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 15
+  suite: "1141 -> 1156 passed; ruff check and ruff format --check clean"
+decisions_made: []
+measured: "main: result JSON with embedder_name 'bad\\ud800name' -> sweep aggregate UnicodeEncodeError exit 1, sweep plot FT2Font TypeError exit 1; '   ' -> aggregate exit 0 with a blank published cell. Fix: both refused at from_dict and __post_init__, CLI exit 2. Revert probe (sweep.py from origin/main, pycache cleared): 12 red, 3 good-name controls green by design."
+context_for_next_session:
+  - CLOSES_THE_UNFILED_10_01_EMBEDDER_NAME_SURROGATE_NOTE_reused_validate_first_lone_surrogate_through_argcheck_refuse_unrenderable_name
+  - A_BYO_EMBEDDER_WITH_A_BAD_NAME_IS_STILL_REFUSED_ONLY_AFTER_THE_EMBED_same_timing_as_the_existing_empty_name_guard_not_reachable_from_the_cli
+followups: []
+---
+---
 session: 2026-10-08T08:10Z
 duration_min: 15
 issue: 193

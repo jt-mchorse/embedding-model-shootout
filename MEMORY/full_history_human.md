@@ -1944,6 +1944,15 @@ loader the sweep actually uses didn't, so a paid embedding provider would embed
 the whole corpus and then crash. Both now share one check, and the sweep stops
 at load time with the line number.
 
+## 2026-10-08 — a result's embedder name must be something the table can show (#191)
+
+Result files already refused an empty embedder name, because it published a
+blank row label. A name of only spaces published the same blank label, and a
+name containing a broken (lone surrogate) character, which a hand-edited JSON
+file can carry, crashed `sweep aggregate` and `sweep plot` with a raw
+traceback. Both are now refused when the file is loaded, with a clear message
+and exit code 2.
+
 ## 2026-10-08 — the JSON aggregate no longer overwrites the benchmarks page (#193)
 
 `sweep aggregate` writes to `docs/benchmarks.md` unless you pass `--out`, and
