@@ -23,6 +23,7 @@ from typing import Any, Protocol
 from ._argcheck import (
     is_non_empty_str,
     is_non_negative_finite,
+    refuse_unrenderable_name,
     require_int_sequence,
     require_mapping,
     require_str_sequence,
@@ -180,6 +181,8 @@ class SweepResult:
                 f"embedder_name must be a non-empty string; got {self.embedder_name!r} "
                 f"({type(self.embedder_name).__name__})"
             )
+        # Blank and lone-surrogate names (#191): the rest of the set `''` belongs to.
+        refuse_unrenderable_name("embedder_name", self.embedder_name)
         # D-006 makes `cost_per_million_tokens` operator-supplied at provider
         # construction. A negative value silently inverts the Pareto-frontier
         # comparator at pareto.py:33-34 (a negative-cost provider dominates
@@ -410,6 +413,7 @@ class SweepResult:
                 f"embedder_name must be a non-empty string; got {d['embedder_name']!r} "
                 f"({type(d['embedder_name']).__name__})"
             )
+        refuse_unrenderable_name("embedder_name", d["embedder_name"])  # #191
         for container_field in ("recall_at_k", "embed_latency_ms"):
             if not isinstance(d[container_field], dict):
                 raise ValueError(
