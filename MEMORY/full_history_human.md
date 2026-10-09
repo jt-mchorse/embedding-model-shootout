@@ -1980,3 +1980,11 @@ runs the script. The check now passes for any valid set of results and prints
 which ones were dominated. A new test keeps that check identical in the
 notebook and the script. The script's docstring had pointed to a sync test
 that never existed.
+
+## 2026-10-09 — A bad output path is refused before the paid sweep, not after (#200)
+
+`sweep run` embeds the whole corpus and every query, which costs money with a
+paid provider, and only then writes the result. If the output path could not
+be written (for example, it was an existing folder), all of that work was
+thrown away. The command now checks the output path first, the same way the
+real write would, and refuses before anything is sent to the provider.
