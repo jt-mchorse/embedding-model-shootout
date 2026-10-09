@@ -127,6 +127,33 @@ def is_non_empty_str(value: object) -> bool:
     return isinstance(value, str) and bool(value)
 
 
+def refuse_unrenderable_name(name: str, value: str) -> None:
+    """Refuse a ``str`` name the table and the plot cannot show (#191).
+
+    Runs after ``is_non_empty_str`` at both ``SweepResult`` seams, which refused
+    ``''`` because it "renders an EMPTY embedder column into the published
+    README table". Two more members of that set got through:
+
+    - a whitespace-only name renders the same blank cell;
+    - a lone surrogate (``json.loads`` builds one from the legal escape
+      ``"\\ud800"``) cannot be encoded, so ``sweep aggregate`` died in
+      ``atomic_write_text`` and ``sweep plot`` inside matplotlib -- raw
+      tracebacks at exit 1. #176/#189 closed this class for corpus rows through
+      ``first_lone_surrogate``; the same helper is reused here.
+    """
+    from .validate import first_lone_surrogate
+
+    if not value.strip():
+        raise ValueError(f"{name} must not be blank; got {value!r}")
+    hit = first_lone_surrogate(value)
+    if hit is not None:
+        index, codepoint = hit
+        raise ValueError(
+            f"{name} contains the lone surrogate U+{codepoint:04X} at index {index}, "
+            "which cannot be encoded as UTF-8"
+        )
+
+
 def require_sequence(name: str, value: object, *, element: str) -> None:
     """Raise ``ValueError`` unless *value* is an ordered sequence that is not itself a string.
 
