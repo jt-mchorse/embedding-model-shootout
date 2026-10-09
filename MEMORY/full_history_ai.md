@@ -2142,3 +2142,22 @@ context_for_next_session:
   - REPRODUCE_IPYNB_IS_GENERATED_BY_notebooks_build_notebook_py_I_FIRST_EDITED_ONLY_THE_IPYNB_the_builder_would_have_undone_it_the_sync_arm_now_reads_build()_too
 followups: []
 ---
+
+---
+session: 2026-10-09T08:45Z
+duration_min: 6   # computed: issue filed 2026-10-09T08:42:36Z -> PR 2026-10-09T08:45:59Z (gh createdAt); hunt-agent lead re-measured first
+issue: 200
+branch: session/2026-10-09-0850-issue-200
+focus: SWEEP_RUN_CHECKED_OUT_ONLY_AFTER_THE_PAID_SWEEP_AN_UNWRITABLE_PATH_EMBEDDED_12040_TEXTS_THEN_EXITED_2
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 7
+  suite: "1175 -> 1182 passed; ruff check + format clean"
+decisions_made: []
+measured: "12,020-chunk corpus, --queries 20, counting provider: main dir/under-a-file --out exit 2 after 12,040 texts; branch exit 2 after 0; control exit 0 with 12,040. Revert 5 red / 2 controls."
+context_for_next_session:
+  - PORTED_leh_287_check_writable_AGAINST_THIS_MODULES_OWN_WRITER_symlink_resolution_and_temp_name_come_from_ems_io_utils_not_leh
+  - THE_FIRST_TEST_CORPUS_WAS_TOO_SHORT_build_queries_needs_6_word_chunks_a_good_path_arm_that_exits_2_for_another_reason_would_hide_the_fix
+followups: []
+---

@@ -132,6 +132,30 @@ def atomic_write_text(path: str | Path, text: str, encoding: str = "utf-8") -> N
                 tmp_path.unlink()
 
 
+def check_writable(path: str | Path) -> None:
+    """Raise the `OSError` `atomic_write_text(path, ...)` would, without writing (#200).
+
+    A preflight for a write that comes after paid work: `sweep run --out` was
+    touched only once the provider had embedded the whole corpus and every
+    query, so an unwritable path billed a full sweep and then discarded it.
+    This does what the writer does -- the same symlink resolution (#195), the
+    same parent `mkdir`, the same exclusively-created temp file beside the
+    target -- and removes the temp file again, so a path passes exactly when
+    the real write would get that far. An existing directory is refused too:
+    the writer's final `os.replace` onto it would fail. llm-eval-harness#287's
+    helper, ported against this module's own writer.
+    """
+    target = _resolve_symlinked_target(Path(path))
+    if target.is_dir():
+        raise IsADirectoryError(21, "Is a directory", str(target))
+    with contextlib.suppress(FileNotFoundError):
+        os.stat(target)  # what `_copy_existing_mode` stats: a link loop raises here
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_path = _create_temp(target)
+    os.close(fd)
+    tmp_path.unlink()
+
+
 # File mode (#165, portfolio-ops#81). This helper used to create its temp file
 # with `tempfile.NamedTemporaryFile`, which always opens 0600 regardless of the
 # umask, and `os.replace` carries the temp file's mode onto the target. So every
