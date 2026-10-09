@@ -1952,3 +1952,13 @@ name containing a broken (lone surrogate) character, which a hand-edited JSON
 file can carry, crashed `sweep aggregate` and `sweep plot` with a raw
 traceback. Both are now refused when the file is loaded, with a clear message
 and exit code 2.
+
+## 2026-10-08 — the JSON aggregate no longer overwrites the benchmarks page (#193)
+
+`sweep aggregate` writes to `docs/benchmarks.md` unless you pass `--out`, and
+#145 made the markdown output replace only the generated table so the
+page's text survives. The JSON output skipped that step. Running the
+documented `--format json` without `--out` replaced the whole page with JSON,
+including the no-fabricated-benchmarks disclosure, and reported success. JSON
+is now refused (exit 2, file untouched) for any file that has the generated
+table markers. The message tells you to pass `--out <path>.json`.
