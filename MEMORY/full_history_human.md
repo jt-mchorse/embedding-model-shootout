@@ -1980,3 +1980,10 @@ runs the script. The check now passes for any valid set of results and prints
 which ones were dominated. A new test keeps that check identical in the
 notebook and the script. The script's docstring had pointed to a sync test
 that never existed.
+
+## 2026-10-09 — A provider that cannot start is a clean error (#202)
+
+`sweep run --provider openai` (or voyage, cohere, bge, nomic) without that
+provider's optional package installed, or without its API key, crashed with a
+traceback and exit 1. It now prints one line naming the provider and what is
+missing, and exits 2 like the command's other setup errors.
