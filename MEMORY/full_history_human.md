@@ -1962,3 +1962,9 @@ documented `--format json` without `--out` replaced the whole page with JSON,
 including the no-fabricated-benchmarks disclosure, and reported success. JSON
 is now refused (exit 2, file untouched) for any file that has the generated
 table markers. The message tells you to pass `--out <path>.json`.
+## 2026-10-08 — writing to a symlinked --out updates the linked file (#195)
+
+When `--out` was a symlink, the atomic writer replaced the link with a
+plain file and left the file it pointed at unchanged. It now writes
+through the link, the way a plain write does, and keeps that file's
+permissions. Same fix as python-async-llm-pipelines #157.
