@@ -2161,3 +2161,22 @@ context_for_next_session:
   - THE_FIRST_TEST_CORPUS_WAS_TOO_SHORT_build_queries_needs_6_word_chunks_a_good_path_arm_that_exits_2_for_another_reason_would_hide_the_fix
 followups: []
 ---
+
+---
+session: 2026-10-09T09:14Z
+duration_min: 5   # computed: issue filed 2026-10-09T09:13:22Z -> PR 2026-10-09T09:14:42Z (gh createdAt); hunt-agent lead re-measured first
+issue: 202
+branch: session/2026-10-09-0925-issue-202
+focus: SWEEP_RUN_PROVIDER_CONSTRUCTION_ESCAPED_THE_VALUEERROR_ARM_MISSING_EXTRA_OR_KEY_WAS_A_TRACEBACK_AT_EXIT_1
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 5
+  suite: "1175 -> 1180 passed; ruff check + format clean"
+decisions_made: []
+measured: "repo venv without extras: main openai/voyage/cohere/bge/nomic ImportError traceback rc=1; branch 'error: could not set up provider ...' rc=2; hash rc=0 both. Revert 4 red / 1 control."
+context_for_next_session:
+  - SAME_SEAM_AS_leh_338_constructor_failures_are_setup_translate_at_the_construction_seam_not_by_exception_class
+  - TOUCHES_THE_SAME_FUNCTION_AS_PR_201_on_a_different_line_merge_201_first_if_git_disagrees
+followups: []
+---

@@ -1988,3 +1988,10 @@ paid provider, and only then writes the result. If the output path could not
 be written (for example, it was an existing folder), all of that work was
 thrown away. The command now checks the output path first, the same way the
 real write would, and refuses before anything is sent to the provider.
+
+## 2026-10-09 — A provider that cannot start is a clean error (#202)
+
+`sweep run --provider openai` (or voyage, cohere, bge, nomic) without that
+provider's optional package installed, or without its API key, crashed with a
+traceback and exit 1. It now prints one line naming the provider and what is
+missing, and exits 2 like the command's other setup errors.
