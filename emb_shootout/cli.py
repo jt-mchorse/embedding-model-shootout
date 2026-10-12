@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 from .corpus import DEFAULT_MODULES, build_corpus, unimportable_modules, write_jsonl
-from .io_utils import atomic_write_text
+from .io_utils import atomic_write_text, check_writable
 
 
 def _cmd_corpus_build(args: argparse.Namespace) -> int:
@@ -137,6 +137,15 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
     # enforced in `build_queries`). Left unguarded these escaped as a raw
     # traceback at exit 1; translate to a clean `error:` + exit 2 like the
     # corpus-read seam above and the aggregate/plot seams (#75/#77).
+    out_path = Path(args.output)
+    # Before any embedding (#200): the write below comes after the provider has
+    # embedded the whole corpus and every query, so an unwritable --out used to
+    # bill a full sweep and then be refused.
+    try:
+        check_writable(out_path)
+    except OSError as e:
+        sys.stderr.write(f"failed to write {out_path}: {e}\n")
+        return 2
     try:
         queries = build_queries(corpus, n=args.queries, seed=args.seed)
         embedder = PROVIDER_REGISTRY[args.provider]()
@@ -147,7 +156,6 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
         sys.stderr.write(f"error: {e}\n")
         return 2
 
-    out_path = Path(args.output)
     # Translate an unwritable --output (parent is a file, an existing dir, a
     # read-only dir) into a clean `failed to write` line + exit 2 instead of
     # letting atomic_write_text's OSError escape as a raw traceback at exit 1.
