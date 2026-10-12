@@ -44,6 +44,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .io_utils import loads_json
+
 
 def first_lone_surrogate(value: str) -> tuple[int, int] | None:
     """``(index, codepoint)`` of the first lone surrogate in ``value``, or None.
@@ -126,7 +128,7 @@ def validate_corpus(path: str | Path) -> ValidationReport:
                 continue
             n_rows += 1
             try:
-                obj = json.loads(stripped)
+                obj = loads_json(stripped)
             except json.JSONDecodeError as e:
                 findings.append(
                     ValidationFinding(
