@@ -2198,5 +2198,21 @@ context_for_next_session:
   - CI_RUNS_3_11_AND_3_12_MY_REPO_VENV_IS_3_14_WHERE_json_SURVIVES_100K_NESTING_build_a_3_11_venv_to_see_it_python3_11_m_venv
   - sys_setrecursionlimit_DOES_NOT_FORCE_A_json_RecursionError_ON_3_14_so_the_translation_arm_monkeypatches_json_loads
   - THE_EXPECTED_CODE_IS_PER_INTERPRETER_not_an_object_on_3_14_where_the_deep_list_decodes
+
+session: 2026-10-12T08:46:42Z
+duration_min: 2   # computed: plan comment 2026-10-12T08:46:42Z -> PR 2026-10-12T08:49:14Z (gh createdAt)
+issue: 206
+branch: session/2026-10-12-0846-issue-206
+focus: FROM_DICT_BARE_INT_FLOAT_COERCION_INFINITY_OVERFLOWERROR_AT_EXIT_1_AND_49_99_5_0_ARABIC_DIGITS_LOADED_AS_ALTERED_VALUES
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 14
+  suite: "1187 -> 1201 passed, 1 skipped; ruff clean"
+decisions_made: []
+measured: "main: n_corpus inf -> OverflowError; 49.99 -> 49; '5_0' -> 50; ' 12' -> 12; Arabic-Indic -> 42. Branch: ValueError naming the field, aggregate exit 2. Revert 12 red / 2 green."
+context_for_next_session:
+  - KEEP_THE_PINNED_MESSAGE_WORDING_bool_and_non_numeric_prefixes_and_change_only_the_lock_whose_input_moves_earlier_say_so_in_the_PR
+  - BARE_INT_ACCEPTS_UNDERSCORES_WHITESPACE_AND_NON_ASCII_DIGITS_and_truncates_floats
 followups: []
 ---

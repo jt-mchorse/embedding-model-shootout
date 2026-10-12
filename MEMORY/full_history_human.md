@@ -2005,3 +2005,13 @@ printed no problem and stopped checking. All four readers now go through one
 helper that reports these as malformed JSON, as the eval harness already does.
 It was checked on Python 3.11, which CI uses and where the nesting case
 actually fails.
+
+## 2026-10-12 — Result files must hold real numbers (#206)
+
+When loading a benchmark result file, counts and scores were converted with
+Python's very forgiving number converters. So a hand-edited `49.99` became 49,
+`"5_0"` became 50, Arabic-Indic digits were accepted, and those altered
+numbers were published. An infinite value crashed the command outright. Each
+field must now be a real JSON number of the right kind, or the file is
+rejected with a message naming the field. The committed results are
+unaffected.
