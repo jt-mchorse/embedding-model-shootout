@@ -1995,3 +1995,13 @@ real write would, and refuses before anything is sent to the provider.
 provider's optional package installed, or without its API key, crashed with a
 traceback and exit 1. It now prints one line naming the provider and what is
 missing, and exits 2 like the command's other setup errors.
+
+## 2026-10-12 — Over-nested or over-long JSON is reported, not a crash (#204)
+
+A corpus or results file with extremely deep nesting, or an integer thousands
+of digits long, crashed every reader with a raw Python error at exit code 1.
+For `corpus validate`, that is the code that means "found problems", and it
+printed no problem and stopped checking. All four readers now go through one
+helper that reports these as malformed JSON, as the eval harness already does.
+It was checked on Python 3.11, which CI uses and where the nesting case
+actually fails.
