@@ -174,8 +174,10 @@ def test_canonical_payloads_load_unchanged(label: str, recall: dict[str, Any]) -
 @pytest.mark.parametrize(
     ("label", "value", "pattern"),
     [
-        ("NaN string", "NaN", r"recall_at_k\[5\] must be a finite number"),
-        ("Infinity string", "Infinity", r"recall_at_k\[5\] must be a finite number"),
+        # Still refused; since #206 a string value is refused as a non-number
+        # before `float()` could read it, instead of after.
+        ("NaN string", "NaN", r"recall_at_k\['5'\] must be a number; got 'NaN'"),
+        ("Infinity string", "Infinity", r"recall_at_k\['5'\] must be a number; got 'Infinity'"),
         ("out of range", 1.5, r"recall_at_k\[5\] must be a finite number"),
     ],
 )
