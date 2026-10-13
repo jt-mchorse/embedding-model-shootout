@@ -2216,3 +2216,23 @@ context_for_next_session:
   - BARE_INT_ACCEPTS_UNDERSCORES_WHITESPACE_AND_NON_ASCII_DIGITS_and_truncates_floats
 followups: []
 ---
+
+---
+session: 2026-10-13T07:18:38Z
+duration_min: 15   # approximate: plan comment 2026-10-13T07:18:38Z -> PR open
+issue: 208
+branch: session/2026-10-13-0718-issue-208
+focus: A_JSON_INTEGER_TOO_LARGE_FOR_A_FLOAT_PASSED_206S_TYPE_CHECK_AND_float_RAISED_OVERFLOWERROR_AT_EXIT_1_IN_ALL_FOUR_FLOAT_FIELDS
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 18
+  suite: "3.12 and 3.11: 1167 -> 1185 passed / 34 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main c02d426: cost/ndcg/recall/latency = 1 followed by 400 zeros -> sweep aggregate + plot OverflowError rc=1; direct SweepResult(cost=10**400) OverflowError. Branch: ValueError naming the field, rc=2. Revert 17 red / 1 green (the fits-a-float control)."
+context_for_next_session:
+  - 206_LISTED_Infinity_AND_1e999_THE_FLOAT_SPELLINGS_THE_INTEGER_SPELLING_OF_THE_SAME_VALUE_IS_AN_int_AND_PASSED_isinstance_int_float
+  - math_isfinite_ON_AN_int_CONVERTS_FIRST_SO_EVERY_FINITENESS_CHECK_RAISED_INSTEAD_OF_ANSWERING_is_finite_number_IN_argcheck_IS_THE_ONE_DEFINITION
+  - NOT_APPLIED_TO_THE_EMBEDDING_COMPONENT_CHECK_reject_non_finite_vectors_numpy_float32_IS_NOT_A_float_INSTANCE_AND_WOULD_BE_REFUSED
+followups: []
+---
