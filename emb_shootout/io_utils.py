@@ -35,10 +35,12 @@ standard `rag_kit/io_utils.atomic_write_text` from
 from __future__ import annotations
 
 import contextlib
+import json
 import os
 import secrets
 import stat
 from pathlib import Path
+from typing import Any
 
 # Cap the target basename's contribution to the temp filename. The temp name is
 # `.<base>.<random>.tmp`; the affixes add ~13-20 bytes, so prepending a full
@@ -218,3 +220,30 @@ def _copy_existing_mode(target: Path, tmp_path: Path) -> None:
     except FileNotFoundError:
         return
     os.chmod(tmp_path, mode)
+
+
+def loads_json(text: str) -> Any:
+    """`json.loads`, with every way bad input fails raised as a `JSONDecodeError` (#204).
+
+    Every reader in this package caught `JSONDecodeError` only, and `json.loads`
+    raises two other things on bad input: `RecursionError` on nesting deeper
+    than the interpreter's stack allows (about 100,000 levels of ``[`` on
+    3.11/3.12, which CI runs), and a plain `ValueError` for an integer literal
+    past CPython's 4300-digit int-string limit. Both escaped as a traceback at
+    exit 1, the code `corpus validate` uses for "findings", with no finding
+    printed and the rows after it unchecked.
+
+    Re-raised as a `JSONDecodeError` so each site's existing handler applies,
+    exit 2 in the CLI and `malformed_json` in the validator. One helper is the
+    point, as in llm-eval-harness#333: the next reader cannot catch one of the
+    three and miss the others. A test pins that no other module calls
+    `json.loads`.
+    """
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        raise
+    except RecursionError:
+        raise json.JSONDecodeError("nested too deeply to parse", text, 0) from None
+    except ValueError as e:
+        raise json.JSONDecodeError(str(e), text, 0) from None

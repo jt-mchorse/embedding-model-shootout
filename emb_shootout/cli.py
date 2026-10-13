@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 from .corpus import DEFAULT_MODULES, build_corpus, unimportable_modules, write_jsonl
-from .io_utils import atomic_write_text, check_writable
+from .io_utils import atomic_write_text, check_writable, loads_json
 
 
 def _cmd_corpus_build(args: argparse.Namespace) -> int:
@@ -206,7 +206,7 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
     results = []
     for p in files:
         try:
-            results.append(SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))))
+            results.append(SweepResult.from_dict(loads_json(p.read_text(encoding="utf-8"))))
         except json.JSONDecodeError as e:
             sys.stderr.write(f"malformed result JSON in {p}: {e.msg}\n")
             return 2
@@ -291,7 +291,7 @@ def _cmd_sweep_plot(args: argparse.Namespace) -> int:
     results = []
     for p in files:
         try:
-            results.append(SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))))
+            results.append(SweepResult.from_dict(loads_json(p.read_text(encoding="utf-8"))))
         except json.JSONDecodeError as e:
             sys.stderr.write(f"malformed result JSON in {p}: {e.msg}\n")
             return 2
@@ -379,7 +379,7 @@ def _read_corpus_jsonl(path: Path) -> list:
             # otherwise escaped as a traceback at exit 1. Callers translate this
             # ValueError to a clean `error:` + exit 2.
             try:
-                obj = json.loads(line)
+                obj = loads_json(line)
             except json.JSONDecodeError as e:
                 raise ValueError(f"{path}:{line_no}: invalid JSON: {e.msg}") from e
             if not isinstance(obj, dict) or "chunk_id" not in obj or "text" not in obj:

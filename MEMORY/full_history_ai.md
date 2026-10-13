@@ -2180,3 +2180,23 @@ context_for_next_session:
   - TOUCHES_THE_SAME_FUNCTION_AS_PR_201_on_a_different_line_merge_201_first_if_git_disagrees
 followups: []
 ---
+
+---
+session: 2026-10-12T07:54:32Z
+duration_min: 3   # computed: plan comment 2026-10-12T07:54:32Z -> PR 2026-10-12T07:58:02Z (gh createdAt)
+issue: 204
+branch: session/2026-10-12-0754-issue-204
+focus: JSON_TOO_DEEP_RECURSIONERROR_OR_A_5000_DIGIT_INT_VALUEERROR_ESCAPED_EVERY_READER_AT_EXIT_1_PORT_OF_LEH_333
+phase: shipped
+delta:
+  files_changed: 4
+  tests_added: 10
+  suite: "3.11 1143 -> 1153 passed / 34 skipped; 3.14 1187 -> 1197 passed; ruff clean"
+decisions_made: []
+measured: "3.11 main: corpus validate deep.jsonl -> exit 1 RecursionError; bigint.jsonl -> exit 1 ValueError (4300 digits). Branch: malformed_json findings. Revert (3.11) 8 red / 2 green."
+context_for_next_session:
+  - CI_RUNS_3_11_AND_3_12_MY_REPO_VENV_IS_3_14_WHERE_json_SURVIVES_100K_NESTING_build_a_3_11_venv_to_see_it_python3_11_m_venv
+  - sys_setrecursionlimit_DOES_NOT_FORCE_A_json_RecursionError_ON_3_14_so_the_translation_arm_monkeypatches_json_loads
+  - THE_EXPECTED_CODE_IS_PER_INTERPRETER_not_an_object_on_3_14_where_the_deep_list_decodes
+followups: []
+---
