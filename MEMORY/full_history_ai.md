@@ -2236,3 +2236,22 @@ context_for_next_session:
   - NOT_APPLIED_TO_THE_EMBEDDING_COMPONENT_CHECK_reject_non_finite_vectors_numpy_float32_IS_NOT_A_float_INSTANCE_AND_WOULD_BE_REFUSED
 followups: []
 ---
+
+session: 2026-10-13T07:59:19Z
+duration_min: 8   # estimated: plan comment 2026-10-13T07:59:19Z -> PR open
+issue: 210
+branch: session/2026-10-13-0759-issue-210
+focus: RUN_SWEEP_SCORED_A_DUPLICATE_CHUNK_ID_AND_A_QUERY_WHOSE_ANSWER_IS_ABSENT_117_GUARDED_ONLY_THE_CLI_READER_NOT_THE_SCORER
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 6
+  suite: "3.12 1167 -> 1173 passed / 34 skipped; ruff clean"
+decisions_made: []
+measured: "main: run_sweep unique ids recall@1 0.5, duplicate id 1.0 (wrong text credited); absent answer 0.5 at exit 0. Branch: ValueError before embedder.embed. Revert 5 red / 1 green (the unique-id baseline)."
+context_for_next_session:
+  - 117_FIXED_cli_read_corpus_jsonl_THE_SCORER_run_sweep_IS_PUBLIC_API_and_was_the_surface_it_did_not_list
+  - THE_SIBLING_POPULATION_WAS_expected_chunk_id_NOT_IN_CORPUS_unreachable_via_CLI_because_build_queries_draws_answers_from_the_corpus
+  - PROVIDER_CATALOG_SWEEP_CLEAN_model_ids_in_openai_EmbeddingModel_Literal_dims_prices_cohere_batch_96_and_input_type_Literal_all_agree
+followups: []
+---
