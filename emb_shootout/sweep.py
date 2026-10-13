@@ -428,23 +428,19 @@ class SweepResult:
         # fabricated 1.0 recall/ndcg on the Pareto frontier and the committed JSON.
         # Reject bools on the RAW values here, before coercion — the
         # isinstance-before-coerce sibling of the #94/#95 `embedder_name` guard.
-        for scalar_field in (
-            "embedder_dim",
-            "cost_per_million_tokens",
-            "n_corpus",
-            "n_queries",
-            "ndcg_at_10",
-        ):
-            if isinstance(d[scalar_field], bool):
-                raise ValueError(
-                    f"{scalar_field} must be a number, not a bool; got {d[scalar_field]!r}"
-                )
+        # Type-checked BEFORE coercion (#206), which subsumes the bool guards
+        # this block used to carry. Bare `int()` / `float()` accept far more
+        # than a JSON number: `int(49.99)` is 49, `int("5_0")` is 50,
+        # `int(" 12\n")` is 12, Arabic-Indic digits parse, and `int(inf)` (a
+        # JSON `Infinity` / `1e999`) is an OverflowError no handler caught. The
+        # same strictness #129 gave the recall keys and #156 gave `query_seed`.
+        for int_field in ("embedder_dim", "n_corpus", "n_queries"):
+            _json_int(d[int_field], int_field)
+        for number_field in ("cost_per_million_tokens", "ndcg_at_10"):
+            _json_number(d[number_field], number_field)
         for container_field in ("recall_at_k", "embed_latency_ms"):
             for k, v in d[container_field].items():
-                if isinstance(v, bool):
-                    raise ValueError(
-                        f"{container_field}[{k!r}] must be a number, not a bool; got {v!r}"
-                    )
+                _json_number(v, f"{container_field}[{k!r}]")
         try:
             return SweepResult(
                 embedder_name=d["embedder_name"],
@@ -475,6 +471,31 @@ class SweepResult:
             # range ValueErrors already are ValueError and pass straight through
             # to the CLI's exit-2 handler.
             raise ValueError(f"result has a non-numeric field: {e}") from e
+
+
+def _not_a_bool(value: object, field: str) -> None:
+    if isinstance(value, bool):
+        raise ValueError(f"{field} must be a number, not a bool; got {value!r}")
+
+
+def _json_int(value: object, field: str) -> int:
+    """`value` if it is a JSON integer (an `int`, not a bool), else `ValueError` (#206)."""
+    _not_a_bool(value, field)
+    if not isinstance(value, int):
+        raise ValueError(
+            f"result has a non-numeric field: {field} must be an integer; got {value!r:.40}"
+        )
+    return value
+
+
+def _json_number(value: object, field: str) -> float:
+    """`value` if it is a JSON number (`int` or `float`, not a bool), else `ValueError` (#206)."""
+    _not_a_bool(value, field)
+    if not isinstance(value, (int, float)):
+        raise ValueError(
+            f"result has a non-numeric field: {field} must be a number; got {value!r:.40}"
+        )
+    return float(value)
 
 
 # ----------------------------------------------------------------------
