@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from ._argcheck import (
+    is_finite_number,
     is_non_empty_str,
     is_non_negative_finite,
     refuse_unrenderable_name,
@@ -284,11 +285,13 @@ class SweepResult:
         for k, v in self.recall_at_k.items():
             if not isinstance(v, (int, float)) or isinstance(v, bool):
                 raise ValueError(f"recall_at_k[{k}] must be a number; got {v!r}")
-            if not math.isfinite(v) or not 0.0 <= v <= 1.0:
+            # Through `is_finite_number`, not `math.isfinite` (#208): an `int`
+            # too large for a float made the latter raise OverflowError.
+            if not is_finite_number(v) or not 0.0 <= v <= 1.0:
                 raise ValueError(f"recall_at_k[{k}] must be a finite number in [0, 1]; got {v!r}")
         if not isinstance(self.ndcg_at_10, (int, float)) or isinstance(self.ndcg_at_10, bool):
             raise ValueError(f"ndcg_at_10 must be a number; got {self.ndcg_at_10!r}")
-        if not math.isfinite(self.ndcg_at_10) or not 0.0 <= self.ndcg_at_10 <= 1.0:
+        if not is_finite_number(self.ndcg_at_10) or not 0.0 <= self.ndcg_at_10 <= 1.0:
             raise ValueError(
                 f"ndcg_at_10 must be a finite number in [0, 1]; got {self.ndcg_at_10!r}"
             )
@@ -302,7 +305,7 @@ class SweepResult:
         for k, v in self.embed_latency_ms.items():
             if not isinstance(v, (int, float)) or isinstance(v, bool):
                 raise ValueError(f"embed_latency_ms[{k!r}] must be a number; got {v!r}")
-            if not math.isfinite(v) or v < 0.0:
+            if not is_finite_number(v) or v < 0.0:
                 raise ValueError(f"embed_latency_ms[{k!r}] must be a finite number >= 0; got {v!r}")
         # `notes` is declared `list[str]` and nothing enforced it (#133).
         # `from_dict` does `list(d.get("notes", []))`, so a hand-edited or
@@ -494,6 +497,15 @@ def _json_number(value: object, field: str) -> float:
     if not isinstance(value, (int, float)):
         raise ValueError(
             f"result has a non-numeric field: {field} must be a number; got {value!r:.40}"
+        )
+    # A JSON integer past ~1.8e308 is an `int` here, and `float()` raised
+    # OverflowError at exit 1 (#208) -- the integer spelling of the `1e999`
+    # #206 refused. A non-finite FLOAT passes on to `__post_init__`'s range
+    # checks, whose messages are pinned.
+    if isinstance(value, int) and not is_finite_number(value):
+        raise ValueError(
+            f"{field} must be a finite number; got an integer of {len(str(value))} digits, "
+            "too large for a float"
         )
     return float(value)
 

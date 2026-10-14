@@ -79,9 +79,23 @@ def is_non_negative_finite(value: Any) -> bool:
     is ``False``, so a boolean cost "was stored as a fabricated $1.0/$0.0 point
     on the Pareto frontier and the committed plot".
     """
+    return is_finite_number(value) and value >= 0.0
+
+
+def is_finite_number(value: Any) -> bool:
+    """True for a real ``int``/``float`` that is finite as a float. A ``bool`` is not one.
+
+    ``math.isfinite`` converts an ``int`` to a float first, so an ``int`` past
+    ~1.8e308 (a JSON ``1`` followed by 400 zeros loads as one) raised
+    ``OverflowError`` out of every finiteness check instead of answering False
+    -- an ``ArithmeticError`` no ``ValueError`` handler catches (#208).
+    """
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return False
-    return math.isfinite(value) and value >= 0.0
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def require_positive_int(name: str, value: Any) -> None:

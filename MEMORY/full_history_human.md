@@ -2015,3 +2015,16 @@ numbers were published. An infinite value crashed the command outright. Each
 field must now be a real JSON number of the right kind, or the file is
 rejected with a message naming the field. The committed results are
 unaffected.
+
+## 2026-10-13 — A number too big for a float is rejected, not a crash (#208)
+
+Yesterday's fix (#206) required result-file numbers to be real JSON numbers. It
+refused an infinite value written as `Infinity` or `1e999`. The same
+out-of-range value written as a plain integer (a 1 followed by 400 zeros) still
+passed, because Python reads it as an ordinary whole number. Converting it to a
+decimal then crashed `sweep aggregate` and `sweep plot` with exit 1. Building a
+result directly in code crashed the same way.
+
+There is now one shared check that answers "not finite" for such a number
+instead of crashing. The file is rejected with a message naming the field, and
+the exit code is 2. Numbers that do fit, however large, load as before.
