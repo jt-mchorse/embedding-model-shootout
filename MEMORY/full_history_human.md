@@ -2063,3 +2063,12 @@ the automatic title, which quotes a name, are now drawn as plain text. A
 `--title` the operator supplies still allows math. GitHub also renders `$…$`
 as math inside the benchmarks table. That was left alone and is noted on the
 issue.
+
+## 2026-10-14 — install hints that work as printed (#216)
+
+The "matplotlib missing" error told the operator to
+`pip install 'embedding-model-shootout[plot]'`, but the project isn't on PyPI
+(404). The demo script's closing hint printed `pip install -e .[openai]` without
+quotes, which zsh rejects as a glob. Both now say `pip install -e '.[extra]'`.
+A new test fails if any tracked file tells the reader to install this project's
+name from an index, or leaves a `.[extra]` unquoted.

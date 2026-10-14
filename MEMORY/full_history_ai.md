@@ -2294,3 +2294,20 @@ context_for_next_session:
   - CI_HAS_NO_PLOT_EXTRA_SO_ONLY_THE_FAKE_MATPLOTLIB_ARMS_RUN_THERE
 followups: []
 ---
+
+---
+session: 2026-10-14T08:25Z
+issue: 216
+focus: INSTALL_HINTS_PLOT_SAID_PIP_INSTALL_EMBEDDING_MODEL_SHOOTOUT_404_AND_CAPTURE_DEMO_PRINTED_AN_UNQUOTED_EXTRA_ZSH_REJECTS
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 5
+  suite: "full suite green (rc 0); ruff check + format clean"
+decisions_made: []
+measured: "pypi.org/pypi/embedding-model-shootout/json -> 404. capture_demo.sh:133 printf '  pip install -e .[openai]' -> zsh: no matches found. Revert probe: 2 of 5 new arms red, 3 pattern/scan controls green."
+context_for_next_session:
+  - PORTFOLIO_SWEEP_OF_csl_266_leh_369_vsas_234_rag_338_lco_still_pending
+  - ems_215_TOUCHES_plot_py_TOO_parse_math_DIFFERENT_HUNK
+followups: []
+---
