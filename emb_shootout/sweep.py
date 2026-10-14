@@ -29,6 +29,7 @@ from ._argcheck import (
     require_mapping,
     require_str_sequence,
 )
+from .validate import first_lone_surrogate
 
 # ----------------------------------------------------------------------
 # Embedder Protocol
@@ -1029,6 +1030,40 @@ def _require_scorable_ids(corpus: Sequence[CorpusChunk], queries: Sequence[Query
             )
 
 
+def _require_encodable_strings(corpus: Sequence[CorpusChunk], queries: Sequence[Query]) -> None:
+    """Refuse a lone surrogate in any string the fingerprints encode (#212).
+
+    `fingerprint_corpus` / `fingerprint_queries` are the first UTF-8 encode in
+    a sweep, and they run after every text has been embedded. A lone surrogate
+    is a valid `str` that cannot be encoded, and an HTTP provider SDK escapes it
+    rather than failing, so the whole sweep was billed before the
+    `UnicodeEncodeError`. #189 applied #176's rule in `cli._read_corpus_jsonl`;
+    `run_sweep` is the public scorer #210 made the pre-embed choke point, and
+    the query fields were never checked anywhere. `expected_chunk_id` is not
+    listed: `_require_scorable_ids` has already required it to be a corpus id.
+
+    A non-`str` value is skipped here, not refused: that is a type error
+    against the `CorpusChunk` / `Query` annotations, which mypy reports.
+    """
+    fields: list[tuple[str, object]] = []
+    for i, chunk in enumerate(corpus):
+        fields.append((f"corpus[{i}].chunk_id", chunk.chunk_id))
+        fields.append((f"corpus[{i}].text", chunk.text))
+    for i, q in enumerate(queries):
+        fields.append((f"queries[{i}].query_id", q.query_id))
+        fields.append((f"queries[{i}].text", q.text))
+    for name, value in fields:
+        if not isinstance(value, str):
+            continue
+        hit = first_lone_surrogate(value)
+        if hit is not None:
+            raise ValueError(
+                f"{name} contains the lone surrogate U+{hit[1]:04X} at index {hit[0]}; "
+                "it cannot be encoded as UTF-8, and the sweep's fingerprint would fail "
+                "only after every text had been embedded"
+            )
+
+
 def run_sweep(
     corpus: Sequence[CorpusChunk],
     queries: Sequence[Query],
@@ -1054,6 +1089,7 @@ def run_sweep(
     validate_k_values(k_values)
     max_k = max(k_values)
     _require_scorable_ids(corpus, queries)
+    _require_encodable_strings(corpus, queries)
 
     # Embed corpus (single batch).
     corpus_texts = [c.text for c in corpus]
