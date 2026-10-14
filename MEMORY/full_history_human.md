@@ -2028,3 +2028,14 @@ result directly in code crashed the same way.
 There is now one shared check that answers "not finite" for such a number
 instead of crashing. The file is rejected with a message naming the field, and
 the exit code is 2. Numbers that do fit, however large, load as before.
+
+## 2026-10-13 — The scorer checks its own ids (#210)
+
+#117 stopped `sweep run` from benchmarking a corpus with a repeated chunk id,
+but it did that in the CLI's file reader. The function that does the scoring,
+`run_sweep`, is public and still accepted a repeated id, which credits a
+retrieval of the wrong text. Measured: recall@1 went from 0.5 to 1.0. It also
+accepted a query whose answer chunk is not in the corpus at all, a guaranteed
+miss that lowers every metric without any error. `run_sweep` now refuses both
+before it embeds anything, so a paid provider is never billed for a sweep that
+measures nothing. The CLI path and the committed results are unaffected.

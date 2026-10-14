@@ -993,6 +993,42 @@ def fingerprint_queries(queries: Sequence[Query]) -> str:
     return _fingerprint([[q.query_id, q.text, q.expected_chunk_id] for q in queries])
 
 
+def _require_scorable_ids(corpus: Sequence[CorpusChunk], queries: Sequence[Query]) -> None:
+    """Refuse an id set that makes recall@k / NDCG@10 measure the wrong thing (#210).
+
+    Scoring is id-equality (`q.expected_chunk_id in retrieved_ids[:k]`, and the
+    `cid == q.expected_chunk_id` rel vector), so two id populations have to be
+    sound before a single vector is computed:
+
+    - **corpus ids must be unique.** A second chunk carrying the expected id is
+      credited for retrieving the wrong text. #117 refused this in
+      `cli._read_corpus_jsonl` and left the scorer itself open, so a library
+      caller with its own `CorpusChunk` list still got the inflated number.
+    - **every query's answer must be in the corpus.** `Query` is "a retrieval
+      query with a known-correct answer chunk"; when that chunk is absent the
+      query is a guaranteed miss and drags recall and NDCG down with no error.
+
+    Checked before `embedder.embed`, so a paid provider is not billed for a
+    sweep that measures nothing. The CLI reader keeps its own duplicate check:
+    it can name file line numbers, which this cannot.
+    """
+    seen: dict[str, int] = {}
+    for i, chunk in enumerate(corpus):
+        if chunk.chunk_id in seen:
+            raise ValueError(
+                f"duplicate chunk_id {chunk.chunk_id!r} at corpus[{seen[chunk.chunk_id]}] and "
+                f"corpus[{i}]; scoring is by id, so a duplicate credits a retrieval of the "
+                "wrong text"
+            )
+        seen[chunk.chunk_id] = i
+    for q in queries:
+        if q.expected_chunk_id not in seen:
+            raise ValueError(
+                f"query {q.query_id!r} expects chunk_id {q.expected_chunk_id!r}, which is not "
+                "in the corpus; it could never be retrieved and would score 0 on every metric"
+            )
+
+
 def run_sweep(
     corpus: Sequence[CorpusChunk],
     queries: Sequence[Query],
@@ -1017,6 +1053,7 @@ def run_sweep(
         raise ValueError("queries must be non-empty")
     validate_k_values(k_values)
     max_k = max(k_values)
+    _require_scorable_ids(corpus, queries)
 
     # Embed corpus (single batch).
     corpus_texts = [c.text for c in corpus]
