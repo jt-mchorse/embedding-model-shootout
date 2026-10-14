@@ -2255,3 +2255,22 @@ context_for_next_session:
   - PROVIDER_CATALOG_SWEEP_CLEAN_model_ids_in_openai_EmbeddingModel_Literal_dims_prices_cohere_batch_96_and_input_type_Literal_all_agree
 followups: []
 ---
+
+session: 2026-10-14T07:18:23Z
+duration_min: 12   # estimated: plan comment 2026-10-14T07:18:23Z -> PR open
+issue: 212
+branch: session/2026-10-14-0718-issue-212
+focus: RUN_SWEEP_EMBEDDED_EVERY_TEXT_BEFORE_A_LONE_SURROGATE_CRASHED_THE_FINGERPRINT_189_GUARDED_THE_CLI_READER_210_MADE_RUN_SWEEP_THE_PRE_EMBED_CHOKE_POINT_FOR_IDS_ONLY
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 10
+  suite: "3.12 1191 -> 1201 passed / 34 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main 20b7c0d: U+D800 in corpus text / query text / query_id with an SDK-style escaping embedder -> 3 of 3 texts embedded, then UnicodeEncodeError in fingerprint_corpus/fingerprint_queries. Branch: ValueError naming the field and index, 0 texts embedded; sweep run exit 2. Revert 9 red / 1 green (the clean-input control)."
+context_for_next_session:
+  - 210_LISTED_TWO_ID_SET_RULES_FOR_RUN_SWEEP_THE_READER_HAD_A_THIRD_189_SURROGATE_AND_THE_QUERY_FIELDS_WERE_NEVER_CHECKED_ANYWHERE
+  - first_lone_surrogate_NOW_HAS_THREE_CALLERS_validate_corpus_cli_reader_run_sweep
+  - NOT_DONE_NON_STR_chunk_id_OR_text_TO_RUN_SWEEP_STILL_A_RAW_TypeError_AttributeError_AFTER_EMBEDDING_mypy_FLAGS_IT_SKIPPED_NOT_REFUSED
+followups: []
+---
