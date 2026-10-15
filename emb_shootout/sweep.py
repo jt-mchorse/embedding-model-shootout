@@ -303,6 +303,21 @@ class SweepResult:
         # JSON aggregate — an invalid-JSON Infinity/NaN token or a fabricated
         # latency number. A latency is physically finite and non-negative; reject
         # like the recall_at_k loop above (#31).
+        #
+        # The KEY arm (#222). #143 deferred it because "the field is already
+        # `dict[str, float]`, so there is no write/read asymmetry" -- but nothing
+        # enforced the annotation, and `json.dumps` IS the stringification:
+        # `{1: ..}` / `{None: ..}` / `{True: ..}` reloaded as `'1'` / `'null'` /
+        # `'true'` (not identical, no error) and `{(1,): ..}` made `to_dict`'s
+        # writer raise TypeError. Type only: which names are present stays open,
+        # because an absent key is an absent cell by design (#127).
+        for k in self.embed_latency_ms:
+            if not isinstance(k, str):
+                raise ValueError(
+                    f"embed_latency_ms key must be a str; got {k!r} ({type(k).__name__}); "
+                    "a JSON object key is a string, so any other type reloads as a "
+                    "different key or cannot be written"
+                )
         for k, v in self.embed_latency_ms.items():
             if not isinstance(v, (int, float)) or isinstance(v, bool):
                 raise ValueError(f"embed_latency_ms[{k!r}] must be a number; got {v!r}")
