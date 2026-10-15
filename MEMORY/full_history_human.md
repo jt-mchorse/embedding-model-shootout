@@ -2072,3 +2072,13 @@ The "matplotlib missing" error told the operator to
 quotes, which zsh rejects as a glob. Both now say `pip install -e '.[extra]'`.
 A new test fails if any tracked file tells the reader to install this project's
 name from an index, or leaves a `.[extra]` unquoted.
+
+## 2026-10-15 — The scorer checks what it will record before it embeds (#218)
+
+#210 and #212 made `run_sweep` check the corpus and queries before embedding
+anything. Its other inputs, the `notes` and `query_seed` arguments and the
+embedder's name, dimension and price, were still only checked when the result
+was built at the very end. A bad value was refused correctly, but only after a
+paid provider had embedded every text. `run_sweep` now runs the result's own
+checks first, so the messages are unchanged and nothing is embedded. The CLI
+path and the committed results are unaffected.
