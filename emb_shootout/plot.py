@@ -33,7 +33,7 @@ def _import_matplotlib():
     except ImportError as exc:
         raise RuntimeError(
             "matplotlib is required to render Pareto plots. "
-            "Install the plot extra: pip install 'embedding-model-shootout[plot]'"
+            "Install the plot extra: pip install -e '.[plot]' from the checkout"
         ) from exc
     return plt
 
