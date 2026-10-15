@@ -2082,3 +2082,13 @@ was built at the very end. A bad value was refused correctly, but only after a
 paid provider had embedded every text. `run_sweep` now runs the result's own
 checks first, so the messages are unchanged and nothing is embedded. The CLI
 path and the committed results are unaffected.
+
+## 2026-10-15 — The plot flags decide the file format (#220)
+
+`sweep plot` let matplotlib guess each file's format from its extension, so the
+`--out-png` and `--out-svg` flags didn't control the format. `--out-svg pareto`
+wrote a PNG to `pareto.png`, and the summary pointed at a `pareto` file that
+did not exist. `--out-png chart.svg` wrote an SVG. Each flag now writes its own
+format at exactly the path given. A path whose extension names a different
+format is refused with exit 2 before anything is drawn. The committed
+`docs/pareto.png` and `docs/pareto.svg` are unaffected.
