@@ -191,6 +191,22 @@ def _axis_limits(results: Sequence[SweepResult]) -> tuple[tuple[float, float], t
     )
 
 
+def _require_suffix_matches(path: Path, fmt: str) -> None:
+    """Refuse an output path whose extension names another format (#220).
+
+    `--out-png chart.svg` is a contradiction the flag cannot settle silently:
+    writing PNG bytes under `.svg` breaks every viewer, and writing an SVG (what
+    an extension-inferred `savefig` did) ignores the flag. No extension is fine:
+    the format comes from the flag and the file is written at exactly `path`.
+    Case-insensitive, so `pareto.PNG` is a PNG.
+    """
+    if path.suffix and path.suffix.lower() != f".{fmt}":
+        raise ValueError(
+            f"the {fmt.upper()} output path {str(path)!r} ends in {path.suffix!r}; "
+            f"use a .{fmt} path or no extension"
+        )
+
+
 def render_pareto(
     results: Sequence[SweepResult],
     *,
@@ -214,6 +230,9 @@ def render_pareto(
     # input whether or not the plotting extra is installed, and it must not be
     # reported as "matplotlib missing" (exit 3) instead of refused (exit 2).
     frontier = pareto_frontier(results)
+    outputs = [(Path(p), fmt) for p, fmt in ((out_png, "png"), (out_svg, "svg")) if p]
+    for path, fmt in outputs:
+        _require_suffix_matches(path, fmt)
 
     plt = _import_matplotlib()
     # Match frontier membership by object identity, not `embedder_name`:
@@ -289,12 +308,13 @@ def render_pareto(
 
     fig.tight_layout()
 
-    png_path = Path(out_png) if out_png else None
-    svg_path = Path(out_svg) if out_svg else None
-    for p in (png_path, svg_path):
-        if p is None:
-            continue
-        p.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(p, dpi=150)
+    # `format=` from the flag, never inferred (#220). Without it matplotlib
+    # picks the format from the extension: `--out-svg pareto` wrote a PNG to
+    # `pareto.png` while the summary reported `pareto`, and `--out-png x.svg`
+    # wrote an SVG. With it the bytes match the flag and land at exactly `path`.
+    for path, fmt in outputs:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(path, dpi=150, format=fmt)
     plt.close(fig)
-    return frontier, png_path, svg_path
+    by_fmt = {fmt: path for path, fmt in outputs}
+    return frontier, by_fmt.get("png"), by_fmt.get("svg")
