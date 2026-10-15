@@ -50,8 +50,9 @@ from .io_utils import loads_json
 def first_lone_surrogate(value: str) -> tuple[int, int] | None:
     """``(index, codepoint)`` of the first lone surrogate in ``value``, or None.
 
-    The one definition of #176's rule, shared by `validate_corpus` and the
-    fail-fast reader `sweep run` uses (`cli._read_corpus_jsonl`). The reader was
+    The one definition of #176's rule, shared by `validate_corpus`, the
+    fail-fast reader `sweep run` uses (`cli._read_corpus_jsonl`), and
+    `run_sweep` itself for library callers (#212). The reader was
     written to mirror the validator "so the two loaders agree on a valid row",
     and #177 added this rule to the validator only (#189).
     """

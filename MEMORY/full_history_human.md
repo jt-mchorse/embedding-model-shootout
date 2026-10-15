@@ -2039,3 +2039,15 @@ accepted a query whose answer chunk is not in the corpus at all, a guaranteed
 miss that lowers every metric without any error. `run_sweep` now refuses both
 before it embeds anything, so a paid provider is never billed for a sweep that
 measures nothing. The CLI path and the committed results are unaffected.
+
+## 2026-10-14 — The scorer refuses an unencodable character before it embeds (#212)
+
+#189 made `sweep run` reject a corpus file containing a lone surrogate, a
+character that cannot be written as UTF-8. That check is in the CLI's file
+reader. Yesterday's #210 made `run_sweep` check its own inputs before embedding,
+but only for repeated and missing ids. A library caller passing such a character
+in a chunk, a query's text or a query id still had every text embedded, and
+billed by a paid provider, before the sweep crashed while fingerprinting. The
+query fields were never checked anywhere. `run_sweep` now applies the same rule
+before it embeds anything and names the field and position. The CLI path and the
+committed results are unaffected.
