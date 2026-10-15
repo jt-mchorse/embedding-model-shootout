@@ -2337,6 +2337,14 @@ duration_min: 15   # approximate: plan comment 2026-10-15T07:29Z -> PR open
 issue: 220
 branch: session/2026-10-15-0729-issue-220
 focus: SWEEP_PLOT_SAVEFIG_HAD_NO_FORMAT_SO_MATPLOTLIB_INFERRED_IT_FROM_THE_EXTENSION_OUT_SVG_PARETO_WROTE_A_PNG_TO_PARETO_PNG_AND_THE_SUMMARY_NAMED_A_MISSING_PATH
+---
+
+---
+---
+session: 2026-10-15T08:04Z
+issue: 224
+branch: session/2026-10-15-0804-issue-224
+focus: SHARED_CELL_RENDERER_KEPT_THE_SIGN_OF_A_NEGATIVE_ZERO_A_MINUS_0_0_COST_PASSED_THE_GE_0_GUARD_AND_PUBLISHED_AS_DOLLAR_MINUS_0_000
 phase: shipped
 delta:
   files_changed: 2
@@ -2367,5 +2375,15 @@ context_for_next_session:
   - 143_DEFERRED_REASON_WAS_THE_ANNOTATION_NOT_A_CHECK_A_TYPE_HINT_IS_NOT_A_GUARD
   - KEY_NAMES_STAY_OPEN_ABSENT_KEY_IS_ABSENT_CELL_BY_DESIGN_127
   - PROVIDER_SHAPE_SWEEP_CLEAN_cohere_7_2_and_5_13_embeddings_float_RESOLVES_THROUGH_THE_SDK_PARSER_verified_via_httpx_MockTransport_not_model_validate
+followups: []
+---
+
+---
+  suite: "3.12 CI-shaped (.[dev], no matplotlib) 1217 passed / 40 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main cc40a48: hand-edited result with cost -0.0 beside results/hash.json -> sweep aggregate rc=0, cells $0.000 and $-0.000. _format_quality(-0.0) '-0.000', _format_latency(-0.0, places=0/1) '-0' / '-0.0'. Branch: all four render as the zero they equal. Revert 6 red / 2 green (constructor-accepts-minus-zero anti-vacuity arm, aggregate_json-keeps-stored-value scope arm)."
+context_for_next_session:
+  - MINUS_0_0_IS_EQUAL_TO_0_0_SO_EVERY_GE_0_GUARD_ADMITS_IT_ONLY_FORMAT_SEES_THE_SIGN_BIT
+  - NOT_DONE_aggregate_json_AND_RESULT_FILES_KEEP_MINUS_0_0_AS_STORED_NUMERICALLY_ZERO_TO_EVERY_CONSUMER
 followups: []
 ---

@@ -2106,3 +2106,12 @@ that was saved, with no error. A tuple key made the writer itself crash.
 Which key names may appear is unchanged, because a missing latency is shown as
 an absent cell by design. `sweep run` always wrote string keys, so the committed
 results are unaffected.
+
+## 2026-10-15 — A negative zero no longer publishes as a negative price (#224)
+
+Python has a `-0.0` that compares equal to `0.0`, so it passes every "must be
+at least zero" check. A hand-edited result file with a cost of `-0.0` was
+accepted, but the benchmarks table printed it as `$-0.000`, a negative price
+next to the baseline's `$0.000`. The same thing happened to recall, NDCG and
+latency cells. The shared cell formatter now prints any zero as a plain zero.
+The stored number and the JSON aggregate are unchanged.
