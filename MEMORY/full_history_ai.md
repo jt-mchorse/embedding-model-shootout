@@ -2274,3 +2274,23 @@ context_for_next_session:
   - NOT_DONE_NON_STR_chunk_id_OR_text_TO_RUN_SWEEP_STILL_A_RAW_TypeError_AttributeError_AFTER_EMBEDDING_mypy_FLAGS_IT_SKIPPED_NOT_REFUSED
 followups: []
 ---
+
+session: 2026-10-14T07:27:03Z
+duration_min: 20   # approximate: plan comment 2026-10-14T07:27:03Z -> PR open
+issue: 214
+branch: session/2026-10-14-0727-issue-214
+focus: SWEEP_PLOT_HANDED_EMBEDDER_NAME_TO_MATPLOTLIB_WITH_PARSE_MATH_ON_A_PAIRED_DOLLAR_NAME_RETYPESET_A_MALFORMED_SPAN_RAISED_AT_EXIT_2
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 9
+  suite: "3.12 with plot extra 1244 passed / 1 skipped; 3.11 CI-shaped (no matplotlib) 1194 passed / 40 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main: 'tier $0.02$ small' drawn as mathtext; 'cost $\\frac$ model' ParseSyntaxException -> sweep plot 'error:' rc=2, no PNG, while sweep aggregate accepts the same file at rc=0. Branch: labels and auto title parse_math=False, rc=0. Revert 6 red / 3 green (plain name, operator --title fake and real)."
+context_for_next_session:
+  - 191_REFUSE_UNRENDERABLE_NAME_COVERS_NAMES_NO_SURFACE_CAN_SHOW_A_DOLLAR_IS_LEGAL_EVERYWHERE_BUT_THE_MATPLOTLIB_READER
+  - OPERATOR_TITLE_KEEPS_MATHTEXT_DELIBERATELY_ONLY_NAME_DERIVED_TEXT_IS_LITERAL
+  - DEFERRED_GITHUB_RENDERS_DOLLAR_MATH_IN_BENCHMARKS_MD_TABLE_CELLS_verified_via_gh_api_markdown_name_cell_escapes_pipe_and_newline_only_by_design
+  - CI_HAS_NO_PLOT_EXTRA_SO_ONLY_THE_FAKE_MATPLOTLIB_ARMS_RUN_THERE
+followups: []
+---

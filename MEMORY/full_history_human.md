@@ -2051,3 +2051,15 @@ billed by a paid provider, before the sweep crashed while fingerprinting. The
 query fields were never checked anywhere. `run_sweep` now applies the same rule
 before it embeds anything and names the field and position. The CLI path and the
 committed results are unaffected.
+
+## 2026-10-14 — The Pareto plot shows a model name as typed (#214)
+
+matplotlib treats any text that contains a pair of `$` signs as a math
+formula. The plot passed each model's name to it unchanged, so a name like
+`tier $0.02$ small` was redrawn as math, with the `$` signs gone. A name like
+`cost $\frac$ model` made `sweep plot` fail with a cryptic parser message,
+even though `sweep aggregate` accepted the same result file. Point labels and
+the automatic title, which quotes a name, are now drawn as plain text. A
+`--title` the operator supplies still allows math. GitHub also renders `$…$`
+as math inside the benchmarks table. That was left alone and is noted on the
+issue.

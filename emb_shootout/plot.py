@@ -240,6 +240,12 @@ def render_pareto(
             ax.scatter(x, y, s=70, color="#7f7f7f", zorder=2, edgecolor="black", linewidth=0.3)
         # Label every point with its disambiguated name (#151). `r.embedder_name`
         # is not unique — that is #69's own finding, three lines above.
+        #
+        # `parse_math=False` (#214): matplotlib reads any text holding a pair of
+        # unescaped `$` as mathtext. A name is data, not markup -- `tier $0.02$
+        # small` was drawn re-typeset with its `$` gone, and `cost $\frac$ model`
+        # raised a ParseSyntaxException that `sweep plot` printed as a bare
+        # `error:` at exit 2, for a result `sweep aggregate` accepts.
         ax.annotate(
             label,
             (x, y),
@@ -247,6 +253,7 @@ def render_pareto(
             textcoords="offset points",
             fontsize=8,
             color="#222222",
+            parse_math=False,
         )
 
     # Polyline through the frontier only when ≥2 distinct frontier points.
@@ -258,8 +265,12 @@ def render_pareto(
     ax.set_xlabel("Cost per million tokens ($)")
     ax.set_ylabel("Recall@5")
     if title is None:
-        title = _default_title(results, frontier)
-    ax.set_title(title)
+        # The auto-chosen title quotes a label (the single winner, #151), so it
+        # is drawn literally for the same reason as the labels (#214). An
+        # operator's own `--title` keeps matplotlib's default, mathtext included.
+        ax.set_title(_default_title(results, frontier), parse_math=False)
+    else:
+        ax.set_title(title)
     ax.grid(True, linestyle=":", linewidth=0.5, alpha=0.6)
 
     # Pad axes so labels don't clip -- for every non-empty result set, single
