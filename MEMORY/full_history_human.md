@@ -2115,3 +2115,11 @@ accepted, but the benchmarks table printed it as `$-0.000`, a negative price
 next to the baseline's `$0.000`. The same thing happened to recall, NDCG and
 latency cells. The shared cell formatter now prints any zero as a plain zero.
 The stored number and the JSON aggregate are unchanged.
+
+## 2026-10-16 — The plot command refuses one file for both formats, or an empty path (#228)
+
+`sweep plot` checked each output path on its own. Giving the same path to
+`--out-png` and `--out-svg` saved the PNG, overwrote it with the SVG, and then
+reported both. An empty path was silently skipped, so nothing was written and
+the command still succeeded. Both are now refused with exit code 2 before
+anything is written.

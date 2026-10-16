@@ -2387,3 +2387,21 @@ context_for_next_session:
   - NOT_DONE_aggregate_json_AND_RESULT_FILES_KEEP_MINUS_0_0_AS_STORED_NUMERICALLY_ZERO_TO_EVERY_CONSUMER
 followups: []
 ---
+
+---
+session: 2026-10-16T13:30Z
+issue: 228
+branch: session/2026-10-16-0913-issue-228
+focus: SWEEP_PLOT_PER_FLAG_CHECKS_NEVER_COMPARED_THE_TWO_PATHS_ONE_FILE_REPORTED_AS_TWO_AND_AN_EMPTY_PATH_WROTE_NOTHING_AT_EXIT_0
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 11
+  suite: "1299 -> 1310 passed; ruff + format clean"
+decisions_made: []
+measured: "main: --out-png same --out-svg same rc 0, file is SVG, summary lists both; --out-png '' rc 0 nothing written. After: rc 2 both. Revert 10 of 11 red."
+context_for_next_session:
+  - AN_IS_NONE_GATE_FOLLOWED_BY_A_TRUTHINESS_FILTER_LETS_THE_EMPTY_VALUE_THROUGH_THE_GATE_AND_DROPS_IT_AFTER
+  - RESIDUE_case_variant_of_a_not_yet_existing_file_on_case_insensitive_fs
+followups: []
+---
