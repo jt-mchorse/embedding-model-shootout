@@ -16,6 +16,7 @@ is real, just narrow.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -230,9 +231,32 @@ def render_pareto(
     # input whether or not the plotting extra is installed, and it must not be
     # reported as "matplotlib missing" (exit 3) instead of refused (exit 2).
     frontier = pareto_frontier(results)
-    outputs = [(Path(p), fmt) for p, fmt in ((out_png, "png"), (out_svg, "svg")) if p]
+    # An empty path is refused rather than dropped (#228): the `is None` check
+    # above let `--out-png ""` through, this list then filtered it out on
+    # truthiness, and the command wrote nothing and exited 0.
+    for p, fmt in ((out_png, "png"), (out_svg, "svg")):
+        if p is not None and str(p).strip() == "":
+            raise ValueError(f"the {fmt.upper()} output path must be non-empty; got {str(p)!r}")
+    outputs = [(Path(p), fmt) for p, fmt in ((out_png, "png"), (out_svg, "svg")) if p is not None]
     for path, fmt in outputs:
         _require_suffix_matches(path, fmt)
+    # Two flags naming one file (#228). #220 lets a path have no extension, so
+    # `--out-png same --out-svg same` passed both suffix checks; the PNG was
+    # written, then overwritten by the SVG, and the summary reported both.
+    # Compared resolved (`./same`, a symlinked directory) and, for a file that
+    # already exists, by identity -- which also catches `SAME` on a
+    # case-insensitive filesystem. A case variant of a file that does not exist
+    # yet is not detected there.
+    if len(outputs) == 2:
+        png_path, svg_path = outputs[0][0], outputs[1][0]
+        same = png_path.resolve() == svg_path.resolve() or (
+            png_path.exists() and svg_path.exists() and os.path.samefile(png_path, svg_path)
+        )
+        if same:
+            raise ValueError(
+                f"--out-png {str(png_path)!r} and --out-svg {str(svg_path)!r} are the same "
+                "file; the SVG would overwrite the PNG"
+            )
 
     plt = _import_matplotlib()
     # Match frontier membership by object identity, not `embedder_name`:
