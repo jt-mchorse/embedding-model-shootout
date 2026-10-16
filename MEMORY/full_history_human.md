@@ -2115,3 +2115,13 @@ accepted, but the benchmarks table printed it as `$-0.000`, a negative price
 next to the baseline's `$0.000`. The same thing happened to recall, NDCG and
 latency cells. The shared cell formatter now prints any zero as a plain zero.
 The stored number and the JSON aggregate are unchanged.
+
+## 2026-10-16 — Cosine similarity works for embeddings at any scale (#226)
+
+Cosine similarity shouldn't care how large the numbers in an embedding are,
+but the implementation overflowed for very large values and underflowed for
+very small ones. A custom embedder producing such vectors got chance-level
+scores. Each vector is now rescaled by a power of two before the arithmetic.
+That rescaling is exact, so ordinary embeddings get exactly the same
+similarities as before, and the committed benchmark results regenerate
+unchanged.

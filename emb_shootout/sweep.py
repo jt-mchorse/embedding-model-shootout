@@ -534,12 +534,31 @@ def _json_number(value: object, field: str) -> float:
 def cosine(a: list[float], b: list[float]) -> float:
     if len(a) != len(b):
         raise ValueError(f"vector length mismatch: {len(a)} vs {len(b)}")
+    # Scale-invariant, as cosine is (#226). `sqrt(sum(x*x))` overflowed to inf
+    # (inf/inf = NaN) for components around 1e154 and up, and underflowed to 0
+    # -- the zero-vector branch -- around 1e-154 and down, so a finite non-zero
+    # embedding scored like the zero vector `_reject_zero_vectors` refuses and a
+    # sweep published chance-level k/N recall. Each vector is first scaled by a
+    # power of two that brings its largest component into [0.5, 1): exact in
+    # binary floating point, and the two factors cancel in `dot / (na * nb)`, so
+    # an ordinary embedding's similarity is bit-identical to the unscaled form.
+    a = _scaled_by_power_of_two(a)
+    b = _scaled_by_power_of_two(b)
     dot = sum(x * y for x, y in zip(a, b, strict=True))
     na = math.sqrt(sum(x * x for x in a))
     nb = math.sqrt(sum(x * x for x in b))
     if na == 0 or nb == 0:
         return 0.0
     return dot / (na * nb)
+
+
+def _scaled_by_power_of_two(v: list[float]) -> list[float]:
+    """*v* times ``2**-e``, ``e`` the binary exponent of its largest |component|."""
+    peak = max((abs(x) for x in v), default=0.0)
+    if peak == 0 or not math.isfinite(peak):
+        return v
+    _, exponent = math.frexp(peak)
+    return [math.ldexp(x, -exponent) for x in v]
 
 
 def _require_one_vector_per_text(
