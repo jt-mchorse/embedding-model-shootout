@@ -2311,3 +2311,22 @@ context_for_next_session:
   - ems_215_TOUCHES_plot_py_TOO_parse_math_DIFFERENT_HUNK
 followups: []
 ---
+
+session: 2026-10-15T07:26:00Z
+duration_min: 15   # approximate: plan comment 2026-10-15T07:26Z -> PR open
+issue: 218
+branch: session/2026-10-15-0726-issue-218
+focus: RUN_SWEEP_CHECKED_NOTES_QUERY_SEED_AND_EMBEDDER_NAME_COST_DIM_ONLY_AT_ITS_RETURN_SWEEPRESULT_AFTER_EVERY_TEXT_WAS_EMBEDDED_210_212_LISTED_CORPUS_QUERY_RULES_ONLY
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 13
+  suite: "3.12 CI-shaped 1209 -> 1222 passed / 40 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main cc40a48: notes='str', notes=[1], query_seed='7'/True, embedder name ''/' ', cost -1/nan/True -> each the correct ValueError after 3 of 3 texts embedded. Branch: same message, 0 texts embedded. Revert 12 red / 1 green (clean-input control)."
+context_for_next_session:
+  - FIX_RUNS_SweepResult_ITSELF_AS_A_PRE_EMBED_PROBE_WITH_PLACEHOLDER_METRICS_NO_SECOND_COPY_OF_ANY_RULE
+  - run_sweep_PRE_EMBED_CHECKS_NOW_k_values_ids_surrogates_notes_seed_embedder_identity
+  - STILL_NOT_DONE_NON_STR_chunk_id_OR_text_212_SKIPPED_AS_A_MYPY_TYPE_ERROR
+followups: []
+---

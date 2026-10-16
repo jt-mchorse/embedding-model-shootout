@@ -1064,6 +1064,39 @@ def _require_encodable_strings(corpus: Sequence[CorpusChunk], queries: Sequence[
             )
 
 
+def _require_recordable(
+    embedder: Embedder, notes: Sequence[str], query_seed: int | None
+) -> list[str]:
+    """Refuse a value the returned `SweepResult` would refuse, before embedding (#218).
+
+    `run_sweep`'s own `notes` / `query_seed` and the embedder's recorded `name`
+    / `dim` / `cost_per_million_tokens` were checked only by the
+    `SweepResult(...)` in its `return`, after every corpus text and query had
+    been embedded and billed. #210 and #212 moved the corpus/query rules ahead
+    of the embed and listed nothing else; none of these depends on what is
+    embedded either.
+
+    Through the constructor itself rather than a copy of its rules, so the two
+    cannot drift and the messages are the ones `__post_init__` pins. The
+    metric fields are placeholders it accepts (empty maps, zero counts); the
+    probe is discarded. Returns the checked `notes` copy for the real result.
+    """
+    checked_notes = _checked_notes(notes)
+    SweepResult(
+        embedder_name=embedder.name,
+        embedder_dim=embedder.dim,
+        cost_per_million_tokens=embedder.cost_per_million_tokens,
+        n_corpus=0,
+        n_queries=0,
+        recall_at_k={},
+        ndcg_at_10=0.0,
+        embed_latency_ms={},
+        notes=checked_notes,
+        query_seed=query_seed,
+    )
+    return checked_notes
+
+
 def run_sweep(
     corpus: Sequence[CorpusChunk],
     queries: Sequence[Query],
@@ -1090,6 +1123,7 @@ def run_sweep(
     max_k = max(k_values)
     _require_scorable_ids(corpus, queries)
     _require_encodable_strings(corpus, queries)
+    checked_notes = _require_recordable(embedder, notes, query_seed)
 
     # Embed corpus (single batch).
     corpus_texts = [c.text for c in corpus]
@@ -1156,7 +1190,8 @@ def run_sweep(
         # admits it, which is why the guard is a runtime check rather than a
         # narrowing to `list[str]` -- and why narrowing would also reject this
         # parameter's own `()` default.
-        notes=_checked_notes(notes),
+        # Checked before the embed by `_require_recordable` (#218).
+        notes=checked_notes,
         # Computed from what was scored, not passed in, so a caller cannot
         # record an identity for a query set it did not run (#156). The seed is
         # the caller's to give: `run_sweep` sees the queries, not how they were
