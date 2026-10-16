@@ -2330,3 +2330,22 @@ context_for_next_session:
   - STILL_NOT_DONE_NON_STR_chunk_id_OR_text_212_SKIPPED_AS_A_MYPY_TYPE_ERROR
 followups: []
 ---
+
+---
+session: 2026-10-15T07:29:00Z
+duration_min: 15   # approximate: plan comment 2026-10-15T07:29Z -> PR open
+issue: 220
+branch: session/2026-10-15-0729-issue-220
+focus: SWEEP_PLOT_SAVEFIG_HAD_NO_FORMAT_SO_MATPLOTLIB_INFERRED_IT_FROM_THE_EXTENSION_OUT_SVG_PARETO_WROTE_A_PNG_TO_PARETO_PNG_AND_THE_SUMMARY_NAMED_A_MISSING_PATH
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 8
+  suite: "3.12 CI-shaped (no matplotlib) 1209 -> 1216 passed / 41 skipped; 3.12 with plot extra 1267 passed / 1 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main cc40a48, matplotlib 3.11.2: --out-svg pareto -> PNG at pareto.png, summary svg='.../pareto' (absent); --out-png chart.svg -> SVG, rc 0. Branch: --out-svg pareto -> SVG at pareto, --out-png chart -> PNG at chart; --out-png chart.svg -> error: rc 2, nothing written. Revert 8 of 8 red with plot extra, 7 of 7 CI-shaped (real-bytes arm skips)."
+context_for_next_session:
+  - SUFFIX_RULE_EMPTY_OR_THE_FLAGS_OWN_CASE_INSENSITIVE_ANY_OTHER_SUFFIX_REFUSED_matplotlib_ALREADY_REFUSED_UNKNOWN_ONES_SO_ONLY_pdf_jpg_etc_UNDER_THE_WRONG_FLAG_CHANGED
+  - FAKE_FIGURE_SAVEFIG_IN_test_plot_SWALLOWS_ARGS_THAT_IS_HOW_THE_FORMAT_WENT_UNOBSERVED
+followups: []
+---
