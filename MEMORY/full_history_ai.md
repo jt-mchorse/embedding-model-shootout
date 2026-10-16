@@ -2349,3 +2349,23 @@ context_for_next_session:
   - FAKE_FIGURE_SAVEFIG_IN_test_plot_SWALLOWS_ARGS_THAT_IS_HOW_THE_FORMAT_WENT_UNOBSERVED
 followups: []
 ---
+
+---
+session: 2026-10-15T07:44:00Z
+duration_min: 20   # approximate: plan comment 2026-10-15T07:44Z -> PR open
+issue: 222
+branch: session/2026-10-15-0744-issue-222
+focus: EMBED_LATENCY_MS_KEYS_UNGUARDED_143_DEFERRED_THEM_AS_ALREADY_DICT_STR_FLOAT_BUT_JSON_DUMPS_IS_THE_STRINGIFICATION
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 10
+  suite: "3.12 1209 -> 1219 passed / 40 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main cc40a48: embed_latency_ms {1:..}/{None:..}/{True:..} constructed and reloaded as '1'/'null'/'true' (NOT identical, no error); {(1,):..} TypeError from json.dumps at write. Branch: ValueError naming the field at construction. Revert 6 red / 4 green (accepted-row round-trip controls)."
+context_for_next_session:
+  - 143_DEFERRED_REASON_WAS_THE_ANNOTATION_NOT_A_CHECK_A_TYPE_HINT_IS_NOT_A_GUARD
+  - KEY_NAMES_STAY_OPEN_ABSENT_KEY_IS_ABSENT_CELL_BY_DESIGN_127
+  - PROVIDER_SHAPE_SWEEP_CLEAN_cohere_7_2_and_5_13_embeddings_float_RESOLVES_THROUGH_THE_SDK_PARSER_verified_via_httpx_MockTransport_not_model_validate
+followups: []
+---

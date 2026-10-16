@@ -2092,3 +2092,17 @@ did not exist. `--out-png chart.svg` wrote an SVG. Each flag now writes its own
 format at exactly the path given. A path whose extension names a different
 format is refused with exit 2 before anything is drawn. The committed
 `docs/pareto.png` and `docs/pareto.svg` are unaffected.
+
+## 2026-10-15 — Latency keys must be strings so a result reloads as written (#222)
+
+#143 made `SweepResult` refuse a non-integer `recall_at_k` key, so that a saved
+result always reloads as the same result. It did not apply the same check to
+`embed_latency_ms`. The reason it gave was that the field is "already
+`dict[str, float]`". That is only the type annotation, and nothing enforced it.
+A latency key of `1`, `None` or `True` was accepted and written by `json.dumps`
+as `"1"`, `"null"` or `"true"`, so the reloaded result differed from the one
+that was saved, with no error. A tuple key made the writer itself crash.
+`__post_init__` now refuses any non-string latency key and names the field.
+Which key names may appear is unchanged, because a missing latency is shown as
+an absent cell by design. `sweep run` always wrote string keys, so the committed
+results are unaffected.
