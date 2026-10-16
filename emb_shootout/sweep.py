@@ -1463,8 +1463,14 @@ def _format_no_fabricated_zero(value: float, *, places: int, sig_figs: int) -> s
         # external result file. Render the shape rather than a misleading number;
         # `math.floor(math.log10(nan))` would raise out of a markdown renderer.
         return ABSENT_RECALL_CELL
+    if value == 0.0:
+        # From `0.0`, not `value` (#224): `-0.0 == 0.0`, so a negative zero
+        # passes every `>= 0.0` guard and ties with `0.0` on the Pareto
+        # comparator, but `format` keeps its sign bit -- a `-0.0` cost published
+        # as `$-0.000`, a negative price in the column #29 exists to refuse.
+        return f"{0.0:.{places}f}"
     narrow = f"{value:.{places}f}"
-    if value == 0.0 or float(narrow) != 0.0:
+    if float(narrow) != 0.0:
         return narrow
     exponent = math.floor(math.log10(abs(value)))
     decimals = max(places, sig_figs - 1 - exponent)
