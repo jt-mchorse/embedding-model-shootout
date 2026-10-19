@@ -2387,3 +2387,20 @@ context_for_next_session:
   - NOT_DONE_aggregate_json_AND_RESULT_FILES_KEEP_MINUS_0_0_AS_STORED_NUMERICALLY_ZERO_TO_EVERY_CONSUMER
 followups: []
 ---
+
+---
+session: 2026-10-16T10:55Z
+issue: 226
+branch: session/2026-10-16-0832-issue-226
+focus: COSINE_NORM_OVERFLOWED_OR_UNDERFLOWED_ON_FINITE_EMBEDDINGS_SCALED_1E200_OR_1E_MINUS_170_AND_THE_SWEEP_PUBLISHED_K_OVER_N
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 16
+  suite: "1315 passed; ruff + format clean"
+decisions_made: []
+measured: "scale 1e200/1e-170 sweep: recall {1:.125,5:.625} nDCG .494 on main; {1:1,5:1} 1.000 after. results/hash.json regen identical except timing. Revert 9 of 16 red."
+context_for_next_session:
+  - POWER_OF_TWO_RESCALING_IS_EXACT_AND_CANCELS_IN_A_RATIO_so_a_numerics_fix_can_be_bit_identical_in_range_PROVE_IT_WITH_A_SEEDED_EQUALITY_ARM_AND_AN_ARTIFACT_REGEN
+followups: []
+---
