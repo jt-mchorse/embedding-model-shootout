@@ -1028,6 +1028,31 @@ def fingerprint_queries(queries: Sequence[Query]) -> str:
     return _fingerprint([[q.query_id, q.text, q.expected_chunk_id] for q in queries])
 
 
+def _require_str_fields(corpus: Sequence[CorpusChunk], queries: Sequence[Query]) -> None:
+    """Refuse a non-``str`` id or text before anything is hashed or embedded (#236).
+
+    #212 skipped these as "a type error ... which mypy reports", but a skipped
+    value was not a refused one: mixed ``int``/``str`` chunk ids embedded every
+    text and then raised a raw ``TypeError`` in `_fingerprint`'s ``sorted``, a
+    non-``str`` query text reached the per-query embed after the corpus was
+    billed, and an all-``int`` id set was fingerprinted as JSON numbers. #218
+    refuses ``notes=[1]`` and ``query_seed="7"`` -- also mypy-visible -- at
+    runtime for the same reason. Runs before `_require_scorable_ids`, whose id
+    dictionary would raise a raw ``TypeError`` on an unhashable id.
+    """
+    fields: list[tuple[str, object]] = []
+    for i, chunk in enumerate(corpus):
+        fields.append((f"corpus[{i}].chunk_id", chunk.chunk_id))
+        fields.append((f"corpus[{i}].text", chunk.text))
+    for i, q in enumerate(queries):
+        fields.append((f"queries[{i}].query_id", q.query_id))
+        fields.append((f"queries[{i}].text", q.text))
+        fields.append((f"queries[{i}].expected_chunk_id", q.expected_chunk_id))
+    for name, value in fields:
+        if not isinstance(value, str):
+            raise ValueError(f"{name} must be a string; got {type(value).__name__} {value!r}")
+
+
 def _require_scorable_ids(corpus: Sequence[CorpusChunk], queries: Sequence[Query]) -> None:
     """Refuse an id set that makes recall@k / NDCG@10 measure the wrong thing (#210).
 
@@ -1076,8 +1101,8 @@ def _require_encodable_strings(corpus: Sequence[CorpusChunk], queries: Sequence[
     the query fields were never checked anywhere. `expected_chunk_id` is not
     listed: `_require_scorable_ids` has already required it to be a corpus id.
 
-    A non-`str` value is skipped here, not refused: that is a type error
-    against the `CorpusChunk` / `Query` annotations, which mypy reports.
+    A non-`str` value never reaches this check: `_require_str_fields` refuses
+    it first (#236). The `isinstance` below only narrows the type.
     """
     fields: list[tuple[str, object]] = []
     for i, chunk in enumerate(corpus):
@@ -1155,6 +1180,7 @@ def run_sweep(
         raise ValueError("queries must be non-empty")
     validate_k_values(k_values)
     max_k = max(k_values)
+    _require_str_fields(corpus, queries)
     _require_scorable_ids(corpus, queries)
     _require_encodable_strings(corpus, queries)
     checked_notes = _require_recordable(embedder, notes, query_seed)
