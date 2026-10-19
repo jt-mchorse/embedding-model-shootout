@@ -2147,3 +2147,12 @@ All of these exited 0. They now exit 2 before anything is written. The same
 change makes `corpus validate --out ''` exit 2 instead of quietly printing to
 stdout. A normal `sweep run --out results/<provider>.json` that replaces an
 earlier run is still allowed.
+
+## 2026-10-19 — The plot summary names frontier runs the way the chart does (#232)
+
+When one provider has two runs, the chart labels the points `name #1` and
+`name #2` (#151). The JSON summary that `sweep plot` prints still listed the
+frontier by bare name, which matched both points, so a CI job reading it had no
+way to tell which run was on the frontier. The summary now uses the chart's
+labels and matches points by identity. Output for result sets without duplicate
+names is unchanged.

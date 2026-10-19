@@ -2440,3 +2440,21 @@ context_for_next_session:
   - "SWEEP_RUN_OUT_INTO_RESULTS_OVERWRITING_A_PREVIOUS_RUN_STAYS_ALLOWED_by_D_007_one_file_per_run"
 followups: []
 ---
+
+---
+session: 2026-10-19T07:45Z
+issue: 232
+branch: session/2026-10-19-0745-issue-232
+focus: SWEEP_PLOT_STDOUT_SUMMARY_NAMED_THE_FRONTIER_BY_BARE_EMBEDDER_NAME_A_SURFACE_OUTSIDE_THE_151_PLOT_PY_LOCK
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 5
+  suite: "3.12 (.[dev,plot]) 1330 passed / 1 skipped; 3.11 CI-shaped (.[dev]) 1279 passed / 41 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main aa06cd9: two hash runs, second dearer and worse: summary frontier ['hash-embedder-128d-ngram2'], chart/title 'hash-embedder-128d-ngram2 #1'. After: summary ['... #1'], identity-matched. Revert 4 of 5 red / 1 green (collision-free control)."
+context_for_next_session:
+  - "A_FILE_SCOPED_LOCK_COVERS_ITS_FILE_THE_CLI_SUMMARY_RENDERED_THE_SAME_NAME_ONE_MODULE_OVER"
+  - "SWEEP_RUN_STDOUT_STILL_PRINTS_BARE_NAME_FOR_ITS_ONE_RESULT_NO_COLLISION_POSSIBLE"
+followups: []
+---
