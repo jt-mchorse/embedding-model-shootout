@@ -2458,3 +2458,21 @@ context_for_next_session:
   - "SWEEP_RUN_STDOUT_STILL_PRINTS_BARE_NAME_FOR_ITS_ONE_RESULT_NO_COLLISION_POSSIBLE"
 followups: []
 ---
+
+---
+session: 2026-10-19T07:48Z
+issue: 234
+branch: session/2026-10-19-0748-issue-234
+focus: SWEEP_PLOT_SAVED_OUTPUTS_IN_TURN_WITH_NO_PREFLIGHT_SO_AN_UNWRITABLE_SVG_FAILED_AFTER_THE_PNG_WAS_REPLACED
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 6
+  suite: "3.12 (.[dev,plot]) 1331 passed / 1 skipped; 3.11 CI-shaped (.[dev]) 1280 passed / 41 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main aa06cd9: --out-png pareto.png --out-svg blocker/pareto.svg (blocker a file) -> rc 2 'failed to write plot', pareto.png already a new 1200x825 PNG. After: rc 2, pareto.png byte-identical. Revert 3 of 6 red / 3 green (writable control + 2 PNG-unwritable mirror arms that the unfixed loop also stopped on)."
+context_for_next_session:
+  - "A_MULTI_OUTPUT_COMMAND_NEEDS_THE_PREFLIGHT_ON_EVERY_OUTPUT_BEFORE_THE_FIRST_WRITE_the_mirror_case_is_green_on_main"
+  - "NOT_DONE_savefig_still_writes_in_place_a_mid_write_failure_disk_full_can_still_leave_a_partial_file"
+followups: []
+---
