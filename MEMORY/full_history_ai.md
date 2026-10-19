@@ -2476,3 +2476,22 @@ context_for_next_session:
   - "NOT_DONE_savefig_still_writes_in_place_a_mid_write_failure_disk_full_can_still_leave_a_partial_file"
 followups: []
 ---
+
+---
+session: 2026-10-19T07:58Z
+issue: 236
+branch: session/2026-10-19-0758-issue-236
+focus: RUN_SWEEP_SKIPPED_NON_STR_IDS_AND_TEXTS_IN_THE_212_SURROGATE_CHECK_SO_THEY_CRASHED_OR_WERE_FINGERPRINTED_AFTER_THE_EMBED
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 9
+  suite: "3.12 CI-shaped (.[dev]) 1315 passed / 41 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main a46c30e, counting hash embedder, 2 chunks + 1 query: mixed int/str chunk ids -> TypeError in sorted after 3 texts embedded; bytes query text -> TypeError after the corpus embed; int query_id and all-int ids -> SweepResult returned. After: ValueError naming field and index, 0 texts embedded. Revert 8 of 9 red / 1 green (clean-input control)."
+context_for_next_session:
+  - "CLOSES_THE_212_218_NOT_DONE_NON_STR_chunk_id_OR_text_a_mypy_visible_type_error_is_not_a_runtime_refusal_218_already_refused_notes_1"
+  - "CHECK_RUNS_BEFORE_require_scorable_ids_BECAUSE_ITS_ID_DICT_RAISED_A_RAW_TypeError_ON_AN_UNHASHABLE_ID"
+  - "SEED_191_ALREADY_COVERS_WHITESPACE_AND_SURROGATE_NAMES_a_zero_width_only_name_U_200B_is_still_accepted_not_whitespace_to_str_strip"
+followups: []
+---

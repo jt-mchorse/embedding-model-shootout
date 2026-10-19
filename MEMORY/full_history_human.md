@@ -2165,3 +2165,15 @@ command reported failure with exit code 2 after it had already replaced the
 PNG. The previous chart was gone. Both paths now go through the same
 writability check `sweep run` uses (#200) before anything is rendered, so a bad
 path leaves both files as they were.
+
+## 2026-10-19 — `run_sweep` refuses a non-string id or text before embedding (#236)
+
+A library caller who passed `run_sweep` a chunk id, text, or query id that was
+not a string (for example integer database keys on some rows) got through every
+pre-embed check. #212's surrogate check skipped such values on the grounds that
+mypy would flag them. With mixed integer and string ids, every text was embedded
+and the sweep then crashed with a raw `TypeError` in the fingerprint. A bytes
+query text failed only after the whole corpus had been embedded. An integer
+query id returned a result fingerprinted with JSON numbers. All of these now
+raise a `ValueError` naming the field and index before any text is embedded,
+which matches how #218 already treats `notes=[1]` and `query_seed="7"`.
