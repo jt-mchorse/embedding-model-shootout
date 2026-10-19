@@ -276,3 +276,75 @@ def test_every_name_interpolation_in_plot_goes_through_the_helper() -> None:
     assert inside_helper.strip(), "the helper slice is empty; this arm walks nothing"
     assert ".embedder_name" in inside_helper
     assert "disambiguated_labels(results)" in outside_helper
+
+
+# ----------------------------------------------------------------------
+# The CLI summary — a surface outside plot.py (#232)
+# ----------------------------------------------------------------------
+
+
+def _cli_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    results: list[SweepResult],
+) -> dict:
+    """Run `sweep plot` over *results* (file order = list order) and parse stdout."""
+    import json
+
+    from emb_shootout.cli import main
+
+    _draw(monkeypatch, tmp_path, results[:1])  # installs the fake matplotlib
+    results_dir = tmp_path / "results"
+    results_dir.mkdir()
+    for i, r in enumerate(results, start=1):
+        (results_dir / f"r{i}.json").write_text(json.dumps(r.to_dict()), encoding="utf-8")
+    capsys.readouterr()
+    rc = main(
+        ["sweep", "plot", "--results-dir", str(results_dir), "--out-png", str(tmp_path / "c.png")]
+    )
+    captured = capsys.readouterr()
+    assert rc == 0, captured.err
+    return json.loads(captured.out)
+
+
+@pytest.mark.parametrize(
+    ("costs_recalls", "expected"),
+    [
+        pytest.param([(0.1, 0.9), (10.0, 0.3)], ["openai #1"], id="winner-first"),
+        pytest.param([(10.0, 0.3), (0.1, 0.9)], ["openai #2"], id="winner-second"),
+        pytest.param([(0.1, 0.3), (10.0, 0.9)], ["openai #1", "openai #2"], id="both-on-frontier"),
+    ],
+)
+def test_the_cli_summary_names_the_frontier_with_the_charts_labels(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    costs_recalls: list[tuple[float, float]],
+    expected: list[str],
+) -> None:
+    """`"frontier": ["openai"]` named both points while the chart said `#1`."""
+    results = [_result("openai", cost=c, recall=r) for c, r in costs_recalls]
+    summary = _cli_summary(monkeypatch, tmp_path, capsys, results)
+    assert summary["frontier"] == expected, summary
+
+
+def test_the_cli_summary_is_unchanged_without_collisions(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """GREEN against the unfixed tree: a collision-free summary must not move."""
+    results = [_result("openai", cost=0.1, recall=0.3), _result("voyage", cost=10.0, recall=0.9)]
+    summary = _cli_summary(monkeypatch, tmp_path, capsys, results)
+    assert summary["frontier"] == ["openai", "voyage"], summary
+
+
+def test_the_plot_command_reads_no_bare_embedder_name() -> None:
+    """#151's file-scoped rule, extended to the one CLI function that renders names."""
+    import inspect
+
+    from emb_shootout import cli
+
+    source = inspect.getsource(cli._cmd_sweep_plot)
+    code = "\n".join(line for line in source.splitlines() if not line.strip().startswith("#"))
+    assert ".embedder_name" not in code
+    assert "disambiguated_labels(results)" in code
