@@ -2125,3 +2125,11 @@ scores. Each vector is now rescaled by a power of two before the arithmetic.
 That rescaling is exact, so ordinary embeddings get exactly the same
 similarities as before, and the committed benchmark results regenerate
 unchanged.
+
+## 2026-10-16 — The plot command refuses one file for both formats, or an empty path (#228)
+
+`sweep plot` checked each output path on its own. Giving the same path to
+`--out-png` and `--out-svg` saved the PNG, overwrote it with the SVG, and then
+reported both. An empty path was silently skipped, so nothing was written and
+the command still succeeded. Both are now refused with exit code 2 before
+anything is written.
