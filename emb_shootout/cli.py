@@ -320,7 +320,7 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
 
 
 def _cmd_sweep_plot(args: argparse.Namespace) -> int:
-    from .plot import render_pareto
+    from .plot import disambiguated_labels, render_pareto
     from .sweep import SweepResult
 
     results_dir = Path(args.results_dir)
@@ -381,10 +381,18 @@ def _cmd_sweep_plot(args: argparse.Namespace) -> int:
         sys.stderr.write(f"failed to write plot: {exc}\n")
         return 2
 
+    # The chart's labels, not bare names (#232). `embedder_name` is not unique
+    # (#69, #151): two runs of one provider printed `"frontier": ["x"]` while
+    # the chart beside it said `x #1`, naming both points at once. Matched by
+    # identity, as the chart matches frontier membership; a collision-free set
+    # gets the bare names, unchanged.
+    label_of = {
+        id(r): label for r, label in zip(results, disambiguated_labels(results), strict=True)
+    }
     summary = {
         "results": len(results),
         "frontier_size": len(frontier),
-        "frontier": [r.embedder_name for r in frontier],
+        "frontier": [label_of[id(r)] for r in frontier],
         "png": str(png_path) if png_path else None,
         "svg": str(svg_path) if svg_path else None,
     }
