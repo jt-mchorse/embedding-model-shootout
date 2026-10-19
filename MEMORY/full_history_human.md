@@ -2156,3 +2156,12 @@ frontier by bare name, which matched both points, so a CI job reading it had no
 way to tell which run was on the frontier. The summary now uses the chart's
 labels and matches points by identity. Output for result sets without duplicate
 names is unchanged.
+
+## 2026-10-19 — The plot command checks both outputs before writing either (#234)
+
+`sweep plot` wrote the PNG first and the SVG second. If the SVG path couldn't
+be written, for example because its parent folder was actually a file, the
+command reported failure with exit code 2 after it had already replaced the
+PNG. The previous chart was gone. Both paths now go through the same
+writability check `sweep run` uses (#200) before anything is rendered, so a bad
+path leaves both files as they were.

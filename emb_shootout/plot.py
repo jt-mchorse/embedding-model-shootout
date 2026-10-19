@@ -20,6 +20,7 @@ import os
 from collections.abc import Sequence
 from pathlib import Path
 
+from .io_utils import check_writable
 from .pareto import _recall_at_5, pareto_frontier
 from .sweep import SweepResult
 
@@ -257,6 +258,14 @@ def render_pareto(
                 f"--out-png {str(png_path)!r} and --out-svg {str(svg_path)!r} are the same "
                 "file; the SVG would overwrite the PNG"
             )
+    # Every output is writable before any is written (#234). The loop at the
+    # bottom saves them in turn, so an unwritable --out-svg (its parent a file,
+    # an existing directory) raised only after --out-png had been replaced, and
+    # the command exited 2 "failed to write plot" with the old chart gone. The
+    # same preflight #200 gave `sweep run --out`; raises the OSError the CLI
+    # already maps to exit 2.
+    for path, _fmt in outputs:
+        check_writable(path)
 
     plt = _import_matplotlib()
     # Match frontier membership by object identity, not `embedder_name`:
