@@ -2422,3 +2422,21 @@ context_for_next_session:
   - RESIDUE_case_variant_of_a_not_yet_existing_file_on_case_insensitive_fs
 followups: []
 ---
+
+---
+session: 2026-10-19T07:37Z
+issue: 230
+branch: session/2026-10-19-0737-issue-230
+focus: OUT_WAS_NEVER_COMPARED_TO_THE_COMMANDS_OWN_INPUTS_AGGREGATE_OVER_ITS_RESULT_GLOB_RUN_AND_VALIDATE_OVER_THE_CORPUS
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 27
+  suite: "3.12 (.[dev,plot]) 1352 passed / 1 skipped; 3.11 CI-shaped (.[dev]) 1301 passed / 41 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main aa06cd9: aggregate --format json --out res/aggregate.json rc 0, next aggregate/plot rc 2 malformed; aggregate --out res/hash.json rc 0, result replaced by the table; sweep run --out <corpus> rc 0, corpus replaced; validate --out '' rc 0 to stdout. After: rc 2, inputs byte-identical. Revert 22 of 27 red / 5 green (controls)."
+context_for_next_session:
+  - "AN_OUTPUT_CHECK_MUST_INCLUDE_THE_PATH_THE_INPUT_GLOB_WILL_READ_NEXT_RUN_not_only_files_that_exist_now"
+  - "SWEEP_RUN_OUT_INTO_RESULTS_OVERWRITING_A_PREVIOUS_RUN_STAYS_ALLOWED_by_D_007_one_file_per_run"
+followups: []
+---

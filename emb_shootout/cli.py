@@ -16,11 +16,27 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 from .corpus import DEFAULT_MODULES, build_corpus, unimportable_modules, write_jsonl
 from .io_utils import atomic_write_text, check_writable, loads_json
+
+
+def _same_file(a: Path, b: Path) -> bool:
+    """True when *a* and *b* name one file (#230), compared as #228 does.
+
+    Resolved (`./x`, `sub/../x`, a symlink), and for paths that both exist by
+    identity, which also catches a hard link and a case variant on a
+    case-insensitive filesystem.
+    """
+    if a.resolve() == b.resolve():
+        return True
+    try:
+        return os.path.samefile(a, b)
+    except OSError:
+        return False
 
 
 def _cmd_corpus_build(args: argparse.Namespace) -> int:
@@ -64,6 +80,18 @@ def _cmd_corpus_validate(args: argparse.Namespace) -> int:
     """
     from .validate import validate_corpus
 
+    # Before reading (#230). An empty --out was dropped on truthiness below and
+    # the report went to stdout at exit 0 (#228's shape), and an --out naming
+    # the corpus replaced the file it had just linted with a one-line summary.
+    if args.out is not None:
+        if str(args.out).strip() == "":
+            sys.stderr.write(f"--out must be non-empty; got {args.out!r}\n")
+            return 2
+        if _same_file(Path(args.out), Path(args.corpus)):
+            sys.stderr.write(
+                f"refusing to write --out {args.out}: it is the corpus being validated\n"
+            )
+            return 2
     try:
         report = validate_corpus(args.corpus)
     except FileNotFoundError as e:
@@ -98,7 +126,7 @@ def _cmd_corpus_validate(args: argparse.Namespace) -> int:
             f"{status}: {args.corpus} rows={report.n_rows} valid={report.n_valid} "
             f"findings={len(report.findings)}\n"
         )
-    if args.out:
+    if args.out is not None:
         # An unwritable --out otherwise raised a raw OSError at exit 1 (#75),
         # mirroring the FileNotFoundError/OSError handling on the read above.
         try:
@@ -138,6 +166,11 @@ def _cmd_sweep_run(args: argparse.Namespace) -> int:
     # traceback at exit 1; translate to a clean `error:` + exit 2 like the
     # corpus-read seam above and the aggregate/plot seams (#75/#77).
     out_path = Path(args.output)
+    # The result JSON over the corpus it was measured on (#230): this exited 0
+    # with the corpus gone. Refused before embedding, like the preflight below.
+    if _same_file(out_path, Path(args.corpus)):
+        sys.stderr.write(f"refusing to write --out {out_path}: it is the --corpus file\n")
+        return 2
     # Before any embedding (#200): the write below comes after the provider has
     # embedded the whole corpus and every query, so an unwritable --out used to
     # bill a full sweep and then be refused.
@@ -197,6 +230,23 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
     if not files:
         sys.stderr.write(f"no result JSON files found under {results_dir}\n")
         return 2
+    # The output is never one of the inputs (#230). `--out results/hash.json`
+    # replaced a measured result with the table at exit 0, and `--format json
+    # --out results/aggregate.json` -- the `<path>.json` #193's refusal points
+    # at -- wrote a file the next aggregate or plot over this directory reads
+    # as a malformed result (exit 2 until deleted by hand). Refused before
+    # anything is read or written: a file the glob found, or a path the glob
+    # would find next time.
+    out_path = Path(args.out)
+    resolved_out = out_path.resolve()
+    if any(_same_file(out_path, p) for p in files) or (
+        resolved_out.parent == results_dir.resolve() and resolved_out.match("*.json")
+    ):
+        sys.stderr.write(
+            f"refusing to write --out {out_path}: it is (or would be read as) a result "
+            f"file in --results-dir {results_dir}; write the output outside that directory\n"
+        )
+        return 2
     # A hand-edited/truncated result file otherwise raised a raw
     # JSONDecodeError (or OSError) at exit 1 (#75) — name the bad file and
     # exit 2 per the usage contract. A valid-JSON-but-structurally-malformed
@@ -216,7 +266,6 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
         except OSError as e:
             sys.stderr.write(f"failed to read {p}: {e}\n")
             return 2
-    out_path = Path(args.out)
     # Rows from different query sets cannot share a table (#155, D-014); both
     # aggregators refuse them, and that is operator input, so exit 2.
     try:

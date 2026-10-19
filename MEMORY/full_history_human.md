@@ -2133,3 +2133,17 @@ unchanged.
 reported both. An empty path was silently skipped, so nothing was written and
 the command still succeeded. Both are now refused with exit code 2 before
 anything is written.
+
+## 2026-10-19 — An output path can no longer overwrite one of the command's own inputs (#230)
+
+`sweep aggregate` writes its output wherever `--out` points, even inside the
+results directory it reads from. `--out results/hash.json` swapped a measured
+result for the markdown table. `--format json --out results/aggregate.json`,
+which is the `<path>.json` that #193's error message recommends, left behind a
+file that the next `aggregate` or `plot` rejected as a malformed result.
+`sweep run --out` with the corpus path overwrote the corpus with the result,
+and `corpus validate --out` with the corpus path overwrote it with the summary.
+All of these exited 0. They now exit 2 before anything is written. The same
+change makes `corpus validate --out ''` exit 2 instead of quietly printing to
+stdout. A normal `sweep run --out results/<provider>.json` that replaces an
+earlier run is still allowed.
