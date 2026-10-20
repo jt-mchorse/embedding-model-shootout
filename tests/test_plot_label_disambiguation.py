@@ -348,3 +348,83 @@ def test_the_plot_command_reads_no_bare_embedder_name() -> None:
     code = "\n".join(line for line in source.splitlines() if not line.strip().startswith("#"))
     assert ".embedder_name" not in code
     assert "disambiguated_labels(results)" in code
+
+
+# ----------------------------------------------------------------------
+# A suffix that equals a name (#239)
+# ----------------------------------------------------------------------
+
+
+def test_a_suffix_does_not_take_a_name_that_already_ends_in_it() -> None:
+    """The issue's input exactly: `["m #2", "m", "m"]` labelled two runs `m #2`."""
+    labels = disambiguated_labels([_result("m #2"), _result("m"), _result("m")])
+    assert labels == ["m #2", "m #2 #2", "m #3"], labels
+
+
+@pytest.mark.parametrize(
+    "names",
+    [
+        # RED against the unfixed tree: a position suffix lands on a unique name.
+        pytest.param(["m #2", "m", "m"], id="unique-name-first"),
+        pytest.param(["m", "m", "m #2"], id="unique-name-last"),
+        pytest.param(["m", "m", "m #2", "m #2 #2"], id="two-level-chain"),
+        pytest.param(["x #3", "x", "x", "x #3 #3"], id="re-suffix-hits-a-name-twice"),
+        # GREEN against the unfixed tree, deliberately: suffix-shaped names whose
+        # positions miss them. The re-suffix must not disturb these.
+        pytest.param(["m", "m #2", "m"], id="control-position-misses-the-name"),
+        pytest.param(["m #1", "m #1", "m", "m"], id="control-colliding-names-end-in-a-suffix"),
+        pytest.param(["a #2", "a #2", "a", "a"], id="control-two-groups"),
+    ],
+)
+def test_no_two_labels_are_equal_for_adversarial_names(names: list[str]) -> None:
+    """Under the old rule a label could repeat only when `name #<position>` equaled
+    a name that appears once. The red cases build exactly that."""
+    labels = disambiguated_labels([_result(n) for n in names])
+    assert len(labels) == len(names)
+    assert len(set(labels)) == len(labels), labels
+
+
+@pytest.mark.parametrize(
+    "names",
+    [
+        pytest.param(["m #2", "m", "m"], id="unique-name-first"),
+        pytest.param(["x #3", "x", "x", "x #3 #3"], id="re-suffix-hits-a-name-twice"),
+    ],
+)
+def test_a_name_that_appears_once_is_still_untouched(names: list[str]) -> None:
+    """GREEN against the unfixed tree, deliberately: it rejects the plausible
+    wrong fix that renames the *unique* `m #2` to make room for the collision.
+    """
+    labels = disambiguated_labels([_result(n) for n in names])
+    for name, label in zip(names, labels, strict=True):
+        if names.count(name) == 1:
+            assert label == name, labels
+
+
+def test_a_re_suffixed_label_still_ends_in_its_position() -> None:
+    """The ordinal stays the sequence position after a re-suffix: `#2 #2` is
+    the second file, so D-012's "maps to the file" property survives.
+
+    GREEN against the unfixed tree: it rejects a re-suffix that breaks the tie
+    some other way (a prime, a per-name counter, renumbering the group).
+    """
+    labels = disambiguated_labels([_result("m #2"), _result("m"), _result("m")])
+    assert labels[1].endswith(" #2"), labels
+    assert labels[2].endswith(" #3"), labels
+
+
+def test_the_cli_summary_cannot_name_two_runs_the_same(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The issue's CLI repro: `hash` ($0), `hash` ($0.1), `hash #2` ($0.2).
+
+    Unfixed, `"frontier": ["hash #1", "hash #2"]`, and two of the three runs
+    were called `hash #2` with only one on the frontier.
+    """
+    results = [
+        _result("hash", cost=0.0, recall=0.1),
+        _result("hash", cost=0.1, recall=0.2),
+        _result("hash #2", cost=0.2, recall=0.3),
+    ]
+    summary = _cli_summary(monkeypatch, tmp_path, capsys, results)
+    assert summary["frontier"] == ["hash #1", "hash #2 #2", "hash #2"], summary

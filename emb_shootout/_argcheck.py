@@ -52,6 +52,7 @@ sweep the harness would have accepted, which is worse than the gap it closes.
 from __future__ import annotations
 
 import math
+import unicodedata
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -141,6 +142,20 @@ def is_non_empty_str(value: object) -> bool:
     return isinstance(value, str) and bool(value)
 
 
+# Hangul fillers are category Lo, so a category test alone lets them through,
+# yet each one renders as nothing: U+3164 and U+115F were measured accepted and
+# blank (#239). U+1160 and U+FFA0 are the other two fillers in the same set.
+_HANGUL_FILLERS = frozenset("\u115f\u1160\u3164\uffa0")
+# Cc controls, Cf format characters (ZWSP, ZWJ, BOM, word joiner, soft hyphen,
+# Mongolian vowel separator), and the three separator categories.
+_INVISIBLE_CATEGORIES = frozenset({"Cc", "Cf", "Zs", "Zl", "Zp"})
+
+
+def _is_invisible(ch: str) -> bool:
+    """True when *ch* draws nothing in a table cell or a chart label (#239)."""
+    return ch in _HANGUL_FILLERS or unicodedata.category(ch) in _INVISIBLE_CATEGORIES
+
+
 def refuse_unrenderable_name(name: str, value: str) -> None:
     """Refuse a ``str`` name the table and the plot cannot show (#191).
 
@@ -154,11 +169,20 @@ def refuse_unrenderable_name(name: str, value: str) -> None:
       ``atomic_write_text`` and ``sweep plot`` inside matplotlib -- raw
       tracebacks at exit 1. #176/#189 closed this class for corpus rows through
       ``first_lone_surrogate``; the same helper is reused here.
+
+    **Blank means no visible character, not only whitespace** (#239). The
+    ``not value.strip()`` test missed every invisible codepoint that is not
+    whitespace: U+200B, U+FEFF, U+2060, U+00AD, U+180E and U+200D were all
+    accepted, and ``sweep aggregate`` published ``| \u200b | 1536 | ...``, the
+    same blank cell. ``_is_invisible`` replaces the strip test and covers it,
+    because every ``str.isspace()`` codepoint is in Cc, Zs, Zl or Zp. A name
+    with *some* invisible codepoints and at least one visible one (an emoji ZWJ
+    sequence, a soft hyphen inside a word) is still a name.
     """
     from .validate import first_lone_surrogate
 
-    if not value.strip():
-        raise ValueError(f"{name} must not be blank; got {value!r}")
+    if all(_is_invisible(ch) for ch in value):
+        raise ValueError(f"{name} must not be blank (no visible character); got {value!r}")
     hit = first_lone_surrogate(value)
     if hit is not None:
         index, codepoint = hit

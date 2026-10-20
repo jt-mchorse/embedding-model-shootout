@@ -2189,3 +2189,16 @@ chunk ids, chunk texts, query ids, query texts, and expected chunk ids now raise
 a `ValueError` ("... must not be empty", the readers' wording) before anything
 is embedded. Whitespace-only values are still accepted, because the readers
 accept them too.
+
+## 2026-10-20 — Chart labels stay unique and an invisible name is refused (#239)
+
+`disambiguated_labels` added each colliding name's file position as a suffix,
+and a name can already end in that suffix. `["m #2", "m", "m"]` labelled two
+runs `m #2`, which is the #151 harm again. Every input name is now reserved,
+and a suffixed label that would equal one gets the same ordinal appended again
+(`m #2 #2`). The last suffix is still the file position, and names that appear
+only once are unchanged. Separately, #191 refused whitespace-only
+`embedder_name`s but let through names made only of invisible characters, such
+as a zero-width space or a Hangul filler, and those printed a blank table
+cell. A name now needs at least one visible character, and the same check runs
+at both `SweepResult` entry points.
