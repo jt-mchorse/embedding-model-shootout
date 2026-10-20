@@ -96,3 +96,68 @@ def test_cli_exits_2_naming_the_file(
     assert f"malformed result JSON in {results / 'r.json'}" in err
     assert "embedder_name" in err
     assert not (tmp_path / "bench.md").exists()
+
+
+# ----------------------------------------------------------------------
+# A name with no visible character (#239)
+# ----------------------------------------------------------------------
+#
+# `not value.strip()` caught whitespace and nothing else that draws nothing.
+# Every codepoint below was measured accepted on 1d9062b, and `sweep aggregate`
+# published `| ​ | 1536 | ...`, the blank cell #191 refused for spaces.
+
+INVISIBLE = {
+    "zwsp-U+200B": "​",
+    "bom-U+FEFF": "﻿",
+    "word-joiner-U+2060": "⁠",
+    "soft-hyphen-U+00AD": "­",
+    "hangul-filler-U+3164": "ㅤ",
+    "hangul-choseong-filler-U+115F": "ᅟ",
+    "mongolian-vowel-sep-U+180E": "᠎",
+    "zwj-U+200D": "‍",
+    "mixed-invisibles": "​ ﻿ㅤ\t",
+}
+# Invisible codepoints *inside* a visible name: still a name. An emoji ZWJ
+# sequence is the realistic case; a guard on "contains" rather than "only"
+# would refuse it.
+VISIBLE_WITH_INVISIBLES = [
+    "bge​small",
+    "﻿openai",
+    "voy­age",
+    "\U0001f468‍\U0001f4bb",
+    "ㅤx",
+]
+
+
+@pytest.mark.parametrize("key", sorted(INVISIBLE))
+def test_direct_construction_refuses_an_invisible_name(key: str) -> None:
+    with pytest.raises(ValueError, match="embedder_name must not be blank"):
+        SweepResult(**_kwargs(INVISIBLE[key]))
+
+
+@pytest.mark.parametrize("key", sorted(INVISIBLE))
+def test_from_dict_refuses_an_invisible_name(key: str) -> None:
+    with pytest.raises(ValueError, match="embedder_name must not be blank"):
+        SweepResult.from_dict(_serialized(INVISIBLE[key]))
+
+
+@pytest.mark.parametrize("name", VISIBLE_WITH_INVISIBLES)
+def test_a_visible_name_with_invisible_codepoints_still_round_trips(name: str) -> None:
+    """GREEN against the unfixed tree: the control that rejects a "contains
+    any invisible codepoint" guard."""
+    r = SweepResult.from_dict(_serialized(name))
+    assert r.embedder_name == name
+    assert SweepResult(**_kwargs(name)).embedder_name == name
+
+
+def test_cli_aggregate_exits_2_on_an_invisible_name(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    results = _results_dir(tmp_path, "​")
+    argv = ["sweep", "aggregate", "--results-dir", str(results)]
+    argv += ["--out", str(tmp_path / "bench.md")]
+    assert main(argv) == 2
+    err = capsys.readouterr().err
+    assert f"malformed result JSON in {results / 'r.json'}" in err
+    assert "embedder_name must not be blank" in err
+    assert not (tmp_path / "bench.md").exists()

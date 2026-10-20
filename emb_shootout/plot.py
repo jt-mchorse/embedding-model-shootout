@@ -131,14 +131,34 @@ def disambiguated_labels(results: Sequence[SweepResult]) -> list[str]:
     `to_dict`, every committed result JSON and D-007, and it is deliberately out
     of scope here. If provenance ever becomes a first-class field, labelling
     from it is strictly better than an ordinal.
+
+    **A suffix can collide with a name** (#239). A name is any string, so it
+    can already end in `` #<n>``: ``["m #2", "m", "m"]`` used to label as
+    ``m #2`` / ``m #2`` / ``m #3``, and through `sweep plot` two runs were
+    called ``hash #2`` with only one on the frontier, which is #151 again. So a
+    candidate is re-suffixed with the same ordinal while it equals any input
+    name or any label already handed out: that example becomes ``m #2`` /
+    ``m #2 #2`` / ``m #3``. The last suffix is still the position, a unique
+    name is still untouched, and the loop ends because each pass makes the
+    candidate longer and the set it must avoid is finite.
     """
     counts: dict[str, int] = {}
     for r in results:
         counts[r.embedder_name] = counts.get(r.embedder_name, 0) + 1
-    return [
-        r.embedder_name if counts[r.embedder_name] == 1 else f"{r.embedder_name} #{i + 1}"
-        for i, r in enumerate(results)
-    ]
+    # Every input name is reserved up front, so a suffixed label cannot take a
+    # name a unique result keeps unchanged, wherever that result sits (#239).
+    taken = set(counts)
+    labels: list[str] = []
+    for i, r in enumerate(results):
+        if counts[r.embedder_name] == 1:
+            labels.append(r.embedder_name)
+            continue
+        label = f"{r.embedder_name} #{i + 1}"
+        while label in taken:
+            label = f"{label} #{i + 1}"
+        taken.add(label)
+        labels.append(label)
+    return labels
 
 
 def _default_title(results: Sequence[SweepResult], frontier: Sequence[SweepResult]) -> str:

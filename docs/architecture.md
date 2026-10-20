@@ -240,6 +240,12 @@ third result" maps to the third entry of
 anyone can open. `_default_title` picks its winner's label **by identity**,
 the same trap #69 fixed one function down.
 
+A name is any string, so it can already end in a suffix (#239):
+`["m #2", "m", "m"]` labelled two runs `m #2`. Every input name is reserved,
+and a candidate that equals a name or an earlier label is re-suffixed with the
+same ordinal (`m #2 #2`). The last suffix is still the position, and a unique
+name is still untouched.
+
 What this is not: the honest answer to "which run is this point" is a run id
 on `SweepResult`. The loader drops the filename that distinguishes them and
 `render_pareto` takes only `Sequence[SweepResult]`, so that is a schema
