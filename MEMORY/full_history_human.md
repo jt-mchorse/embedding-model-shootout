@@ -2177,3 +2177,15 @@ query text failed only after the whole corpus had been embedded. An integer
 query id returned a result fingerprinted with JSON numbers. All of these now
 raise a `ValueError` naming the field and index before any text is embedded,
 which matches how #218 already treats `notes=[1]` and `query_seed="7"`.
+
+## 2026-10-20 — `run_sweep` refuses an empty id or text before embedding (#238)
+
+#236 made `run_sweep` refuse an id or text that was not a string, but an empty
+string still got through, even though both corpus file readers refuse it. An
+empty query "found" an empty chunk with perfect recall. With a provider that
+rejects empty input, as OpenAI's API does, a 1000-chunk sweep whose last query
+was empty paid for 1049 embeddings before failing with a `RuntimeError`. Empty
+chunk ids, chunk texts, query ids, query texts, and expected chunk ids now raise
+a `ValueError` ("... must not be empty", the readers' wording) before anything
+is embedded. Whitespace-only values are still accepted, because the readers
+accept them too.
