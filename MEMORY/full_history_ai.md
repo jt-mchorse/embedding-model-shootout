@@ -2495,3 +2495,21 @@ context_for_next_session:
   - "SEED_191_ALREADY_COVERS_WHITESPACE_AND_SURROGATE_NAMES_a_zero_width_only_name_U_200B_is_still_accepted_not_whitespace_to_str_strip"
 followups: []
 ---
+
+---
+session: 2026-10-20T08:02Z
+issue: 238
+branch: session/2026-10-20-0810-issue-238
+focus: RUN_SWEEP_ACCEPTED_EMPTY_IDS_AND_TEXTS_THAT_BOTH_FILE_READERS_REFUSE_236_CHECKED_TYPE_ONLY
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 8
+  suite: "3.11 CI-shaped (.[dev]) 1329 passed / 41 skipped; 3.12 (.[dev]) 1329 passed / 41 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main 1d9062b: empty query vs empty chunk -> recall {1:1.0,5:1.0,10:1.0}; empty chunk_id + query_id -> recall 1.0; 1000 chunks + 50 queries, last empty, embedder refusing '' -> 1049 texts billed then RuntimeError. After: ValueError '<field> must not be empty', 0 texts embedded. Revert 7 of 8 red / 1 green (non-empty control incl. whitespace-only id)."
+context_for_next_session:
+  - "EMPTY_RULE_ADDED_TO_require_str_fields_FOR_ALL_FIVE_FIELDS_SAME_WORDING_AS_cli_read_corpus_jsonl_AND_validate_empty_codes"
+  - "NOT_DONE_WHITESPACE_ONLY_TEXT_OR_ID_STILL_ACCEPTED_NEITHER_READER_REFUSES_IT_CHANGING_IT_IS_A_THREE_SITE_DECISION"
+followups: []
+---

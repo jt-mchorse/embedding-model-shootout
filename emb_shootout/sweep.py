@@ -1039,6 +1039,12 @@ def _require_str_fields(corpus: Sequence[CorpusChunk], queries: Sequence[Query])
     refuses ``notes=[1]`` and ``query_seed="7"`` -- also mypy-visible -- at
     runtime for the same reason. Runs before `_require_scorable_ids`, whose id
     dictionary would raise a raw ``TypeError`` on an unhashable id.
+
+    An empty string is refused here too (#238): #236 checked the type only, so
+    an empty query "retrieved" an empty chunk at recall 1.0, and a provider
+    that refuses an empty input (OpenAI does) failed only after the corpus had
+    been billed. Same rule and wording as both file readers
+    (`cli._read_corpus_jsonl`, `validate._validate_row`'s ``empty_`` codes).
     """
     fields: list[tuple[str, object]] = []
     for i, chunk in enumerate(corpus):
@@ -1051,6 +1057,8 @@ def _require_str_fields(corpus: Sequence[CorpusChunk], queries: Sequence[Query])
     for name, value in fields:
         if not isinstance(value, str):
             raise ValueError(f"{name} must be a string; got {type(value).__name__} {value!r}")
+        if value == "":
+            raise ValueError(f"{name} must not be empty")
 
 
 def _require_scorable_ids(corpus: Sequence[CorpusChunk], queries: Sequence[Query]) -> None:
