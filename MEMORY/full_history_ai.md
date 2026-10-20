@@ -2513,3 +2513,22 @@ context_for_next_session:
   - "NOT_DONE_WHITESPACE_ONLY_TEXT_OR_ID_STILL_ACCEPTED_NEITHER_READER_REFUSES_IT_CHANGING_IT_IS_A_THREE_SITE_DECISION"
 followups: []
 ---
+
+---
+session: 2026-10-20T08:02Z
+issue: 239
+branch: session/2026-10-20-0811-issue-239
+focus: DISAMBIGUATED_LABELS_POSITION_SUFFIX_COULD_EQUAL_A_UNIQUE_NAME_AND_AN_INVISIBLE_NON_WHITESPACE_EMBEDDER_NAME_PASSED_THE_191_STRIP_CHECK
+phase: shipped
+delta:
+  files_changed: 5
+  tests_added: 36
+  suite: "3.11 + 3.12 CI-shaped (.[dev]) 1357 passed / 41 skipped each; ruff check + format clean"
+decisions_made: []
+measured: "main 1d9062b: disambiguated_labels([m #2, m, m]) -> ['m #2','m #2','m #3']; U+200B/FEFF/2060/00AD/3164/115F/180E/200D all accepted by SweepResult and from_dict, sweep aggregate exit 0 publishing '| \\u200b | 1536 |'. After: ['m #2','m #2 #2','m #3']; all 8 refused 'must not be blank (no visible character)', aggregate exit 2. Revert 25 of 36 red / 11 green (controls: 3 suffix-shaped names the old position missed, 2 unique-name-untouched, 1 ends-in-position, 5 visible names containing invisibles). PR #241."
+context_for_next_session:
+  - "A_SUFFIX_SCHEME_OVER_FREE_TEXT_NAMES_MUST_RESERVE_EVERY_INPUT_NAME_old_rule_failed_only_when_name_pos_equals_a_name_that_appears_once"
+  - "FIRST_PROBE_HAD_4_RED_EXPECTED_ADVERSARIAL_CASES_GREEN_ON_MAIN_relabelled_as_controls"
+  - "NOT_DONE_U_2800_BRAILLE_BLANK_So_AND_COMBINING_MARK_ONLY_Mn_NAMES_still_accepted_outside_the_issue_set"
+followups: []
+---
