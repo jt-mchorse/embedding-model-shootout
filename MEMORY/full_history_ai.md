@@ -2532,3 +2532,22 @@ context_for_next_session:
   - "NOT_DONE_U_2800_BRAILLE_BLANK_So_AND_COMBINING_MARK_ONLY_Mn_NAMES_still_accepted_outside_the_issue_set"
 followups: []
 ---
+
+---
+session: 2026-10-21T08:02Z
+issue: 243
+branch: session/2026-10-21-0753-issue-243
+focus: RUN_SWEEP_CORPUS_AND_QUERIES_SKIPPED_require_sequence_A_GENERATOR_WAS_CONSUMED_BY_THE_FIRST_CHECK_PLUS_244_U_2800_AND_MARK_ONLY_EMBEDDER_NAMES
+phase: shipped
+delta:
+  files_changed: 4
+  tests_added: 20
+  suite: "3.14 (.[dev,plot]) 1436 passed / 1 skipped; 3.11 CI-shaped (.[dev]) 1385 passed / 41 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main bad0a92, counting hash embedder: generator queries -> TypeError 'generator has no len()' after 2 corpus texts embedded; generator corpus -> misleading 'expects chunk_id a, not in the corpus'; embedder_name U+2800, U+0301, U+0301x2 accepted. After: ValueError '<arg> must be an ordered sequence of <T>; got generator' with 0 embedded; the three names refused 'must not be blank'. Revert 14 of 20 red / 6 green (list + tuple sweep controls, 4 mark-on-visible-base / U+2801 names). PR #246 closes #243 + #244."
+context_for_next_session:
+  - "require_sequence_NOW_GUARDS_ALL_FOUR_run_sweep_SEQUENCE_PARAMS_corpus_queries_k_values_notes"
+  - "BLANK_NAME_RULE_IS_EVERY_CHAR_INVISIBLE_OR_Mn_Me_MARK_so_space_plus_U_0301_is_also_refused_a_strict_edge"
+  - "NOT_DONE_Cn_UNASSIGNED_AND_Co_PRIVATE_USE_NAMES_STILL_ACCEPTED_rendering_is_font_dependent"
+followups: []
+---

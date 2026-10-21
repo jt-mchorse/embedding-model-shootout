@@ -161,3 +161,57 @@ def test_cli_aggregate_exits_2_on_an_invisible_name(
     assert f"malformed result JSON in {results / 'r.json'}" in err
     assert "embedder_name must not be blank" in err
     assert not (tmp_path / "bench.md").exists()
+
+
+# ----------------------------------------------------------------------
+# U+2800 and combining-mark-only names (#244)
+# ----------------------------------------------------------------------
+#
+# #239's set is categories Cc/Cf/Zs/Zl/Zp plus the Hangul fillers. U+2800 is
+# So and a combining mark is Mn/Me, so all three names below were measured
+# accepted on bad0a92 and `sweep aggregate` published `| ⠀ | 8 | ...`.
+# Built from codepoints, not pasted, so the source survives an editor.
+
+NO_VISIBLE_BASE = {
+    "braille-blank-U+2800": "⠀",
+    "lone-acute-U+0301": "́",
+    "two-acutes": "́́",
+    "enclosing-circle-U+20DD": "⃝",
+    "mark-on-a-zwsp": "​́",
+}
+# A combining mark on a visible base is a name; so is a braille cell with dots.
+# Each is GREEN against the unfixed tree: the controls that reject a "contains
+# a mark" or "contains a braille codepoint" guard.
+MARK_ON_A_VISIBLE_BASE = ["é", "bge-small", "café", "⠁"]
+
+
+@pytest.mark.parametrize("key", sorted(NO_VISIBLE_BASE))
+def test_direct_construction_refuses_a_name_with_no_visible_base(key: str) -> None:
+    with pytest.raises(ValueError, match="embedder_name must not be blank"):
+        SweepResult(**_kwargs(NO_VISIBLE_BASE[key]))
+
+
+@pytest.mark.parametrize("key", sorted(NO_VISIBLE_BASE))
+def test_from_dict_refuses_a_name_with_no_visible_base(key: str) -> None:
+    with pytest.raises(ValueError, match="embedder_name must not be blank"):
+        SweepResult.from_dict(_serialized(NO_VISIBLE_BASE[key]))
+
+
+@pytest.mark.parametrize("name", MARK_ON_A_VISIBLE_BASE)
+def test_a_mark_on_a_visible_base_still_round_trips(name: str) -> None:
+    r = SweepResult.from_dict(_serialized(name))
+    assert r.embedder_name == name
+    assert SweepResult(**_kwargs(name)).embedder_name == name
+
+
+def test_cli_aggregate_exits_2_on_a_braille_blank_name(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    results = _results_dir(tmp_path, "⠀")
+    argv = ["sweep", "aggregate", "--results-dir", str(results)]
+    argv += ["--out", str(tmp_path / "bench.md")]
+    assert main(argv) == 2
+    err = capsys.readouterr().err
+    assert f"malformed result JSON in {results / 'r.json'}" in err
+    assert "embedder_name must not be blank" in err
+    assert not (tmp_path / "bench.md").exists()

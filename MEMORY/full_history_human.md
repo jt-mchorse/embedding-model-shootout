@@ -2202,3 +2202,16 @@ only once are unchanged. Separately, #191 refused whitespace-only
 as a zero-width space or a Hangul filler, and those printed a blank table
 cell. A name now needs at least one visible character, and the same check runs
 at both `SweepResult` entry points.
+
+## 2026-10-21 — `run_sweep` refuses a generator and the last blank names (#243, #244)
+
+`run_sweep` documented `corpus` and `queries` as sequences, but only `notes`
+and `k_values` actually went through the sequence check. A generator was used
+up by the first validation pass, so every later check saw nothing. A generator
+of queries embedded the whole corpus, which is billed on a paid provider, and
+then crashed with a raw `TypeError`. A generator corpus failed with a misleading
+"not in the corpus" message. Both arguments are now checked first, and a
+generator or set is refused by type before anything is embedded. Separately,
+#239's blank-name check missed U+2800 (the empty braille cell) and names made
+only of combining accents, and both printed an empty-looking table cell. They
+are now refused. An accent on a visible letter is still a valid name.
