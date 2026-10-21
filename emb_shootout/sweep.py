@@ -27,6 +27,7 @@ from ._argcheck import (
     refuse_unrenderable_name,
     require_int_sequence,
     require_mapping,
+    require_sequence,
     require_str_sequence,
 )
 from .validate import first_lone_surrogate
@@ -1182,6 +1183,14 @@ def run_sweep(
     quality numbers so a future Pareto plot has all three axes (recall,
     latency, cost) without needing a separate price lookup.
     """
+    # Before every other check (#243): each of them iterates `corpus` and
+    # `queries`, so a generator was consumed by `_require_str_fields` and every
+    # later check saw it empty. A generator `queries` embedded the whole corpus
+    # and then raised a raw `TypeError` at `len(queries)`; a generator `corpus`
+    # was refused, but as "expects chunk_id 'a', which is not in the corpus".
+    # `notes` and `k_values` already went through this rule.
+    require_sequence("corpus", corpus, element="CorpusChunk")
+    require_sequence("queries", queries, element="Query")
     if not corpus:
         raise ValueError("corpus must be non-empty")
     if not queries:

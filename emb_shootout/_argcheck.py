@@ -151,9 +151,29 @@ _HANGUL_FILLERS = frozenset("\u115f\u1160\u3164\uffa0")
 _INVISIBLE_CATEGORIES = frozenset({"Cc", "Cf", "Zs", "Zl", "Zp"})
 
 
+# U+2800 BRAILLE PATTERN BLANK is category So, a symbol, yet it is the empty
+# braille cell and renders as nothing: measured accepted and blank (#244).
+_BLANK_SYMBOLS = frozenset("\u2800")
+# Nonspacing (Mn) and enclosing (Me) combining marks draw on a base character.
+# Not invisible on their own terms -- ``e\u0301`` is a visible name -- but a
+# name made only of marks and invisibles has no base for them to draw on (#244).
+_COMBINING_MARK_CATEGORIES = frozenset({"Mn", "Me"})
+
+
 def _is_invisible(ch: str) -> bool:
-    """True when *ch* draws nothing in a table cell or a chart label (#239)."""
-    return ch in _HANGUL_FILLERS or unicodedata.category(ch) in _INVISIBLE_CATEGORIES
+    """True when *ch* draws nothing in a table cell or a chart label (#239, #244)."""
+    return (
+        ch in _HANGUL_FILLERS
+        or ch in _BLANK_SYMBOLS
+        or unicodedata.category(ch) in _INVISIBLE_CATEGORIES
+    )
+
+
+def _is_blank(value: str) -> bool:
+    """True when *value* has no visible character for a combining mark to sit on (#244)."""
+    return all(
+        _is_invisible(ch) or unicodedata.category(ch) in _COMBINING_MARK_CATEGORIES for ch in value
+    )
 
 
 def refuse_unrenderable_name(name: str, value: str) -> None:
@@ -178,10 +198,15 @@ def refuse_unrenderable_name(name: str, value: str) -> None:
     because every ``str.isspace()`` codepoint is in Cc, Zs, Zl or Zp. A name
     with *some* invisible codepoints and at least one visible one (an emoji ZWJ
     sequence, a soft hyphen inside a word) is still a name.
+
+    #239's set still missed two shapes (#244): U+2800 BRAILLE PATTERN BLANK is
+    category So, and a name of combining marks only (U+0301 alone) has nothing
+    for the marks to draw on; both published the same blank cell. A mark on a
+    visible base (``e`` + U+0301) is still a name.
     """
     from .validate import first_lone_surrogate
 
-    if all(_is_invisible(ch) for ch in value):
+    if _is_blank(value):
         raise ValueError(f"{name} must not be blank (no visible character); got {value!r}")
     hit = first_lone_surrogate(value)
     if hit is not None:
