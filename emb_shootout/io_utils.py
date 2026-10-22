@@ -40,6 +40,7 @@ import json
 import os
 import secrets
 import stat
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -132,25 +133,88 @@ def atomic_write_bytes(path: str | Path, data: bytes) -> None:
     _atomic_write(Path(path), data, "wb", None)
 
 
+def atomic_write_bytes_many(items: Sequence[tuple[str | Path, bytes]]) -> None:
+    """`atomic_write_bytes` for several files that must change together (#251).
+
+    `sweep plot --out-png X --out-svg Y` wrote the two charts one after the
+    other, each atomically, so a disk-full on the SVG came after the PNG had
+    been replaced: the command exited 2 with the two charts plotting different
+    results (measured on a 2 MB HFS+ image filled to 28 KB free). Every file
+    is staged first -- written, fsynced and given its target's mode in a temp
+    file beside the target -- and the renames start only once all of them are
+    staged, so a failure while staging (ENOSPC, EFBIG, an unwritable parent)
+    leaves every target as it was and no temp file behind.
+
+    The renames themselves are not one atomic step across files; what makes
+    the second one fail after the first succeeded (an immutable target, a
+    sticky directory) is what `check_writable` refuses up front, and
+    `render_pareto` preflights every chart with it.
+
+    An `OSError` with no filename -- a disk-full on `write`/`fsync` names
+    nothing -- is re-raised with the path the caller passed, so the error says
+    which of the files could not be written.
+    """
+    staged: list[tuple[Path, Path, Path]] = []  # (as passed, target, temp)
+    try:
+        for path, data in items:
+            try:
+                target, tmp_path = _stage(Path(path), data, "wb", None)
+            except OSError as e:
+                raise _naming(e, path) from e
+            staged.append((Path(path), target, tmp_path))
+        while staged:
+            path, target, tmp_path = staged[0]
+            try:
+                os.replace(tmp_path, target)
+            except OSError as e:
+                raise _naming(e, path) from e
+            staged.pop(0)
+    finally:
+        for _path, _target, tmp_path in staged:
+            with contextlib.suppress(FileNotFoundError):
+                tmp_path.unlink()
+
+
+def _naming(e: OSError, path: str | Path) -> OSError:
+    """*e*, or the same error with *path* as its filename if it names no file (#251)."""
+    if e.filename is not None or e.errno is None:
+        return e
+    return type(e)(e.errno, e.strerror, os.fspath(path))
+
+
 def _atomic_write(path: Path, payload: str | bytes, mode: str, encoding: str | None) -> None:
+    target, tmp_path = _stage(path, payload, mode, encoding)
+    try:
+        os.replace(tmp_path, target)
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            tmp_path.unlink()
+        raise
+
+
+def _stage(path: Path, payload: str | bytes, mode: str, encoding: str | None) -> tuple[Path, Path]:
+    """Write *payload* to a temp file beside *path*'s target; return `(target, temp)`.
+
+    Everything `_atomic_write` does short of the rename, split out so
+    `atomic_write_bytes_many` can stage several files before renaming any
+    (#251). On failure the temp file is removed and nothing is returned.
+    """
     target = _resolve_symlinked_target(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path: Path | None = None
+    fd, tmp_path = _create_temp(target)
     try:
-        fd, tmp_path = _create_temp(target)
         # `os.fdopen` owns *fd* from here: if it raises (unknown codec), `io.open`
-        # has already closed it, and the `finally` below removes the temp file.
+        # has already closed it, and the `except` below removes the temp file.
         with os.fdopen(fd, mode, encoding=encoding) as tmp:
             tmp.write(payload)
             tmp.flush()
             os.fsync(tmp.fileno())
         _copy_existing_mode(target, tmp_path)
-        os.replace(tmp_path, target)
-        tmp_path = None
-    finally:
-        if tmp_path is not None:
-            with contextlib.suppress(FileNotFoundError):
-                tmp_path.unlink()
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            tmp_path.unlink()
+        raise
+    return target, tmp_path
 
 
 def check_writable(path: str | Path) -> None:
@@ -165,16 +229,53 @@ def check_writable(path: str | Path) -> None:
     the real write would get that far. An existing directory is refused too:
     the writer's final `os.replace` onto it would fail. llm-eval-harness#287's
     helper, ported against this module's own writer.
+
+    The same goes for an existing target the rename is refused onto (#251):
+    one flagged immutable or append-only (`chflags uchg`; BSD/macOS expose the
+    flags in `st_flags`), or one in a sticky directory (`/tmp`) that belongs
+    to another user. Both passed and then failed with EPERM at the
+    `os.replace`, after `sweep run` had embedded the whole sweep. Linux keeps
+    `chattr +i` out of `stat` (it takes an `FS_IOC_GETFLAGS` ioctl), so that
+    one is still only found by the write.
     """
     target = _resolve_symlinked_target(Path(path))
     if target.is_dir():
         raise IsADirectoryError(21, "Is a directory", str(target))
-    with contextlib.suppress(FileNotFoundError):
-        os.stat(target)  # what `_copy_existing_mode` stats: a link loop raises here
+    try:
+        st = os.stat(target)  # what `_copy_existing_mode` stats: a link loop raises here
+    except FileNotFoundError:
+        st = None
     target.parent.mkdir(parents=True, exist_ok=True)
+    if st is not None:
+        _check_replaceable(target, st)
     fd, tmp_path = _create_temp(target)
     os.close(fd)
     tmp_path.unlink()
+
+
+# The `st_flags` bits that make `rename(2)` onto a file fail with EPERM (#251).
+# `getattr`: `stat` has these constants only where `st_flags` exists (BSD/macOS).
+_NO_REPLACE_FLAGS = 0
+for _name in ("UF_IMMUTABLE", "SF_IMMUTABLE", "UF_APPEND", "SF_APPEND"):
+    _NO_REPLACE_FLAGS |= getattr(stat, _name, 0)
+
+
+def _check_replaceable(target: Path, st: os.stat_result) -> None:
+    """Raise the EPERM `os.replace(tmp, target)` would, for an existing *target* (#251)."""
+    if getattr(st, "st_flags", 0) & _NO_REPLACE_FLAGS:
+        raise PermissionError(
+            1, "Operation not permitted (file is immutable or append-only)", str(target)
+        )
+    # A sticky directory lets only the file's owner, the directory's owner and
+    # root replace a file in it (sticky(7)); the temp file's own create is fine.
+    euid = os.geteuid() if hasattr(os, "geteuid") else None
+    if euid is None or euid == 0 or st.st_uid == euid:
+        return
+    parent = os.stat(target.parent)
+    if parent.st_mode & stat.S_ISVTX and parent.st_uid != euid:
+        raise PermissionError(
+            1, "Operation not permitted (another user's file in a sticky directory)", str(target)
+        )
 
 
 # File mode (#165, portfolio-ops#81). This helper used to create its temp file

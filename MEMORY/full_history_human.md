@@ -2251,3 +2251,17 @@ RES/agg.json` did the same thing. The parent directory is now also compared by
 filesystem identity, so both commands exit 2 and write nothing. Case-variant
 tests run only on case-insensitive filesystems; the exact-spelling controls run
 everywhere.
+
+## 2026-10-22 — `sweep plot` charts change together; `--out` preflight sees an immutable target (#251)
+
+#245 made each chart write atomic, but still wrote the PNG and SVG one after
+the other. On a nearly full disk image the SVG write failed after the PNG had
+already been replaced, so the command exited 2 with the two charts showing
+different results, and the error didn't say which file failed. Both charts are
+now written to temp files first and renamed only once both are written. The
+same disk-full now leaves both old charts in place, and the error names the SVG.
+Separately, the `sweep run --out` preflight (#200) passed a file flagged
+immutable with `chflags uchg`, so the whole sweep ran before the final rename
+failed. The preflight now refuses immutable or append-only targets, and another
+user's file in a sticky directory, before anything is embedded. Linux
+`chattr +i` is still only caught by the write itself.
