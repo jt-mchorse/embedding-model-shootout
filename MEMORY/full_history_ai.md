@@ -2571,3 +2571,24 @@ context_for_next_session:
   - "NOT_DONE_245_ATOMIC_CHART_WRITE_handled_by_another_session"
 followups: []
 ---
+
+---
+session: 2026-10-22T07:23Z
+issue: 245
+branch: session/2026-10-22-0722-issue-245
+focus: SWEEP_PLOT_SAVEFIG_WROTE_STRAIGHT_ONTO_THE_COMMITTED_CHART_SO_A_FAILED_WRITE_TRUNCATED_docs_pareto_png
+phase: shipped
+delta:
+  files_changed: 7
+  tests_added: 7
+  suite: "3.14 repo venv 1451 passed / 1 skipped; 3.12 CI-shaped (.[dev]) 1399 passed / 42 skipped; ruff check + format clean (0.15.13)"
+decisions_made: []
+measured: "main d83ebea, real matplotlib 3.10, RLIMIT_FSIZE 4096: plot --out-png <copy of docs/pareto.png> -> rc 2 'failed to write plot: [Errno 27] File too large', PNG 58336 -> 4096 bytes. After: rc 2 same message, PNG byte-identical, no temp file. Normal run still 58336 png / 42360 svg. Revert 5 of 7 red (3 behavioural, 2 missing-symbol) / 2 green (symlink write-through, mode kept). PR #249."
+context_for_next_session:
+  - "atomic_write_bytes_AND_atomic_write_text_NOW_SHARE_ONE__atomic_write_symlink_195_mode_165_cleanup"
+  - "render_pareto_RENDERS_ALL_CHARTS_TO_BytesIO_BEFORE_WRITING_ANY_so_a_render_failure_replaces_nothing"
+  - "TEST_FAKES_savefig_NOW_GET_A_FILE_OBJECT_path_recording_moved_to_patched_plot_atomic_write_bytes_via__fake_matplotlib_and__fake_writing_matplotlib"
+  - "247_test_plot_out_is_not_an_input_REBASED_ONTO__fake_writing_matplotlib"
+  - "NOT_DONE_SECOND_OF_TWO_OUTPUTS_FAILING_AFTER_THE_FIRST_REPLACED_png_svg_can_disagree_two_files_not_jointly_atomic"
+followups: []
+---
