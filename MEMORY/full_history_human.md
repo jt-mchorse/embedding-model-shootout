@@ -2215,3 +2215,16 @@ generator or set is refused by type before anything is embedded. Separately,
 #239's blank-name check missed U+2800 (the empty braille cell) and names made
 only of combining accents, and both printed an empty-looking table cell. They
 are now refused. An accent on a visible letter is still a valid name.
+
+## 2026-10-22 — `sweep plot` refuses to write a chart over its own inputs (#242)
+
+#230 stopped `sweep aggregate` from writing its output over a result file, but
+`sweep plot` reads the same `results/*.json` glob and never got that check.
+`--out-png results/.json` passed the suffix check because a dotfile has no
+suffix, and the PNG it wrote made the next aggregate fail with "malformed
+result JSON". `--out-svg results/latest`, where `latest` was a symlink to a
+result, replaced that measured result with SVG. Both exited 0. Aggregate's
+check is now one shared helper, and both chart outputs go through it before
+anything is read or written. The command exits 2 and writes nothing. Writing a
+chart outside the results directory, or under a non-`.json` name inside it,
+still works.
