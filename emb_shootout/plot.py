@@ -21,7 +21,7 @@ import os
 from collections.abc import Sequence
 from pathlib import Path
 
-from .io_utils import atomic_write_bytes, check_writable
+from .io_utils import atomic_write_bytes_many, check_writable
 from .pareto import _recall_at_5, pareto_frontier
 from .sweep import SweepResult
 
@@ -367,7 +367,7 @@ def render_pareto(
     # `pareto.png` while the summary reported `pareto`, and `--out-png x.svg`
     # wrote an SVG. With it the bytes match the flag and land at exactly `path`.
     #
-    # Rendered into memory, then written with `atomic_write_bytes` (#245).
+    # Rendered into memory, then written atomically (#245).
     # `fig.savefig(path)` wrote straight onto the destination, so a write that
     # failed partway (ENOSPC) left a truncated chart in place of the committed
     # `docs/pareto.png` -- the "never partial" promise `io_utils` makes for
@@ -382,7 +382,10 @@ def render_pareto(
             rendered.append((path, buf.getvalue()))
     finally:
         plt.close(fig)
-    for path, data in rendered:
-        atomic_write_bytes(path, data)
+    # Both staged before either is renamed (#251): written one after the other,
+    # a disk-full on the SVG came after the PNG had been replaced, and the
+    # command exited 2 with two charts of different results. The error now
+    # names the chart that failed.
+    atomic_write_bytes_many(rendered)
     by_fmt = {fmt: path for path, fmt in outputs}
     return frontier, by_fmt.get("png"), by_fmt.get("svg")

@@ -51,11 +51,11 @@ def _fake_writing_matplotlib(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
     calls: list[Path] = []
     monkeypatch.setattr("emb_shootout.plot._import_matplotlib", lambda: _WritingPlt(calls))
 
-    def _recording_write(path: Path, data: bytes) -> None:
-        calls.append(Path(path))
-        io_utils.atomic_write_bytes(path, data)
+    def _recording_write(items: list[tuple[Path, bytes]]) -> None:
+        calls.extend(Path(path) for path, _data in items)
+        io_utils.atomic_write_bytes_many(items)
 
-    monkeypatch.setattr("emb_shootout.plot.atomic_write_bytes", _recording_write)
+    monkeypatch.setattr("emb_shootout.plot.atomic_write_bytes_many", _recording_write)
     return calls
 
 

@@ -44,7 +44,7 @@ class _Fig:
 
     def savefig(self, fname: io.BytesIO, *a: object, **k: object) -> None:
         # Rendered into memory since #245; the bytes name the format, and the
-        # `saved` fixture records where `atomic_write_bytes` put them.
+        # `saved` fixture records where `atomic_write_bytes_many` put them.
         fname.write(str(k.get("format")).encode())
 
 
@@ -68,11 +68,11 @@ def _fake_matplotlib(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Path, object
     calls: list[tuple[Path, object]] = []
     monkeypatch.setattr("emb_shootout.plot._import_matplotlib", lambda: _Plt(calls))
 
-    def _recording_write(path: Path, data: bytes) -> None:
-        calls.append((Path(path), data.decode()))
-        io_utils.atomic_write_bytes(path, data)
+    def _recording_write(items: list[tuple[Path, bytes]]) -> None:
+        calls.extend((Path(path), data.decode()) for path, data in items)
+        io_utils.atomic_write_bytes_many(items)
 
-    monkeypatch.setattr("emb_shootout.plot.atomic_write_bytes", _recording_write)
+    monkeypatch.setattr("emb_shootout.plot.atomic_write_bytes_many", _recording_write)
     return calls
 
 
