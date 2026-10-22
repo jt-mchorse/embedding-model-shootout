@@ -2611,3 +2611,24 @@ context_for_next_session:
   - "NOT_DONE_251_PLOT_AND_IO_UTILS_WRITE_PATHS_handled_by_another_session"
 followups: []
 ---
+
+---
+session: 2026-10-22T07:44Z
+issue: 251
+branch: session/2026-10-22-0744-issue-251
+focus: SWEEP_PLOT_PNG_SVG_COULD_DISAGREE_ON_A_MID_WRITE_FAILURE_AND_SWEEP_RUN_OUT_PREFLIGHT_MISSED_AN_IMMUTABLE_TARGET
+phase: shipped
+delta:
+  files_changed: 6
+  tests_added: 18
+  suite: "3.14 repo venv 1469 passed / 1 skipped; 3.11 CI-shaped (.[dev]) 1417 passed / 42 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main faa58cf, macOS. A: --out-svg on a 2 MB HFS+ image filled to 28 KB free -> rc 2 '[Errno 28] No space left on device' (no path), out.png sha changed, svg unchanged. After: rc 2 '... No space left on device: mnt/out.svg', both shas unchanged. B: chflags uchg locked.json; sweep run --out locked.json -> preflight passed, sweep embedded, rc 2 EPERM at rename. After: rc 2 'Operation not permitted (file is immutable or append-only)' before embedding. Revert 11 of 18 red (1 missing-symbol) / 7 green controls. PR #253."
+context_for_next_session:
+  - "io_utils_atomic_write_bytes_many_STAGES_ALL_TEMPS_THEN_RENAMES_render_pareto_USES_IT_test_fixtures_now_patch_plot_atomic_write_bytes_many"
+  - "_atomic_write_SPLIT_INTO__stage_PLUS_RENAME_single_file_behaviour_unchanged"
+  - "check_writable_NOW_REFUSES_st_flags_IMMUTABLE_APPEND_AND_ANOTHER_USERS_FILE_IN_A_STICKY_DIR_via__check_replaceable"
+  - "NOT_DONE_LINUX_chattr_plus_i_NOT_VISIBLE_IN_stat_needs_FS_IOC_GETFLAGS_ioctl"
+  - "NOT_DONE_SECOND_RENAME_FAILING_FOR_AN_UNPREDICTABLE_REASON_AFTER_THE_FIRST_still_not_jointly_atomic"
+followups: []
+---
