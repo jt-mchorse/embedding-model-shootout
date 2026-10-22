@@ -47,10 +47,16 @@ def _is_result_input(out_path: Path, files: list[Path], results_dir: Path) -> bo
     (`results/aggregate.json`, and the dotfile `results/.json`, whose empty
     suffix passes #220). Shared by `sweep aggregate` and `sweep plot` (#242),
     the two commands that read that glob.
+
+    The parent is compared by `_same_file` too, not only as a resolved string
+    (#250): `resolve()` keeps the operator's case, so `RES/.json` beside
+    `--results-dir res` on a case-insensitive filesystem passed and landed in
+    `res/`. The output itself need not exist, but its parent does whenever the
+    write would land in the results dir, so identity catches the case variant.
     """
     resolved_out = out_path.resolve()
     return any(_same_file(out_path, p) for p in files) or (
-        resolved_out.parent == results_dir.resolve() and resolved_out.match("*.json")
+        _same_file(resolved_out.parent, results_dir) and resolved_out.match("*.json")
     )
 
 
