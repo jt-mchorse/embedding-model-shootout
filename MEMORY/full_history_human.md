@@ -2228,3 +2228,14 @@ check is now one shared helper, and both chart outputs go through it before
 anything is read or written. The command exits 2 and writes nothing. Writing a
 chart outside the results directory, or under a non-`.json` name inside it,
 still works.
+
+## 2026-10-22 — a failed `sweep plot` write no longer truncates the committed chart (#245)
+
+`sweep plot` saved each chart directly onto its destination, so a write that
+failed partway left a truncated file in place of the previous chart. With
+file writes capped at 4 KB, a copy of `docs/pareto.png` went from 58336 bytes
+to 4096. Charts are now rendered into memory and written through a new
+`atomic_write_bytes`, which shares `atomic_write_text`'s temp-file-then-rename
+code. The same failed write now exits 2 and leaves the old chart
+byte-identical, with no temp file behind. A normal run writes the same bytes as
+before.

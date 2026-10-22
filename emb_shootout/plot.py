@@ -16,11 +16,12 @@ is real, just narrow.
 
 from __future__ import annotations
 
+import io
 import os
 from collections.abc import Sequence
 from pathlib import Path
 
-from .io_utils import check_writable
+from .io_utils import atomic_write_bytes, check_writable
 from .pareto import _recall_at_5, pareto_frontier
 from .sweep import SweepResult
 
@@ -365,9 +366,23 @@ def render_pareto(
     # picks the format from the extension: `--out-svg pareto` wrote a PNG to
     # `pareto.png` while the summary reported `pareto`, and `--out-png x.svg`
     # wrote an SVG. With it the bytes match the flag and land at exactly `path`.
-    for path, fmt in outputs:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(path, dpi=150, format=fmt)
-    plt.close(fig)
+    #
+    # Rendered into memory, then written with `atomic_write_bytes` (#245).
+    # `fig.savefig(path)` wrote straight onto the destination, so a write that
+    # failed partway (ENOSPC) left a truncated chart in place of the committed
+    # `docs/pareto.png` -- the "never partial" promise `io_utils` makes for
+    # every other artifact. Both charts are rendered before either is written,
+    # so a render failure replaces nothing either. The writer creates the
+    # parent and writes through a symlink, as `savefig` did.
+    try:
+        rendered = []
+        for path, fmt in outputs:
+            buf = io.BytesIO()
+            fig.savefig(buf, dpi=150, format=fmt)
+            rendered.append((path, buf.getvalue()))
+    finally:
+        plt.close(fig)
+    for path, data in rendered:
+        atomic_write_bytes(path, data)
     by_fmt = {fmt: path for path, fmt in outputs}
     return frontier, by_fmt.get("png"), by_fmt.get("svg")

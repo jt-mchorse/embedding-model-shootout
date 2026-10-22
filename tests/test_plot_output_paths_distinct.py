@@ -17,14 +17,12 @@ import pytest
 
 from emb_shootout.cli import main
 from emb_shootout.plot import render_pareto
-from tests.test_plot_output_format import _Plt, _result, _write_results
+from tests.test_plot_output_format import _fake_matplotlib, _result, _write_results
 
 
 @pytest.fixture
 def saved(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Path, object]]:
-    calls: list[tuple[Path, object]] = []
-    monkeypatch.setattr("emb_shootout.plot._import_matplotlib", lambda: _Plt(calls))
-    return calls
+    return _fake_matplotlib(monkeypatch)
 
 
 @pytest.mark.parametrize(
