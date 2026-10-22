@@ -2592,3 +2592,22 @@ context_for_next_session:
   - "NOT_DONE_SECOND_OF_TWO_OUTPUTS_FAILING_AFTER_THE_FIRST_REPLACED_png_svg_can_disagree_two_files_not_jointly_atomic"
 followups: []
 ---
+
+---
+session: 2026-10-22T07:44Z
+issue: 250
+branch: session/2026-10-22-0744-issue-250
+focus: A_CASE_VARIANT_RESULTS_DIR_SPELLING_BYPASSED_THE_230_242_OWN_INPUT_CHECK_ON_A_CASE_INSENSITIVE_FILESYSTEM
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 14
+  suite: "3.14 repo venv 1465 passed / 1 skipped; 3.11 venv targeted 49 passed; case-sensitive APFS image: new file 6 passed / 8 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main faa58cf, macOS APFS: sweep plot --results-dir res --out-png RES/.json -> rc 0, PNG at res/.json, next aggregate rc 2 'malformed result JSON'; sweep aggregate --format json --out RES/agg.json -> rc 0, next aggregate rc 2 'result missing required field(s)'. After: both rc 2 'refusing to write ...', nothing written. Revert 8 of 14 red (case variants) / 6 green (exact spelling x4, missing parent dir, sibling dir). PR #252."
+context_for_next_session:
+  - "_is_result_input_NOW_COMPARES_THE_PARENT_VIA__same_file_resolved_string_OR_samefile_identity_missing_parent_is_False"
+  - "CASE_VARIANT_TESTS_SKIP_ON_CASE_SENSITIVE_FS_probe_is_the_tests_dir_at_collection_time"
+  - "NOT_DONE_251_PLOT_AND_IO_UTILS_WRITE_PATHS_handled_by_another_session"
+followups: []
+---
