@@ -2239,3 +2239,15 @@ to 4096. Charts are now rendered into memory and written through a new
 code. The same failed write now exits 2 and leaves the old chart
 byte-identical, with no temp file behind. A normal run writes the same bytes as
 before.
+
+## 2026-10-22 — a case-variant `--results-dir` spelling no longer bypasses the own-input check (#250)
+
+The #230/#242 check decided whether an output would land in the results
+directory by comparing resolved paths as strings, and `resolve()` keeps the
+operator's case. On macOS's default case-insensitive filesystem,
+`sweep plot --results-dir res --out-png RES/.json` wrote the PNG into
+`res/.json` at exit 0, and the next aggregate failed. `sweep aggregate --out
+RES/agg.json` did the same thing. The parent directory is now also compared by
+filesystem identity, so both commands exit 2 and write nothing. Case-variant
+tests run only on case-insensitive filesystems; the exact-spelling controls run
+everywhere.
