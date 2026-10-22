@@ -11,11 +11,13 @@ real-matplotlib arms check the bytes where it is installed.
 
 from __future__ import annotations
 
+import io
 import json
 from pathlib import Path
 
 import pytest
 
+from emb_shootout import io_utils
 from emb_shootout.cli import main
 from emb_shootout.plot import render_pareto
 from emb_shootout.sweep import SweepResult
@@ -40,8 +42,10 @@ class _Fig:
 
     def tight_layout(self, *a: object, **k: object) -> None: ...
 
-    def savefig(self, path: Path, *a: object, **k: object) -> None:
-        self._saved.append((Path(path), k.get("format")))
+    def savefig(self, fname: io.BytesIO, *a: object, **k: object) -> None:
+        # Rendered into memory since #245; the bytes name the format, and the
+        # `saved` fixture records where `atomic_write_bytes` put them.
+        fname.write(str(k.get("format")).encode())
 
 
 class _Ax:
@@ -59,11 +63,22 @@ class _Plt:
     def close(self, *a: object, **k: object) -> None: ...
 
 
-@pytest.fixture
-def saved(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Path, object]]:
+def _fake_matplotlib(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Path, object]]:
+    """Install `_Plt`; return the `(path, format)` of each chart written."""
     calls: list[tuple[Path, object]] = []
     monkeypatch.setattr("emb_shootout.plot._import_matplotlib", lambda: _Plt(calls))
+
+    def _recording_write(path: Path, data: bytes) -> None:
+        calls.append((Path(path), data.decode()))
+        io_utils.atomic_write_bytes(path, data)
+
+    monkeypatch.setattr("emb_shootout.plot.atomic_write_bytes", _recording_write)
     return calls
+
+
+@pytest.fixture
+def saved(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Path, object]]:
+    return _fake_matplotlib(monkeypatch)
 
 
 def test_each_flag_pins_its_own_format_at_the_exact_path(

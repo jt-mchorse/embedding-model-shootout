@@ -18,15 +18,13 @@ import pytest
 
 from emb_shootout.cli import main
 from tests.test_plot_output_format import _write_results
-from tests.test_plot_output_preflight import _WritingPlt
+from tests.test_plot_output_preflight import _fake_writing_matplotlib
 
 
 @pytest.fixture
 def saved(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
     """Paths the chart writer saved to; the fake really writes, so a clobber shows."""
-    calls: list[Path] = []
-    monkeypatch.setattr("emb_shootout.plot._import_matplotlib", lambda: _WritingPlt(calls))
-    return calls
+    return _fake_writing_matplotlib(monkeypatch)
 
 
 def _plot(d: Path, flag: str, out: Path) -> int:

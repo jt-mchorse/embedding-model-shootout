@@ -10,10 +10,12 @@
 
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
 import pytest
 
+from emb_shootout import io_utils
 from emb_shootout.cli import main
 from emb_shootout.plot import render_pareto
 from tests.test_plot_output_format import _Ax, _result, _write_results
@@ -29,9 +31,9 @@ class _WritingFig:
 
     def tight_layout(self, *a: object, **k: object) -> None: ...
 
-    def savefig(self, path: Path, *a: object, **k: object) -> None:
-        Path(path).write_bytes(f"new {k.get('format')}\n".encode())
-        self._saved.append(Path(path))
+    def savefig(self, fname: io.BytesIO, *a: object, **k: object) -> None:
+        # Into memory since #245; the `saved` fixture records the real write.
+        fname.write(f"new {k.get('format')}\n".encode())
 
 
 class _WritingPlt:
@@ -44,11 +46,22 @@ class _WritingPlt:
     def close(self, *a: object, **k: object) -> None: ...
 
 
-@pytest.fixture
-def saved(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
+def _fake_writing_matplotlib(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
+    """Install `_WritingPlt`; return the path of each chart actually written."""
     calls: list[Path] = []
     monkeypatch.setattr("emb_shootout.plot._import_matplotlib", lambda: _WritingPlt(calls))
+
+    def _recording_write(path: Path, data: bytes) -> None:
+        calls.append(Path(path))
+        io_utils.atomic_write_bytes(path, data)
+
+    monkeypatch.setattr("emb_shootout.plot.atomic_write_bytes", _recording_write)
     return calls
+
+
+@pytest.fixture
+def saved(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
+    return _fake_writing_matplotlib(monkeypatch)
 
 
 def _blocked(tmp_path: Path, how: str, name: str) -> Path:

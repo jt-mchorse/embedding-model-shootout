@@ -21,9 +21,10 @@ cannot tolerate partial files:
 non-atomic: SIGINT/SIGTERM/disk-full/OOM between the implicit truncate
 and `close()` flush leaves the destination zero-length or partial.
 
-`atomic_write_text` writes to a sibling temp file in the same
-directory, `fsync`s, then `os.replace`s. Same-directory placement is
-load-bearing: guarantees same filesystem so the POSIX rename cannot
+`atomic_write_text` (and `atomic_write_bytes`, for the charts
+`sweep plot` writes to the committed `docs/pareto.png`/`.svg`, #245)
+writes to a sibling temp file in the same directory, `fsync`s, then
+`os.replace`s. Same-directory placement is load-bearing: guarantees same filesystem so the POSIX rename cannot
 fall back to a copy.
 
 This module is the package-level home for the helper, per D-009 in
@@ -114,15 +115,33 @@ def atomic_write_text(path: str | Path, text: str, encoding: str = "utf-8") -> N
     A symlinked destination is written THROUGH, as `Path.write_text` does
     (#195): see `_resolve_symlinked_target`.
     """
-    target = _resolve_symlinked_target(Path(path))
+    _atomic_write(Path(path), text, "w", encoding)
+
+
+def atomic_write_bytes(path: str | Path, data: bytes) -> None:
+    """`atomic_write_text` for bytes: the same never-partial write (#245).
+
+    `sweep plot` called `fig.savefig(path)` straight onto the committed
+    `docs/pareto.png`/`.svg`, so a write that failed partway (ENOSPC, EFBIG)
+    left a truncated chart where the previous one had been -- measured 58336
+    bytes -> 4096 with the file size capped at 4 KB. The chart is rendered into
+    memory and handed here instead. One implementation with the text writer, so
+    the symlink write-through (#195), the mode copy (#165) and the temp-file
+    cleanup cannot drift between the two.
+    """
+    _atomic_write(Path(path), data, "wb", None)
+
+
+def _atomic_write(path: Path, payload: str | bytes, mode: str, encoding: str | None) -> None:
+    target = _resolve_symlinked_target(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp_path: Path | None = None
     try:
         fd, tmp_path = _create_temp(target)
         # `os.fdopen` owns *fd* from here: if it raises (unknown codec), `io.open`
         # has already closed it, and the `finally` below removes the temp file.
-        with os.fdopen(fd, "w", encoding=encoding) as tmp:
-            tmp.write(text)
+        with os.fdopen(fd, mode, encoding=encoding) as tmp:
+            tmp.write(payload)
             tmp.flush()
             os.fsync(tmp.fileno())
         _copy_existing_mode(target, tmp_path)
