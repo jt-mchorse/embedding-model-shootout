@@ -2551,3 +2551,23 @@ context_for_next_session:
   - "NOT_DONE_Cn_UNASSIGNED_AND_Co_PRIVATE_USE_NAMES_STILL_ACCEPTED_rendering_is_font_dependent"
 followups: []
 ---
+
+---
+session: 2026-10-22T07:21Z
+issue: 242
+branch: session/2026-10-22-0716-issue-242
+focus: SWEEP_PLOT_NEVER_GOT_THE_230_OWN_INPUT_CHECK_SO_A_DOTFILE_OR_SYMLINK_OUTPUT_OVERWROTE_A_RESULT_AT_EXIT_0
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 8
+  suite: "3.14 repo venv 1444 passed / 1 skipped; 3.11 CI-shaped (.[dev]) 1393 passed / 41 skipped; ruff check + format clean (0.15.13 and 0.17.1)"
+decisions_made: []
+measured: "main d83ebea, real matplotlib 3.10: plot --out-png res/.json -> rc 0, next aggregate rc 2 'malformed result JSON in res/.json'; --out-svg res/latest (symlink to hash.json) -> rc 0, hash.json begins '<?xml'; --out-png res/hash.json already rc 2 via #220 suffix check. After: all three rc 2 'refusing to write --out-png ...', nothing written. Revert 6 of 8 red / 2 green (docs/ output, non-.json name inside results dir). PR #247."
+context_for_next_session:
+  - "_is_result_input_AND__refuse_result_input_NOW_SHARED_BY_sweep_aggregate_AND_sweep_plot_aggregate_message_byte_identical"
+  - "DIRECT_res_hash_json_ARM_IS_RED_ONLY_ON_THE_MESSAGE_220_ALREADY_REFUSED_IT_AT_RC_2"
+  - "STALE_UNCOMMITTED_10_21_WORKTREE_AT_tmp_w_ems_242_MIXED_242_AND_245_backed_up_to_tmp_w_ems_242_stale_2026_10_21_then_removed"
+  - "NOT_DONE_245_ATOMIC_CHART_WRITE_handled_by_another_session"
+followups: []
+---
