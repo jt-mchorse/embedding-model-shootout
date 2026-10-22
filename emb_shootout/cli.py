@@ -39,6 +39,29 @@ def _same_file(a: Path, b: Path) -> bool:
         return False
 
 
+def _is_result_input(out_path: Path, files: list[Path], results_dir: Path) -> bool:
+    """True when *out_path* is (or would be read as) a result in *results_dir* (#230).
+
+    A file the `*.json` glob found -- by any spelling `_same_file` catches, so
+    a symlink to `hash.json` counts -- or a path the glob would find next run
+    (`results/aggregate.json`, and the dotfile `results/.json`, whose empty
+    suffix passes #220). Shared by `sweep aggregate` and `sweep plot` (#242),
+    the two commands that read that glob.
+    """
+    resolved_out = out_path.resolve()
+    return any(_same_file(out_path, p) for p in files) or (
+        resolved_out.parent == results_dir.resolve() and resolved_out.match("*.json")
+    )
+
+
+def _refuse_result_input(flag: str, out_path: Path, results_dir: Path) -> int:
+    sys.stderr.write(
+        f"refusing to write {flag} {out_path}: it is (or would be read as) a result "
+        f"file in --results-dir {results_dir}; write the output outside that directory\n"
+    )
+    return 2
+
+
 def _cmd_corpus_build(args: argparse.Namespace) -> int:
     modules = args.module or DEFAULT_MODULES
     out_path = Path(args.out)
@@ -238,15 +261,8 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
     # anything is read or written: a file the glob found, or a path the glob
     # would find next time.
     out_path = Path(args.out)
-    resolved_out = out_path.resolve()
-    if any(_same_file(out_path, p) for p in files) or (
-        resolved_out.parent == results_dir.resolve() and resolved_out.match("*.json")
-    ):
-        sys.stderr.write(
-            f"refusing to write --out {out_path}: it is (or would be read as) a result "
-            f"file in --results-dir {results_dir}; write the output outside that directory\n"
-        )
-        return 2
+    if _is_result_input(out_path, files, results_dir):
+        return _refuse_result_input("--out", out_path, results_dir)
     # A hand-edited/truncated result file otherwise raised a raw
     # JSONDecodeError (or OSError) at exit 1 (#75) — name the bad file and
     # exit 2 per the usage contract. A valid-JSON-but-structurally-malformed
@@ -331,6 +347,16 @@ def _cmd_sweep_plot(args: argparse.Namespace) -> int:
     if not files:
         sys.stderr.write(f"no result JSON files found under {results_dir}\n")
         return 2
+    # Neither chart is one of the inputs (#242), the check #230 gave `sweep
+    # aggregate` over the same glob. `--out-png results/.json` (empty suffix,
+    # so #220 passes it) wrote a PNG the next aggregate or plot read as a
+    # malformed result, and `--out-svg results/latest` -- a symlink to
+    # `hash.json` -- replaced a measured result with SVG, both at exit 0.
+    # Refused before anything is read or written. An empty path is left to
+    # render_pareto's own refusal (#228).
+    for flag, out in (("--out-png", args.out_png), ("--out-svg", args.out_svg)):
+        if out and _is_result_input(Path(out), files, results_dir):
+            return _refuse_result_input(flag, Path(out), results_dir)
     # A hand-edited/truncated result file otherwise raised a raw
     # JSONDecodeError (or OSError) at exit 1 — name the bad file and exit 2 per
     # the usage contract, matching _cmd_sweep_aggregate (#75). A valid-JSON-but-
