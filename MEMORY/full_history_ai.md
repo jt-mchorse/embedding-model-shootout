@@ -2632,3 +2632,23 @@ context_for_next_session:
   - "NOT_DONE_SECOND_RENAME_FAILING_FOR_AN_UNPREDICTABLE_REASON_AFTER_THE_FIRST_still_not_jointly_atomic"
 followups: []
 ---
+
+---
+session: 2026-10-23T07:54Z
+issue: 254
+branch: session/2026-10-23-0800-issue-254
+focus: AN_EMBEDDER_NAME_CARRYING_THE_TABLE_END_MARKER_MADE_EVERY_AGGREGATE_GROW_STALE_ROWS_AND_MARKERS
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 9
+  suite: "3.11 CI-shaped (.[dev]) 1440 passed / 42 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main 32cb88d: results = hash.json + copy named 'evil <!-- emb-shootout:table:end --> x', out = 53-line benchmarks.md copy -> 3 aggregates rc 0 at 54/56/58 lines, 2/3/4 end markers; rm evil.json -> region kept fragments. After: 54 lines x3, 1 real end marker, cell 'evil &lt;!-- ...'; rm -> byte-identical to committed docs/benchmarks.md. Revert 6 of 9 red / 3 green controls. PR #257."
+context_for_next_session:
+  - "aggregate_markdown_EMBEDDER_CELL_NOW_ESCAPES_amp_THEN_lt_BEFORE_THE_PIPE_AND_NEWLINE_ESCAPES"
+  - "splice_markdown_table_RAISES_ValueError_ON_MORE_THAN_ONE_BEGIN_OR_END_MARKER_cli_REPORTS_EXIT_2_AND_WRITES_NOTHING"
+  - "BEGIN_WITHOUT_END_FALLBACK_UNCHANGED"
+  - "NOT_DONE_refuse_unrenderable_name_DOES_NOT_REFUSE_MARKER_NAMES_escape_covers_it"
+followups: []
+---

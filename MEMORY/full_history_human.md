@@ -2265,3 +2265,15 @@ immutable with `chflags uchg`, so the whole sweep ran before the final rename
 failed. The preflight now refuses immutable or append-only targets, and another
 user's file in a sticky directory, before anything is embedded. Linux
 `chattr +i` is still only caught by the write itself.
+
+## 2026-10-23 — a name carrying the table marker no longer grows `docs/benchmarks.md` (#254)
+
+`sweep aggregate` wrote `embedder_name` verbatim into its table cell. When a
+name contained the end marker `<!-- emb-shootout:table:end -->`, the next run
+took that copy as the end of the generated region. Three runs took a 53-line
+copy of the file to 54, 56 and 58 lines with 2, 3 and 4 end markers, and
+deleting the result file did not clean it up. The cell now escapes `&` and `<`,
+which GFM renders as the same characters, so a name can't form a marker. The
+same three runs now produce the same 54 lines, and removing the file restores
+the committed artifact byte for byte. A file that already holds more than one
+marker is refused at exit 2 and left untouched instead of growing.
