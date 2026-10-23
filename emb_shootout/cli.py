@@ -330,7 +330,13 @@ def _cmd_sweep_aggregate(args: argparse.Namespace) -> int:
             # below reports a genuinely unwritable path (#75); a read failure here
             # must not pre-empt that message with a different one.
             existing = ""
-        rendered = splice_markdown_table(existing, rendered)
+        # More than one marker pair is a damaged region the splice cannot place
+        # (#254): report it and leave the file alone rather than grow it.
+        try:
+            rendered = splice_markdown_table(existing, rendered)
+        except ValueError as e:
+            sys.stderr.write(f"refusing to regenerate {out_path}: {e}\n")
+            return 2
     # An unwritable --out otherwise raised a raw OSError at exit 1 (#75).
     try:
         atomic_write_text(out_path, rendered)

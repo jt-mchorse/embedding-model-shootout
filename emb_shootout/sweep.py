@@ -1659,7 +1659,22 @@ def splice_markdown_table(existing: str, rendered: str) -> str:
     to *shrink* its own region when a provider's JSON is removed from `results/`,
     and an append-only rule would accumulate stale tables. The markers are what make
     replacement and preservation the same operation.
+
+    **One region, or a refusal** (#254). An ``embedder_name`` carrying the end
+    marker was written into a cell, and the next run spliced at that copy: the
+    stale rows after it survived and each run added another end marker. The cell
+    is escaped now, but a file already polluted that way has to be *reported*,
+    not grown, so a destination with more than one begin or end marker raises
+    ``ValueError`` instead of guessing which pair is the region.
     """
+    n_begin = existing.count(TABLE_BEGIN_MARKER)
+    n_end = existing.count(TABLE_END_MARKER)
+    if n_begin > 1 or n_end > 1:
+        raise ValueError(
+            "the generated region is malformed: expected one "
+            f"{TABLE_BEGIN_MARKER} and one {TABLE_END_MARKER}, found {n_begin} and "
+            f"{n_end}; restore a single marked region before regenerating"
+        )
     begin = existing.find(TABLE_BEGIN_MARKER)
     if begin == -1:
         return rendered
@@ -1734,7 +1749,17 @@ def aggregate_markdown(results: Sequence[SweepResult]) -> str:
         # open; collapse `[\r\n]+` -> a single space, matching the portfolio
         # `md_table_cell` pattern. Same external-input reachability as the pipe
         # (`from_dict` invited hand-edit #75 / BYO embedder name).
-        embedder_name = r.embedder_name.replace("|", "\\|")
+        #
+        # `<` is the third delimiter in this cell (#254). The region markers are
+        # HTML comments, so a name carrying `<!-- emb-shootout:table:end -->` was
+        # written verbatim and the next splice read it as the end of the region:
+        # every regeneration kept the stale rows after it and added one more end
+        # marker (53 -> 54 -> 56 -> 58 lines), and deleting the result file did not
+        # undo it. Escape `&` -> `&amp;` first, then `<` -> `&lt;`: GFM renders
+        # both as the literal character, so the cell reads the same, and no cell
+        # can now spell a marker or open an HTML comment that hides the name.
+        embedder_name = r.embedder_name.replace("&", "&amp;").replace("<", "&lt;")
+        embedder_name = embedder_name.replace("|", "\\|")
         embedder_name = re.sub(r"[\r\n]+", " ", embedder_name)
         lines.append(
             f"| {embedder_name} | {r.embedder_dim} | {r.n_corpus} | {r.n_queries} |{recalls} "
