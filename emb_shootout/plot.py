@@ -20,6 +20,7 @@ import io
 import os
 from collections.abc import Sequence
 from pathlib import Path
+from typing import NoReturn
 
 from .io_utils import atomic_write_bytes_many, check_writable
 from .pareto import _recall_at_5, pareto_frontier
@@ -230,6 +231,42 @@ def _require_suffix_matches(path: Path, fmt: str) -> None:
         )
 
 
+def _fold_to_one_file(a: Path, b: Path) -> bool:
+    """True when *a* and *b*, neither of which exists yet, would be one file (#255).
+
+    #228's check compares resolved strings and, for files that exist, identity;
+    two paths that exist nowhere yet have no identity, so `--out-png chart
+    --out-svg CHART` on a case-insensitive filesystem (default macOS APFS)
+    passed, the SVG landed on the PNG, and the summary reported both. Whether
+    two names fold together is the filesystem's rule -- case, and on APFS
+    Unicode normalization too -- so it is asked rather than modelled with
+    `casefold()`: with both parents one directory (by identity, as #250 compares
+    it), *a* is created exclusively, *b* is looked up, and *a* is removed again.
+    Called after the preflight, so both parents exist and *a* is creatable.
+    """
+    a, b = a.resolve(), b.resolve()
+    if a.exists() or b.exists():
+        return False  # an existing file has an identity; #228's `samefile` decides
+    try:
+        if not os.path.samefile(a.parent, b.parent):
+            return False
+        fd = os.open(a, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except OSError:
+        return False
+    try:
+        os.close(fd)
+        return b.exists()
+    finally:
+        os.unlink(a)
+
+
+def _refuse_same_file(png_path: Path, svg_path: Path) -> NoReturn:
+    raise ValueError(
+        f"--out-png {str(png_path)!r} and --out-svg {str(svg_path)!r} are the same "
+        "file; the SVG would overwrite the PNG"
+    )
+
+
 def render_pareto(
     results: Sequence[SweepResult],
     *,
@@ -268,17 +305,14 @@ def render_pareto(
     # Compared resolved (`./same`, a symlinked directory) and, for a file that
     # already exists, by identity -- which also catches `SAME` on a
     # case-insensitive filesystem. A case variant of a file that does not exist
-    # yet is not detected there.
+    # yet is caught after the preflight below (#255).
     if len(outputs) == 2:
         png_path, svg_path = outputs[0][0], outputs[1][0]
         same = png_path.resolve() == svg_path.resolve() or (
             png_path.exists() and svg_path.exists() and os.path.samefile(png_path, svg_path)
         )
         if same:
-            raise ValueError(
-                f"--out-png {str(png_path)!r} and --out-svg {str(svg_path)!r} are the same "
-                "file; the SVG would overwrite the PNG"
-            )
+            _refuse_same_file(png_path, svg_path)
     # Every output is writable before any is written (#234). The loop at the
     # bottom saves them in turn, so an unwritable --out-svg (its parent a file,
     # an existing directory) raised only after --out-png had been replaced, and
@@ -287,6 +321,11 @@ def render_pareto(
     # already maps to exit 2.
     for path, _fmt in outputs:
         check_writable(path)
+    # `chart` and `CHART` (or `sub/chart` and `SUB/chart`) where neither exists
+    # yet (#255): only the filesystem knows whether they fold to one file, and
+    # the preflight has just created both parents, so it can be asked now.
+    if len(outputs) == 2 and _fold_to_one_file(outputs[0][0], outputs[1][0]):
+        _refuse_same_file(outputs[0][0], outputs[1][0])
 
     plt = _import_matplotlib()
     # Match frontier membership by object identity, not `embedder_name`:
