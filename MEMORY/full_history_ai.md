@@ -2652,3 +2652,22 @@ context_for_next_session:
   - "NOT_DONE_refuse_unrenderable_name_DOES_NOT_REFUSE_MARKER_NAMES_escape_covers_it"
 followups: []
 ---
+
+---
+session: 2026-10-23T07:53Z
+issue: 255
+branch: session/2026-10-23-0800-issue-255
+focus: SWEEP_PLOT_OUT_PNG_OUT_SVG_CASE_VARIANT_PAIR_WROTE_ONE_FILE_AT_EXIT_0_WHEN_NEITHER_EXISTED
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 11
+  suite: "3.11 CI-shaped (.[dev]) 1442 passed / 42 skipped; 3.11 + [plot] 1494 passed / 1 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main 32cb88d, macOS APFS, matplotlib: sweep plot --out-png chart --out-svg CHART in a fresh dir -> rc 0, one file 'chart' holding '<?xml version=\"1.0\"', summary reports both. After: rc 2 'are the same file', nothing written; chart/chart2 control writes both. Revert 6 of 11 red (3 case pairs, case-variant parent, NFC/NFD pair, CLI rc) / 5 green controls. PR #258."
+context_for_next_session:
+  - "render_pareto_AFTER_THE_check_writable_PREFLIGHT_CALLS__fold_to_one_file_parents_samefile_AND_neither_exists_THEN_O_EXCL_CREATE_PNG_PATH_LOOK_UP_SVG_PATH_UNLINK"
+  - "FILESYSTEM_IS_ASKED_NOT_casefold_because_APFS_also_folds_NFC_NFD_which_casefold_keeps_distinct"
+  - "FOLD_TESTS_SKIP_ON_CASE_OR_NORMALIZATION_SENSITIVE_FS_CI_ubuntu_runs_only_the_5_controls"
+followups: []
+---

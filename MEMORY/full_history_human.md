@@ -2277,3 +2277,16 @@ which GFM renders as the same characters, so a name can't form a marker. The
 same three runs now produce the same 54 lines, and removing the file restores
 the committed artifact byte for byte. A file that already holds more than one
 marker is refused at exit 2 and left untouched instead of growing.
+
+## 2026-10-23 — `sweep plot` refuses a PNG/SVG pair the filesystem folds to one file (#255)
+
+#228 refused `--out-png` and `--out-svg` naming the same file, but it only
+compared resolved paths, plus identity for files that already exist. Its own
+comment admitted the gap: on macOS, `--out-png chart --out-svg CHART` in a fresh
+directory wrote one file at exit 0, with the SVG sitting where the PNG should
+be. Once the writability preflight has created both parent directories, the
+check now asks the filesystem directly. If the parents are one directory and
+neither file exists, it creates the PNG path, checks whether the SVG path now
+exists, and removes the probe. If it does, the pair is refused with exit 2 and
+nothing is written. The issue suggested `casefold()`, but macOS also treats NFC
+and NFD spellings of `café` as one file, and casefold keeps them apart.
