@@ -72,6 +72,22 @@ def _cmd_corpus_build(args: argparse.Namespace) -> int:
     modules = args.module or DEFAULT_MODULES
     out_path = Path(args.out)
     chunks = list(build_corpus(modules))
+    # `build_corpus`'s docstring promises the skipped set is reported here
+    # (#172); a mistyped `--module` used to vanish at exit 0.
+    skipped = unimportable_modules(modules)
+    for name in skipped:
+        sys.stderr.write(f"skipped module {name!r}: it does not import on this interpreter\n")
+    # Checked before the write (#260): an all-typo `--module` used to replace a
+    # good corpus with a 0-byte file at exit 0 -- a file `corpus validate` calls
+    # empty and `sweep run` refuses. Any cause of zero chunks counts, not only
+    # an all-skipped module list: a module that imports but has no documented
+    # members yields nothing too. The existing file is left untouched.
+    if not chunks:
+        sys.stderr.write(
+            f"refusing to write {out_path}: the requested modules produced no chunks "
+            "(an empty corpus is rejected by `corpus validate` and `sweep run`)\n"
+        )
+        return 2
     # An unwritable --out (a directory, read-only path, missing parent) otherwise
     # raised a raw OSError at exit 1, escaping the documented 0/1/2 exit-code
     # contract. #75 hardened this write path for the sibling subcommands
@@ -82,11 +98,6 @@ def _cmd_corpus_build(args: argparse.Namespace) -> int:
     except OSError as e:
         sys.stderr.write(f"failed to write {out_path}: {e}\n")
         return 2
-    # `build_corpus`'s docstring promises the skipped set is reported here
-    # (#172); a mistyped `--module` used to vanish at exit 0.
-    skipped = unimportable_modules(modules)
-    for name in skipped:
-        sys.stderr.write(f"skipped module {name!r}: it does not import on this interpreter\n")
     summary = {
         "out": str(out_path),
         "chunk_count": count,

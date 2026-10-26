@@ -2671,3 +2671,22 @@ context_for_next_session:
   - "FOLD_TESTS_SKIP_ON_CASE_OR_NORMALIZATION_SENSITIVE_FS_CI_ubuntu_runs_only_the_5_controls"
 followups: []
 ---
+
+---
+session: 2026-10-26T07:25Z
+issue: 260
+branch: session/2026-10-26-0725-issue-260
+focus: CORPUS_BUILD_WITH_ONLY_MISTYPED_MODULES_REPLACED_A_GOOD_CORPUS_WITH_0_BYTES_AT_EXIT_0
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 4
+  suite: "3.12 CI-shaped (.[dev]) 1455 passed / 42 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main 835ae11, macOS: corpus build --module json -> 21831 bytes; --module jsno on the same --out -> rc 0, 0 bytes; on a fresh --out -> 0-byte file created rc 0. After: both rc 2 'produced no chunks', good.jsonl still 21831 bytes, no new file. Revert 3 of 4 red / 1 green control (partial skip json+csvv). PR #261."
+context_for_next_session:
+  - "_cmd_corpus_build_NOW_COMPUTES_SKIPPED_AND_CHECKS_ZERO_CHUNKS_BEFORE_write_jsonl"
+  - "ZERO_CHUNK_REFUSAL_KEYS_ON_CHUNK_COUNT_NOT_ALL_SKIPPED_an_importable_module_with_no_documented_members_also_yields_0"
+  - "PARTIAL_SKIP_UNCHANGED_exit_0_with_stderr_warning_per_172"
+followups: []
+---

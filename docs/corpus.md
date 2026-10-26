@@ -56,6 +56,10 @@ Same Python version + same module list = same corpus, deterministically.
 The corpus is **not committed as data** — that's a deliberate decision
 ([D-002]). The loader is the source of truth.
 
+A `--module` that does not import is skipped and named on stderr. A build
+that produces no chunks at all (every `--module` mistyped) exits 2 and
+leaves `--out` untouched.
+
 [D-002]: ../MEMORY/core_decisions_human.md
 
 ## Size
