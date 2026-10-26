@@ -2290,3 +2290,14 @@ neither file exists, it creates the PNG path, checks whether the SVG path now
 exists, and removes the probe. If it does, the pair is refused with exit 2 and
 nothing is written. The issue suggested `casefold()`, but macOS also treats NFC
 and NFD spellings of `café` as one file, and casefold keeps them apart.
+
+## 2026-10-26 — `corpus build` no longer replaces a corpus with an empty file (#260)
+
+`corpus build` wrote its output before it worked out which modules had been
+skipped, and it never checked for an empty result. A build where every
+`--module` was mistyped (`--module jsno`) replaced a 21831-byte corpus with a
+0-byte file and exited 0. `corpus validate` calls that file empty and
+`sweep run` refuses it. The build now gathers the chunks and the skipped set
+first. When there are no chunks, for any reason, including a module that
+imports but documents nothing, it names the skipped modules, writes nothing and
+exits 2. A partial skip still writes and warns at exit 0, as #172 left it.
