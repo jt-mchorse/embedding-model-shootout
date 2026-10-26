@@ -23,7 +23,9 @@ from __future__ import annotations
 import importlib
 import inspect
 import json
+import os
 import re
+import sys
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from os import PathLike
@@ -218,6 +220,53 @@ class Chunk:
 _ADDRESS = re.compile(r" at 0x[0-9a-fA-F]+")
 
 
+class _Placeholder:
+    """A default rendered as fixed text in place of its value (#259)."""
+
+    def __init__(self, text: str) -> None:
+        self._text = text
+
+    def __repr__(self) -> str:
+        return self._text
+
+
+def _host_paths() -> list[tuple[str, str]]:
+    """(value, placeholder) for the paths a default can capture from this host (#259).
+
+    Longest value first, so a venv's `sys.executable` (which sits under
+    `sys.prefix`) is named as itself. A filesystem root is left out: with the
+    build run from `/`, `urllib.parse.quote(safe='/')` would otherwise read
+    `safe=<cwd>`.
+    """
+    candidates = [
+        ("sys.executable", sys.executable),
+        ("sys._base_executable", getattr(sys, "_base_executable", "")),
+        ("sys.prefix", sys.prefix),
+        ("sys.base_prefix", sys.base_prefix),
+        ("sys.exec_prefix", sys.exec_prefix),
+        ("sys.base_exec_prefix", sys.base_exec_prefix),
+        ("cwd", os.getcwd()),
+        ("home", os.path.expanduser("~")),
+    ]
+    seen: dict[str, str] = {}
+    for name, value in candidates:
+        if value and os.path.dirname(value) != value and value not in seen:
+            seen[value] = f"<{name}>"
+    return sorted(seen.items(), key=lambda item: len(item[0]), reverse=True)
+
+
+def _host_free_default(default: object, host_paths: list[tuple[str, str]]) -> object:
+    """*default*, or a placeholder when it is (or lies under) a host path (#259)."""
+    if not isinstance(default, str):
+        return default
+    for value, placeholder in host_paths:
+        if default == value:
+            return _Placeholder(placeholder)
+        if default.startswith(value + os.sep):
+            return _Placeholder(placeholder + default[len(value) :])
+    return default
+
+
 def _safe_signature(obj: object) -> str:
     """Best-effort ``str(inspect.signature(obj))``; '' on failure.
 
@@ -226,7 +275,24 @@ def _safe_signature(obj: object) -> str:
     signature doesn't invalidate the chunk.
     """
     try:
-        sig = str(inspect.signature(obj))  # type: ignore[arg-type]
+        signature = inspect.signature(obj)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return ""
+    # A default captured from the host -- `platform.architecture(executable=
+    # sys.executable)` -- put the venv's interpreter path into the corpus, so
+    # two builds on one Python version from two venvs got two fingerprints and
+    # `sweep aggregate` refused to combine their results (#259). Matched on the
+    # default's value, not by a substring replace over the rendered text, so a
+    # docstring or a literal default such as `safe='/'` is never rewritten.
+    host_paths = _host_paths()
+    params = [
+        p.replace(default=_host_free_default(p.default, host_paths))
+        if p.default is not inspect.Parameter.empty
+        else p
+        for p in signature.parameters.values()
+    ]
+    try:
+        sig = str(signature.replace(parameters=params))
     except (TypeError, ValueError):
         return ""
     # A default whose repr names its memory address -- `timeout=<object object
