@@ -2301,3 +2301,18 @@ skipped, and it never checked for an empty result. A build where every
 first. When there are no chunks, for any reason, including a module that
 imports but documents nothing, it names the skipped modules, writes nothing and
 exits 2. A partial skip still writes and warns at exit 0, as #172 left it.
+
+## 2026-10-26 — two venvs on one Python version now build the same corpus (#259)
+
+`platform.architecture` takes `executable=sys.executable` as its default, and
+the corpus wrote signature defaults verbatim. That put the venv's interpreter
+path into one chunk, so two builds from different venvs had different corpus
+fingerprints and `sweep aggregate` refused to combine their results. String
+defaults that equal or sit under `sys.executable`, the `sys` prefixes, the
+working directory or the home directory are now written as placeholders such
+as `<sys.executable>`. Two venvs, run from different directories with
+different HOME values, now build byte-identical corpora. A search of the whole
+default corpus found no other chunk carrying a host path. The committed hash
+baseline didn't need regenerating: on 3.14 the placeholder leaves recall,
+NDCG and the query fingerprint unchanged, and the committed result has no
+corpus fingerprint.

@@ -2690,3 +2690,23 @@ context_for_next_session:
   - "PARTIAL_SKIP_UNCHANGED_exit_0_with_stderr_warning_per_172"
 followups: []
 ---
+
+---
+session: 2026-10-26T07:33Z
+issue: 259
+branch: session/2026-10-26-0733-issue-259
+focus: SIGNATURE_DEFAULTS_CAPTURED_FROM_THE_HOST_PUT_THE_VENV_INTERPRETER_PATH_INTO_CORPUS_TEXT
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 10
+  suite: "3.12 CI-shaped (.[dev]) 1465 passed / 42 skipped; new + #182 tests 16 passed on 3.11; ruff check + format clean"
+decisions_made: []
+measured: "main c370709, macOS 3.12.12: two venvs, corpus build -> 1 line differs (platform.architecture executable=<venv path>). After: two venvs + different cwd/HOME/TMPDIR -> byte-identical, sha256 3c2054e2..., 11284 chunks; vs main build only that chunk changed. 3.14 hash sweep q50 s42 with path vs placeholder: recall/NDCG/query_fingerprint identical, corpus_fingerprint db0ecf13 -> 6067205f; committed results/hash.json has no fingerprint, not regenerated. Revert 9 of 10 red / 1 green control. PR #262."
+context_for_next_session:
+  - "_safe_signature_NOW_REBUILDS_THE_SIGNATURE_WITH_HOST_PATH_STRING_DEFAULTS_AS__Placeholder_sys_executable_base_executable_4_prefixes_cwd_home"
+  - "MATCH_IS_EQUAL_OR_STARTSWITH_VALUE_PLUS_os_sep_LONGEST_FIRST_FILESYSTEM_ROOT_EXCLUDED_so_safe_slash_survives_a_build_run_from_slash"
+  - "FULL_CORPUS_SWEEP_FOUND_ONLY_platform_architecture_CARRYING_A_HOST_PATH"
+  - "NOT_DONE_sys_maxsize_DEFAULTS_DIFFER_ON_32_BIT_BUILDS"
+followups: []
+---

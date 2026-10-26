@@ -53,6 +53,10 @@ emb-shootout corpus build --out /tmp/json-only.jsonl --module json
 ```
 
 Same Python version + same module list = same corpus, deterministically.
+A signature default captured from the host, such as
+`platform.architecture(executable=sys.executable)`, is written as a
+placeholder (`<sys.executable>`, `<sys.prefix>`, `<cwd>`, `<home>`), so two
+venvs at different paths build the same bytes.
 The corpus is **not committed as data** — that's a deliberate decision
 ([D-002]). The loader is the source of truth.
 
