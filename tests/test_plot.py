@@ -6,6 +6,7 @@ so the standard CI matrix without extras still passes.
 
 from __future__ import annotations
 
+import contextlib
 import json
 from pathlib import Path
 
@@ -128,6 +129,9 @@ class _RecordingPlt:
 
     def close(self, *a, **k):
         pass
+
+    def rc_context(self, *a: object, **k: object) -> contextlib.AbstractContextManager[None]:
+        return contextlib.nullcontext()
 
 
 def test_dominated_point_sharing_a_frontier_name_is_not_highlighted(

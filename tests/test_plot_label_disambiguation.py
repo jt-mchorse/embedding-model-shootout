@@ -24,6 +24,7 @@ precision reads as mixed quantities.
 
 from __future__ import annotations
 
+import contextlib
 import sys
 import types
 from pathlib import Path
@@ -187,6 +188,7 @@ def _draw(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, results: list[SweepRe
     pyplot = types.ModuleType("matplotlib.pyplot")
     pyplot.subplots = lambda **k: (_RecordingFig(), ax)  # type: ignore[attr-defined]
     pyplot.close = lambda fig: None  # type: ignore[attr-defined]
+    pyplot.rc_context = lambda *a, **k: contextlib.nullcontext()  # type: ignore[attr-defined]
     matplotlib = types.ModuleType("matplotlib")
     matplotlib.use = lambda backend: None  # type: ignore[attr-defined]
     matplotlib.pyplot = pyplot  # type: ignore[attr-defined]
