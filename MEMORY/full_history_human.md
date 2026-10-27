@@ -2343,3 +2343,16 @@ documented command under matplotlib 3.10.9, the version it was originally drawn
 with. Once the ids are normalised, the only change is the removed date line,
 and the PNG did not change at all. A newer matplotlib still changes the file,
 because the creator line and the layout both depend on its version.
+
+## 2026-10-27 — the notebook builder reproduces the committed notebook (#265)
+
+`notebooks/_build_notebook.py` is meant to be the notebook's source of truth,
+but running it broke CI. Its code cells were single-quoted, so `ruff format
+--check` failed. It also dropped every cell id that nbformat 4.5 requires, and
+it escaped the em dashes and middle dots. The committed notebook only passed
+because someone had reformatted it and added ids after generating it. The
+builder now writes code the way ruff formats it, and each cell carries an
+explicit id (the ids that were already committed, so nothing churned). It also
+writes keys sorted and non-ASCII characters literally. Running it now leaves
+the committed notebook untouched, and a test pins that byte for byte without
+needing nbformat, which CI does not install.
