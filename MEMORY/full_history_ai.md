@@ -2710,3 +2710,25 @@ context_for_next_session:
   - "NOT_DONE_sys_maxsize_DEFAULTS_DIFFER_ON_32_BIT_BUILDS"
 followups: []
 ---
+
+---
+session: 2026-10-27T07:59Z
+issue: 264
+branch: session/2026-10-27-0759-issue-264
+focus: A_PROVIDER_ERROR_WHILE_EMBEDDING_WRONG_KEY_429_RESET_ESCAPED_SWEEP_RUN_AS_A_TRACEBACK_AT_EXIT_1
+phase: shipped
+delta:
+  files_changed: 3
+  tests_added: 24
+  suite: "3.12 CI-shaped (.[dev]) 1486 passed / 45 skipped; 3.11 CI-shaped 1486 passed / 45 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main 5fb9d89, .[openai], 127.0.0.1 stub: sweep run --provider openai -> 401 rc=1 25-line traceback openai.AuthenticationError; 429 rc=1 openai.RateLimitError. After: rc=2 one line 'error: embedder 'openai/text-embedding-3-small' failed embedding the corpus: AuthenticationError: ...'; 429 and connection-refused (APIConnectionError) also rc=2; no output file. Revert 21 of 24 red / 3 green controls (.[openai]); CI-shaped 18 red / 3 green / 3 skipped. PR #268."
+context_for_next_session:
+  - "run_sweep_ROUTES_BOTH_PROVIDER_CALLS_THROUGH__call_embedder_NON_ValueError_BECOMES_ValueError_NAMING_PROVIDER_AND_SIDE_from_e"
+  - "SIDE_IS_the_corpus_OR_query_i_of_n_after_the_corpus_was_embedded"
+  - "ONLY_THE_PROVIDER_CALL_IS_WRAPPED_retrieval_scoring_bugs_still_surface_KeyboardInterrupt_untouched"
+  - "AST_LOCK_test_no_provider_call_bypasses_the_translation_PLUS_embed_arity_census_COUNTS__call_embedder"
+  - "REAL_OPENAI_STUB_TESTS_SKIP_WITHOUT_THE_EXTRA_CI_installs_only_dev"
+  - "PREEXISTING_test_provider_arg_domain_lazy_import_openai_FAILS_WHEN_openai_EXTRA_IS_INSTALLED"
+followups: []
+---

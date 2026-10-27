@@ -224,12 +224,18 @@ def test_every_embed_call_site_is_guarded() -> None:
         if not isinstance(node, ast.Call):
             continue
         func = node.func
+        # Since #264 both seams call the provider through `_call_embedder`,
+        # which takes the method as an argument rather than calling it.
         if (
-            isinstance(func, ast.Attribute)
-            and func.attr in ("embed", "embed_query")
-            and isinstance(func.value, ast.Name)
-            and func.value.id == "embedder"
-        ) or (isinstance(func, ast.Name) and func.id in query_fn_names):
+            (
+                isinstance(func, ast.Attribute)
+                and func.attr in ("embed", "embed_query")
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "embedder"
+            )
+            or (isinstance(func, ast.Name) and func.id in query_fn_names)
+            or (isinstance(func, ast.Name) and func.id == "_call_embedder")
+        ):
             embed_calls += 1
         elif isinstance(func, ast.Name) and func.id == "_require_one_vector_per_text":
             guards += 1
