@@ -2356,3 +2356,19 @@ explicit id (the ids that were already committed, so nothing churned). It also
 writes keys sorted and non-ASCII characters literally. Running it now leaves
 the committed notebook untouched, and a test pins that byte for byte without
 needing nbformat, which CI does not install.
+
+## 2026-10-27 — the lazy-import control test no longer depends on which extras are installed (#270)
+
+`test_a_well_formed_call_still_reaches_the_lazy_import` checks that a valid
+provider configuration gets past argument validation to the lazy SDK import.
+It assumed no provider extra was installed. CI installs only `.[dev]`, so it
+passed there, but with the openai, voyage and cohere extras installed three
+of the five arms failed. Two failed on missing-credential errors and voyage
+built a client without complaint. With `sbert` installed, bge and nomic would
+have downloaded model weights inside a unit test. The test now blocks each
+provider's SDK module in `sys.modules`, so the import fails the same way on
+every host. A lock keeps the provider-to-module map in step with the registry
+and checks that each name is one the provider imports. It compares exact
+import names, because a text search let `voyage` pass for `voyageai`. The
+full suite is now green with those three extras installed. `sbert` was not
+tested because it pulls in torch.
