@@ -2732,3 +2732,22 @@ context_for_next_session:
   - "PREEXISTING_test_provider_arg_domain_lazy_import_openai_FAILS_WHEN_openai_EXTRA_IS_INSTALLED"
 followups: []
 ---
+
+---
+session: 2026-10-27T07:59Z
+issue: 266
+branch: session/2026-10-27-0759-issue-266
+focus: SWEEP_PLOT_SVG_NEVER_BYTE_IDENTICAL_DC_DATE_AND_UUID_SALTED_CLIP_PATH_IDS_SO_EVERY_REGEN_REWROTE_DOCS_PARETO_SVG
+phase: shipped
+delta:
+  files_changed: 10
+  tests_added: 6
+  suite: "3.12 CI-shaped (.[dev]) 1468 passed / 45 skipped; 3.11 .[dev] 1468 / 45; 3.12 .[dev,plot] 1523 passed / 1 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main 5fb9d89, matplotlib 3.11.2: two sweep plot runs -> PNGs identical, SVGs differ in 37 lines (dc:date + clip-path ids). After: identical SVG bytes, no dc:date, README regen cmp-idempotent. docs/pareto.svg regenerated under matplotlib 3.10.9 (its creator line): 36+/37-, with ids normalised the only diff is the dropped dc:date line; pareto.png byte-identical. Under 3.11.2 the committed svg differs in 326 lines (version layout), not committed. Revert [plot] 4 of 6 red, .[dev] 2 red / 1 green / 3 skipped; green = PNG controls. PR #267."
+context_for_next_session:
+  - "render_pareto_SAVES_INSIDE_plt_rc_context_svg_hashsalt_emb_shootout_AND_SVG_GETS_metadata_Date_None_via__SAVE_KWARGS"
+  - "EVERY_FAKE_PYPLOT_IN_TESTS_NEEDS_rc_context_NOW_7_FILES_HAVE_A_NULLCONTEXT_ONE"
+  - "REGENERATE_DOCS_PARETO_WITH_THE_MATPLOTLIB_ITS_CREATOR_LINE_NAMES_a_newer_matplotlib_changes_layout_and_glyph_ids"
+followups: []
+---

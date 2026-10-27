@@ -2330,3 +2330,16 @@ embedded, which tells the operator it was already billed. Only the call is
 wrapped, so a bug in scoring still shows its own traceback. Every registered
 provider goes through these two calls, and `sweep run` is the only command that
 embeds. An AST lock fails if a new call site skips the helper.
+
+## 2026-10-27 — `sweep plot` writes the same SVG every time (#266)
+
+Running the README's regen command twice over unchanged results gave
+identical PNGs, but the SVGs differed in 37 lines. matplotlib stamps the SVG
+with the current time in `<dc:date>`, and it salts every clip-path and marker
+id with a random UUID unless `svg.hashsalt` is set. So every regen rewrote
+`docs/pareto.svg`. The SVG is now saved with no date and a fixed salt, and two
+renders are byte-identical. `docs/pareto.svg` was regenerated with the
+documented command under matplotlib 3.10.9, the version it was originally drawn
+with. Once the ids are normalised, the only change is the removed date line,
+and the PNG did not change at all. A newer matplotlib still changes the file,
+because the creator line and the layout both depend on its version.
