@@ -2316,3 +2316,17 @@ default corpus found no other chunk carrying a host path. The committed hash
 baseline didn't need regenerating: on 3.14 the placeholder leaves recall,
 NDCG and the query fingerprint unchanged, and the committed result has no
 corpus fingerprint.
+
+## 2026-10-27 — `sweep run` reports a provider that fails mid-sweep instead of crashing (#264)
+
+#202 caught a provider that could not be built. The OpenAI client does not
+check its API key until the first request, so a wrong key, a 429 or a network
+reset was raised from the embed call inside `run_sweep` and escaped as a
+25-line traceback at exit 1. Both provider calls, the corpus embed and each
+query embed, now go through one helper. It turns any error other than a
+`ValueError` into a one-line `error:` naming the provider and the side, and
+`sweep run` exits 2. A failure on the query side says the corpus was already
+embedded, which tells the operator it was already billed. Only the call is
+wrapped, so a bug in scoring still shows its own traceback. Every registered
+provider goes through these two calls, and `sweep run` is the only command that
+embeds. An AST lock fails if a new call site skips the helper.
