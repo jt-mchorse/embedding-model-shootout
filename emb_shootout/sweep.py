@@ -48,6 +48,31 @@ class Embedder(Protocol):
         """Return one float vector per input text. All vectors share `self.dim`."""
 
 
+def _call_embedder(fn, texts: list[str], *, embedder_name: str, side: str):
+    """Call a provider's embed method, any failure but `ValueError` a `ValueError` (#264).
+
+    The provider call is the one step of a sweep that talks to the outside
+    world: a wrong API key, a 429, a network reset or a model that runs out of
+    memory each raise the SDK's own exception class (`openai.AuthenticationError`,
+    `openai.RateLimitError`, ...), none of which is a `ValueError`. #202 closed
+    that seam for provider *construction*; an OpenAI client does not check its
+    key until the first request, so a wrong key still escaped `sweep run`'s
+    `except ValueError` here as a traceback at exit 1. Re-raised naming the
+    provider and the side (a mid-sweep 429 arrives after the corpus was
+    embedded and billed), chained so a library caller keeps the original as
+    `__cause__`. Only the call is wrapped: a bug in the scoring below still
+    surfaces as itself.
+    """
+    try:
+        return fn(texts)
+    except ValueError:
+        raise
+    except Exception as e:
+        raise ValueError(
+            f"embedder {embedder_name!r} failed embedding {side}: {type(e).__name__}: {e}"
+        ) from e
+
+
 def _query_embed_fn(embedder: Embedder):
     """The method that embeds QUERIES: `embed_query` when the provider has one.
 
@@ -1206,7 +1231,9 @@ def run_sweep(
     corpus_texts = [c.text for c in corpus]
     chunk_ids = [c.chunk_id for c in corpus]
     t0 = time.perf_counter()
-    corpus_vectors = embedder.embed(corpus_texts)
+    corpus_vectors = _call_embedder(
+        embedder.embed, corpus_texts, embedder_name=embedder.name, side="the corpus"
+    )
     corpus_total_ms = (time.perf_counter() - t0) * 1000.0
     _require_one_vector_per_text(
         corpus_vectors, len(corpus_texts), embedder_name=embedder.name, kind="corpus"
@@ -1219,9 +1246,14 @@ def run_sweep(
     query_latencies_ms: list[float] = []
     query_vectors: list[list[float]] = []
     embed_query = _query_embed_fn(embedder)
-    for q in queries:
+    for i, q in enumerate(queries, start=1):
         t0 = time.perf_counter()
-        vecs = embed_query([q.text])
+        vecs = _call_embedder(
+            embed_query,
+            [q.text],
+            embedder_name=embedder.name,
+            side=f"query {i} of {len(queries)} (after the corpus was embedded)",
+        )
         query_latencies_ms.append((time.perf_counter() - t0) * 1000.0)
         # Same contract as the corpus call above. Indexing `[0]` straight off
         # the result raised `IndexError` on an empty return and silently scored
