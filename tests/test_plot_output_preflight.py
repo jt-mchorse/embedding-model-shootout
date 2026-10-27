@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import io
 from pathlib import Path
 
@@ -44,6 +45,9 @@ class _WritingPlt:
         return _WritingFig(self._saved), _Ax()
 
     def close(self, *a: object, **k: object) -> None: ...
+
+    def rc_context(self, *a: object, **k: object) -> contextlib.AbstractContextManager[None]:
+        return contextlib.nullcontext()
 
 
 def _fake_writing_matplotlib(monkeypatch: pytest.MonkeyPatch) -> list[Path]:

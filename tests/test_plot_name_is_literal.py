@@ -22,6 +22,7 @@ arms read the `Text` objects matplotlib built, and skip without the extra.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sys
 import types
@@ -93,6 +94,7 @@ def _draw_fake(
     pyplot = types.ModuleType("matplotlib.pyplot")
     pyplot.subplots = lambda **k: (_RecordingFig(), ax)  # type: ignore[attr-defined]
     pyplot.close = lambda fig: None  # type: ignore[attr-defined]
+    pyplot.rc_context = lambda *a, **k: contextlib.nullcontext()  # type: ignore[attr-defined]
     matplotlib = types.ModuleType("matplotlib")
     matplotlib.use = lambda backend: None  # type: ignore[attr-defined]
     matplotlib.pyplot = pyplot  # type: ignore[attr-defined]

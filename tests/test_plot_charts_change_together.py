@@ -15,6 +15,7 @@ it cannot touch pytest's own files, with an SVG past the limit and a PNG under i
 
 from __future__ import annotations
 
+import contextlib
 import os
 import subprocess
 import sys
@@ -46,6 +47,9 @@ class _SizedPlt:
         return _SizedFig(), _Ax()
 
     def close(self, *a: object, **k: object) -> None: ...
+
+    def rc_context(self, *a: object, **k: object) -> contextlib.AbstractContextManager[None]:
+        return contextlib.nullcontext()
 
 
 _CHILD = r"""

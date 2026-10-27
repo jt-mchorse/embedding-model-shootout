@@ -15,6 +15,7 @@ fake figure there writes to a path or a file object, so these arms run in CI
 
 from __future__ import annotations
 
+import contextlib
 import os
 import stat
 import subprocess
@@ -54,6 +55,9 @@ class _Plt:
         return _Fig(), _Ax()
 
     def close(self, *a: object, **k: object) -> None: ...
+
+    def rc_context(self, *a: object, **k: object) -> contextlib.AbstractContextManager[None]:
+        return contextlib.nullcontext()
 
 
 @pytest.fixture

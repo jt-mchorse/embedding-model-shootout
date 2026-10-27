@@ -47,6 +47,13 @@ def _import_matplotlib():
 #: that same domain, so padding may not run past either end of it.
 _RECALL_DOMAIN = (0.0, 1.0)
 
+#: Fixed so SVG element ids are a function of the figure, not of `uuid4()` (#266).
+_SVG_HASHSALT = "emb-shootout"
+
+#: Per-format `savefig` keywords. SVG drops its wall-clock `<dc:date>` (#266);
+#: PNG carries no timestamp, so it gets nothing.
+_SAVE_KWARGS: dict[str, dict[str, object]] = {"png": {}, "svg": {"metadata": {"Date": None}}}
+
 
 def _should_draw_polyline(frontier: Sequence[SweepResult]) -> bool:
     """Whether the frontier has ≥2 distinct coordinates to connect.
@@ -413,12 +420,22 @@ def render_pareto(
     # every other artifact. Both charts are rendered before either is written,
     # so a render failure replaces nothing either. The writer creates the
     # parent and writes through a symlink, as `savefig` did.
+    #
+    # Same inputs, same bytes (#266). The PNG already was; the SVG was not, on
+    # two counts: matplotlib stamps `<dc:date>` with the wall clock, and salts
+    # every `clip-path` / marker id with `uuid4()` unless `svg.hashsalt` is set.
+    # Measured on 5fb9d89 (matplotlib 3.11.2): two runs of the documented regen
+    # command gave identical PNGs and SVGs differing in 37 lines, so every regen
+    # rewrote `docs/pareto.svg` with unchanged results. A fixed salt makes each
+    # id a hash of what it names; `Date: None` drops the timestamp. The creator
+    # line still names the matplotlib version, which is a real input.
     try:
         rendered = []
-        for path, fmt in outputs:
-            buf = io.BytesIO()
-            fig.savefig(buf, dpi=150, format=fmt)
-            rendered.append((path, buf.getvalue()))
+        with plt.rc_context({"svg.hashsalt": _SVG_HASHSALT}):
+            for path, fmt in outputs:
+                buf = io.BytesIO()
+                fig.savefig(buf, dpi=150, format=fmt, **_SAVE_KWARGS[fmt])
+                rendered.append((path, buf.getvalue()))
     finally:
         plt.close(fig)
     # Both staged before either is renamed (#251): written one after the other,
