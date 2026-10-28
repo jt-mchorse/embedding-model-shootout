@@ -2770,3 +2770,22 @@ context_for_next_session:
   - "CODE_CELL_STRINGS_IN_THE_BUILDER_MUST_BE_RUFF_FORMATTED_SOURCE_double_quotes_and_100_col_joins_else_the_byte_test_fails"
 followups: []
 ---
+
+---
+session: 2026-10-27T08:18Z
+issue: 270
+branch: session/2026-10-27-0818-issue-270
+focus: WELL_FORMED_CALL_REACHES_LAZY_IMPORT_CONTROL_ASSUMED_NO_EXTRA_INSTALLED_RED_FOR_3_OF_5_PROVIDERS_WITH_EXTRAS
+phase: shipped
+delta:
+  files_changed: 1
+  tests_added: 1
+  suite: "3.12 CI-shaped (.[dev]) 1487 passed / 45 skipped; 3.11 CI-shaped 1487 passed / 45 skipped; 3.12 .[dev,openai,voyage,cohere] 1489 passed / 43 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main 8d464e5, 3.12 .[dev,openai,voyage,cohere]: test_provider_arg_domain.py 3 failed / 155 passed (openai OpenAIError missing credentials, cohere ApiError CO_API_KEY, voyage DID NOT RAISE; all three DID NOT RAISE with *_API_KEY set). After: 159 passed in .[dev] and extras venvs. Wrong-map probe voyage->'voyage': lock red in both venvs (substring version stayed green, switched to AST names). sbert not installed (torch). PR #271."
+context_for_next_session:
+  - "LAZY_IMPORT_CONTROL_NOW_SETS_sys_modules_SDK_TO_None_SO_THE_IMPORT_RAISES_ON_EVERY_HOST"
+  - "SDK_MODULE_MAP_LOCKED_TO_LAZY_PROVIDERS_AND_TO_EXACT_AST_IMPORT_NAMES_IN_EACH_PROVIDER_CLASS"
+  - "FULL_SUITE_GREEN_WITH_openai_voyage_cohere_EXTRAS_sbert_UNTESTED"
+followups: []
+---

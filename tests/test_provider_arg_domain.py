@@ -42,6 +42,7 @@ copies before it.
 from __future__ import annotations
 
 import math
+import sys
 from typing import Any
 
 import pytest
@@ -116,16 +117,55 @@ def test_a_bad_batch_size_is_still_refused(provider: str, batch_size: Any) -> No
         _construct(provider, batch_size=batch_size)
 
 
+#: The module each lazy provider imports behind its extra. The control below
+#: blocks it, so "reached the lazy import" is observable on every host (#270).
+SDK_MODULE = {
+    "openai": "openai",
+    "voyage": "voyageai",
+    "cohere": "cohere",
+    "bge": "sentence_transformers",
+    "nomic": "sentence_transformers",
+}
+
+
+def test_every_lazy_provider_has_its_sdk_module_named() -> None:
+    """The block below is only as good as this map. A provider missing from it
+    would construct its real client wherever its extra is installed; a wrong
+    module name would block something the provider never imports.
+    """
+    import ast
+    import inspect
+    import textwrap
+
+    assert set(SDK_MODULE) == set(LAZY_PROVIDERS)
+    for provider, module in SDK_MODULE.items():
+        tree = ast.parse(textwrap.dedent(inspect.getsource(PROVIDER_REGISTRY[provider])))
+        # Exact names from the AST, not a substring of the source: "voyage" is
+        # a prefix of "voyageai" and would pass a text search.
+        imported = {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
+        imported |= {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
+        assert module in imported, (provider, module, sorted(m for m in imported if m))
+
+
 @pytest.mark.parametrize("provider", LAZY_PROVIDERS)
-def test_a_well_formed_call_still_reaches_the_lazy_import(provider: str) -> None:
+def test_a_well_formed_call_still_reaches_the_lazy_import(
+    provider: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The other control, and the one that proves these are *pre-import* checks
     rather than a blanket refusal.
 
-    With the extra absent the well-formed call must get all the way to the
-    `ImportError` — the same outcome it had before this change. If it raised
-    `ValueError` instead, the new rules would be rejecting a legitimate
-    configuration.
+    The well-formed call must get all the way to the `ImportError` — the same
+    outcome it had before this change. If it raised `ValueError` instead, the
+    new rules would be rejecting a legitimate configuration.
+
+    The SDK is blocked rather than assumed absent (#270). CI installs only
+    `.[dev]`, so "absent" held there; with an extra installed the call went on
+    into the real client — `OpenAIError` / cohere `ApiError` for a missing key,
+    a clean construct for voyage, and for bge/nomic a model-weight download — and
+    none of those is the `ImportError` this row is about. A `None` entry in
+    `sys.modules` makes the import raise on every host.
     """
+    monkeypatch.setitem(sys.modules, SDK_MODULE[provider], None)
     with pytest.raises(ImportError, match="extra"):
         _construct(provider, dim=8, cost_per_million_tokens=0.5, batch_size=4)
 
