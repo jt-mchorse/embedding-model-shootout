@@ -2751,3 +2751,22 @@ context_for_next_session:
   - "REGENERATE_DOCS_PARETO_WITH_THE_MATPLOTLIB_ITS_CREATOR_LINE_NAMES_a_newer_matplotlib_changes_layout_and_glyph_ids"
 followups: []
 ---
+
+---
+session: 2026-10-27T08:10Z
+issue: 265
+branch: session/2026-10-27-0810-issue-265
+focus: NOTEBOOK_BUILDER_WROTE_A_REPRODUCE_IPYNB_THAT_FAILED_RUFF_FORMAT_CHECK_DROPPED_CELL_IDS_AND_U_ESCAPED_NON_ASCII
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 7
+  suite: "3.12 CI-shaped (.[dev]) 1471 passed / 43 skipped; 3.11 .[dev] 1471 / 43; 3.12 .[dev]+nbformat 1472 passed / 42 skipped; ruff check + format clean"
+decisions_made: []
+measured: "main 5fb9d89: python notebooks/_build_notebook.py && ruff format --check . -> 1 file would be reformatted rc 1; git diff --stat 48+/60- (ids dropped, em dash / middle dot \\u-escaped, single quotes in 6 code cells). After: regenerating leaves reproduce.ipynb unchanged, 130 files already formatted. Revert .[dev] 5 red / 1 green / 1 skipped, +nbformat 6 red / 1 green; green = nbformat 4.5 version control. PR #269."
+context_for_next_session:
+  - "md_AND_code_TAKE_KEYWORD_ONLY_cell_id_THE_IDS_ARE_THE_ONES_ALREADY_COMMITTED_A_NEW_CELL_NEEDS_uuid4_hex_build_REFUSES_DUPLICATES"
+  - "render_IS_json_dumps_indent_1_sort_keys_ensure_ascii_False_PLUS_NEWLINE_test_pins_it_equal_to_the_committed_file"
+  - "CODE_CELL_STRINGS_IN_THE_BUILDER_MUST_BE_RUFF_FORMATTED_SOURCE_double_quotes_and_100_col_joins_else_the_byte_test_fails"
+followups: []
+---

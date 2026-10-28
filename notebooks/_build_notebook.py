@@ -22,18 +22,38 @@ from emb_shootout.io_utils import atomic_write_text  # noqa: E402
 NOTEBOOK_PATH = Path(__file__).resolve().parent / "reproduce.ipynb"
 
 
-def md(*lines: str) -> dict:
+# Regenerating must reproduce the committed notebook byte for byte (#265), so
+# everything the writer decides is pinned here rather than left to the tool
+# that last touched the file:
+#
+# - Each cell carries its own `id`. nbformat 4.5 requires one, and Jupyter or
+#   nbformat would otherwise invent a random one per save. The id travels with
+#   the cell, so an edit or a reorder changes only the cells it touches; a new
+#   cell needs a new id (`uuid.uuid4().hex`), and `build()` refuses a duplicate.
+# - Code cells are written as `ruff format` leaves them (CI runs
+#   `ruff format --check .`, which formats notebooks): double quotes, lines
+#   joined up to the 100-column limit.
+# - `render()` writes keys sorted, as nbformat does, and non-ASCII literally.
+#
+# Before this, the builder dropped every id, `\u`-escaped the em dashes and
+# middle dots, and wrote single-quoted code that failed the format gate; the
+# committed file only passed because it was reformatted after generation.
+
+
+def md(*lines: str, cell_id: str) -> dict:
     return {
         "cell_type": "markdown",
+        "id": cell_id,
         "metadata": {},
         "source": [line + "\n" for line in lines[:-1]] + [lines[-1]] if lines else [],
     }
 
 
-def code(*lines: str) -> dict:
+def code(*lines: str, cell_id: str) -> dict:
     return {
         "cell_type": "code",
         "execution_count": None,
+        "id": cell_id,
         "metadata": {},
         "outputs": [],
         "source": [line + "\n" for line in lines[:-1]] + [lines[-1]] if lines else [],
@@ -58,6 +78,7 @@ CELLS: list[dict] = [
         "the table and another point on the frontier.",
         "",
         "[#4]: https://github.com/jt-mchorse/embedding-model-shootout/issues/4",
+        cell_id="7fb27b941602401d91542211134fc71a",
     ),
     md(
         "## 0 · Imports",
@@ -65,6 +86,7 @@ CELLS: list[dict] = [
         "Everything is imported from the in-repo package — no notebook-only",
         "deps. Add the repo root to `sys.path` so the notebook also runs from",
         "an editable install.",
+        cell_id="acae54e37e7d407bbb7b55eff062a284",
     ),
     code(
         "import json",
@@ -72,7 +94,7 @@ CELLS: list[dict] = [
         "from pathlib import Path",
         "",
         "ROOT = Path.cwd().resolve()",
-        "if ROOT.name == 'notebooks':",
+        'if ROOT.name == "notebooks":',
         "    ROOT = ROOT.parent",
         "if str(ROOT) not in sys.path:",
         "    sys.path.insert(0, str(ROOT))",
@@ -83,7 +105,8 @@ CELLS: list[dict] = [
         "from emb_shootout.queries import build_queries",
         "from emb_shootout.sweep import SweepResult, aggregate_markdown, run_sweep",
         "",
-        "print('ROOT =', ROOT)",
+        'print("ROOT =", ROOT)',
+        cell_id="9a63283cbaf04dbcab1f6479b197f3a8",
     ),
     md(
         "## 1 · Build the corpus",
@@ -92,18 +115,20 @@ CELLS: list[dict] = [
         "`inspect` (D-002 — not committed as data, reproduced from source).",
         "The acceptance bar is `>= 10000` chunks; on CPython 3.14 the curated",
         "module list yields **12,010 chunks**.",
+        cell_id="8dd0d8092fe74a7c96281538738b07e2",
     ),
     code(
         "corpus = list(build_corpus(DEFAULT_MODULES))",
-        "print(f'corpus size: {len(corpus):,} chunks')",
-        "assert len(corpus) >= 10_000, 'acceptance bar: corpus must be >= 10k chunks'",
+        'print(f"corpus size: {len(corpus):,} chunks")',
+        'assert len(corpus) >= 10_000, "acceptance bar: corpus must be >= 10k chunks"',
         "",
         "sample = corpus[0]",
-        "print('first chunk shape:')",
-        "print(f'  chunk_id : {sample.chunk_id!r}')",
-        "print(f'  qualname : {sample.qualname!r}')",
-        "print(f'  kind     : {sample.kind!r}')",
-        "print(f'  source   : {sample.source!r}')",
+        'print("first chunk shape:")',
+        'print(f"  chunk_id : {sample.chunk_id!r}")',
+        'print(f"  qualname : {sample.qualname!r}")',
+        'print(f"  kind     : {sample.kind!r}")',
+        'print(f"  source   : {sample.source!r}")',
+        cell_id="72eea5119410473aa328ad9291626812",
     ),
     md(
         "## 2 · Derive the query set",
@@ -112,12 +137,14 @@ CELLS: list[dict] = [
         "(D-005), not committed as a fixture file. Every provider runs against",
         "the same query set by construction — cross-provider rows are",
         "apples-to-apples.",
+        cell_id="8edb47106e1a46a883d545849b8ab81b",
     ),
     code(
         "queries = build_queries(corpus, n=50, seed=42)",
-        "print(f'query count: {len(queries)}')",
+        'print(f"query count: {len(queries)}")',
         "for q in queries[:3]:",
-        "    print(f'  example: {q.text[:60]!r}')",
+        '    print(f"  example: {q.text[:60]!r}")',
+        cell_id="10185d26023b46108eb7d9f57d49d2b3",
     ),
     md(
         "## 3 · Run the hash baseline sweep",
@@ -126,18 +153,20 @@ CELLS: list[dict] = [
         "baseline. It exists so the sweep flow exercises end-to-end without",
         "external services or API keys — the recall numbers it produces are",
         "the lower bound, not the takeaway.",
+        cell_id="8763a12b2bbd4a93a75aff182afb95dc",
     ),
     code(
         "embedder = HashEmbedderProvider()",
         "result = run_sweep(corpus, queries, embedder=embedder, k_values=(1, 5, 10))",
         "",
-        "print(f'embedder    : {result.embedder_name}')",
-        "print(f'n_corpus    : {result.n_corpus:,}')",
-        "print(f'n_queries   : {result.n_queries}')",
-        "print(f'recall@1    : {result.recall_at_k[1]:.3f}')",
-        "print(f'recall@5    : {result.recall_at_k[5]:.3f}')",
-        "print(f'recall@10   : {result.recall_at_k[10]:.3f}')",
-        "print(f'NDCG@10     : {result.ndcg_at_10:.3f}')",
+        'print(f"embedder    : {result.embedder_name}")',
+        'print(f"n_corpus    : {result.n_corpus:,}")',
+        'print(f"n_queries   : {result.n_queries}")',
+        'print(f"recall@1    : {result.recall_at_k[1]:.3f}")',
+        'print(f"recall@5    : {result.recall_at_k[5]:.3f}")',
+        'print(f"recall@10   : {result.recall_at_k[10]:.3f}")',
+        'print(f"NDCG@10     : {result.ndcg_at_10:.3f}")',
+        cell_id="7623eae2785240b9bd12b16a66d81610",
     ),
     md(
         "## 4 · Aggregate `results/*.json` into the markdown table",
@@ -149,22 +178,21 @@ CELLS: list[dict] = [
         "The cell below regenerates `docs/benchmarks.md`'s data rows from the",
         "committed result files and pins the canonical `recall@5 = 0.520`",
         "claim — if a future run produces a different number, this cell fails.",
+        cell_id="7cdc8c89c7104fffa095e18ddfef8986",
     ),
     code(
-        "result_files = sorted((ROOT / 'results').glob('*.json'))",
-        "print('result files:', [p.name for p in result_files])",
+        'result_files = sorted((ROOT / "results").glob("*.json"))',
+        'print("result files:", [p.name for p in result_files])',
         "",
-        "results = [",
-        "    SweepResult.from_dict(json.loads(p.read_text(encoding='utf-8')))",
-        "    for p in result_files",
-        "]",
+        'results = [SweepResult.from_dict(json.loads(p.read_text(encoding="utf-8"))) for p in result_files]',
         "md_table = aggregate_markdown(results)",
         "print(md_table)",
         "",
-        "committed = (ROOT / 'docs' / 'benchmarks.md').read_text(encoding='utf-8')",
-        "assert '0.520' in md_table, 'regenerated table missing canonical recall@5=0.520'",
-        "assert '0.520' in committed, 'committed benchmarks.md no longer carries 0.520'",
-        "print('OK — generated table reproduces the committed numbers')",
+        'committed = (ROOT / "docs" / "benchmarks.md").read_text(encoding="utf-8")',
+        'assert "0.520" in md_table, "regenerated table missing canonical recall@5=0.520"',
+        'assert "0.520" in committed, "committed benchmarks.md no longer carries 0.520"',
+        'print("OK — generated table reproduces the committed numbers")',
+        cell_id="b118ea5561624da68c537baed56e602f",
     ),
     md(
         "## 5 · Recompute the Pareto frontier",
@@ -174,15 +202,16 @@ CELLS: list[dict] = [
         "the frontier is trivially itself — one point. When real provider",
         "JSONs land, the frontier widens; the `emb-shootout sweep plot` CLI",
         "renders it (matplotlib renderer behind the optional `[plot]` extra).",
+        cell_id="938c804e27f84196a10c8828c723f798",
     ),
     code(
         "frontier = pareto_frontier(results)",
-        "print(f'frontier size: {len(frontier)} point(s)')",
+        'print(f"frontier size: {len(frontier)} point(s)")',
         "for pt in frontier:",
         "    print(",
-        "        f'  {pt.embedder_name}: '",
-        "        f'$/M={pt.cost_per_million_tokens}, '",
-        "        f'recall@5={pt.recall_at_k.get(5, 0.0):.3f}'",
+        '        f"  {pt.embedder_name}: "',
+        '        f"$/M={pt.cost_per_million_tokens}, "',
+        '        f"recall@5={pt.recall_at_k.get(5, 0.0):.3f}"',
         "    )",
         "",
         "# frontier-check:begin -- kept identical in _verify.py, reproduce.ipynb and",
@@ -197,6 +226,7 @@ CELLS: list[dict] = [
         "dominated = [r.embedder_name for r in results if id(r) not in on_frontier]",
         "print(f\"dominated: {dominated or 'none'}\")",
         "# frontier-check:end",
+        cell_id="504fb2a444614c0babb325280ed9130a",
     ),
     md(
         "## 6 · Regenerate `docs/pareto.{png,svg}`",
@@ -211,6 +241,7 @@ CELLS: list[dict] = [
         "  --out-png docs/pareto.png \\",
         "  --out-svg docs/pareto.svg",
         "```",
+        cell_id="59bbdb311c014d738909a11f9e486628",
     ),
     md(
         "## 7 · What the numbers say",
@@ -230,11 +261,16 @@ CELLS: list[dict] = [
         "narrative pass that depends on those rows existing.",
         "",
         "[#4]: https://github.com/jt-mchorse/embedding-model-shootout/issues/4",
+        cell_id="b43b363d81ae4b689946ece5c682cd59",
     ),
 ]
 
 
 def build() -> dict:
+    ids = [cell["id"] for cell in CELLS]
+    duplicated = sorted({i for i in ids if ids.count(i) > 1})
+    if duplicated:
+        raise ValueError(f"cell ids must be unique; duplicated: {duplicated}")
     return {
         "cells": CELLS,
         "metadata": {
@@ -253,8 +289,13 @@ def build() -> dict:
     }
 
 
+def render() -> str:
+    """The notebook file's exact text."""
+    return json.dumps(build(), indent=1, sort_keys=True, ensure_ascii=False) + "\n"
+
+
 def main() -> int:
-    atomic_write_text(NOTEBOOK_PATH, json.dumps(build(), indent=1) + "\n")
+    atomic_write_text(NOTEBOOK_PATH, render())
     print(
         f"wrote {NOTEBOOK_PATH.relative_to(NOTEBOOK_PATH.parent.parent)} ({NOTEBOOK_PATH.stat().st_size} bytes)"
     )
