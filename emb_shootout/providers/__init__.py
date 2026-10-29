@@ -10,7 +10,7 @@ Production runs:
 
     pip install -e '.[openai]'
     OPENAI_API_KEY=sk-... emb-shootout sweep run --provider openai \\
-        --corpus data/corpus.jsonl --output results/openai.json
+        --corpus data/corpus.jsonl --queries 50 --seed 42 --output results/openai.json
 """
 
 from __future__ import annotations

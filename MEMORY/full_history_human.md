@@ -2372,3 +2372,17 @@ and checks that each name is one the provider imports. It compares exact
 import names, because a text search let `voyage` pass for `voyageai`. The
 full suite is now green with those three extras installed. `sbert` was not
 tested because it pulls in torch.
+
+## 2026-10-29 — the providers docstring documents the baseline's query set (#273)
+
+The `Production runs:` block in `emb_shootout/providers/__init__.py`, which
+`help()` shows, documented a paid openai sweep without `--queries 50 --seed
+42`. That run would use the default 200 queries, and `sweep aggregate` would
+refuse the result beside `results/hash.json` after the whole corpus had been
+embedded and billed. The #155 lock missed it because it only read README, the
+benchmarks doc and the demo script. The docstring now carries the flags. The
+lock finds its surfaces through `git ls-files`: every tracked markdown file
+outside `MEMORY/`, everything in `docs/` and `scripts/`, and every docstring
+in the package, read through `ast` so the source's escaped backslash
+flattens the way a reader sees it. It now checks five commands instead of
+four, and fails on the old docstring.

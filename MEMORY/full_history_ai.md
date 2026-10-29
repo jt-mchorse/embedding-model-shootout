@@ -2789,3 +2789,22 @@ context_for_next_session:
   - "FULL_SUITE_GREEN_WITH_openai_voyage_cohere_EXTRAS_sbert_UNTESTED"
 followups: []
 ---
+
+---
+session: 2026-10-29T07:39Z
+issue: 273
+branch: session/2026-10-29-0739-issue-273
+focus: PROVIDERS_DOCSTRING_SWEEP_RUN_LACKED_QUERIES_50_SEED_42_AND_THE_155_LOCK_SCANNED_A_HAND_WRITTEN_THREE_FILE_TUPLE
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 2
+  suite: "3.12 CI-shaped (.[dev]) 1498 passed / 49 skipped; 3.11 .[dev] 1498 / 49; ruff check + format clean"
+decisions_made: []
+measured: "main a73dd0a: lock flattening over emb_shootout.providers.__doc__ -> 'sweep run --provider openai  --corpus data/corpus.jsonl --output results/openai.json' (no --queries, no --seed); lock parametrised 4 commands. After: 5 (README x2, benchmarks, capture_demo, providers/__init__.py), all --queries 50 --seed 42. Revert probe (docstring only): 1 red / 17 green; green = aggregator tests + already-fixed surfaces + discovery checks. PR #274."
+context_for_next_session:
+  - "_documented_surfaces_DISCOVERS_VIA_git_ls_files_ALL_md_EXCEPT_MEMORY_PLUS_docs_AND_scripts_PLUS_EVERY_ast_DOCSTRING_IN_emb_shootout"
+  - "DOCSTRINGS_READ_THROUGH_ast_SO_THE_SOURCE_DOUBLE_BACKSLASH_IS_ONE_BACKSLASH_AND_THE_CONTINUATION_FLATTENS"
+  - "NOTEBOOKS_AND_NON_DOCSTRING_PY_COMMENTS_ARE_NOT_SCANNED_NEITHER_DOCUMENTS_A_RESULTS_PATH_SWEEP_RUN_TODAY"
+followups: []
+---
