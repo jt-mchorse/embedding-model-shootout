@@ -10,8 +10,10 @@ rows they were handed.
 
 from __future__ import annotations
 
+import ast
 import json
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -98,12 +100,48 @@ def test_the_committed_results_still_aggregate(
 # ----------------------------------------------------------------------
 
 
+def _documented_surfaces() -> list[tuple[str, str]]:
+    """`(file, text)` for every committed surface that can document a command.
+
+    Discovered from `git ls-files`, not a hand-written tuple: the tuple named
+    README, the benchmarks doc and the demo script, and the `Production runs:`
+    block in `emb_shootout/providers/__init__.py` -- what `help()` shows --
+    documented a run with neither `--queries` nor `--seed` (#273). Every
+    tracked `*.md`, everything under `docs/` and `scripts/`, and every
+    docstring in `emb_shootout/` (read through `ast`, so the source's `\\\\`
+    continuation is the single backslash the reader sees). `MEMORY/` is an
+    append-only log of commands as they were run, not instructions to run one.
+    """
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"], cwd=_ROOT, capture_output=True, check=True
+    ).stdout.decode("utf-8", "surrogateescape")
+    surfaces = []
+    for rel in tracked.split("\0"):
+        if not rel or rel.startswith("MEMORY/"):
+            continue
+        path = _ROOT / rel
+        if rel.startswith("emb_shootout/") and rel.endswith(".py"):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=rel)
+            for node in ast.walk(tree):
+                if isinstance(
+                    node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+                ):
+                    doc = ast.get_docstring(node, clean=False)
+                    if doc:
+                        surfaces.append((rel, doc))
+        elif rel.endswith(".md") or rel.startswith(("docs/", "scripts/")):
+            try:
+                surfaces.append((rel, path.read_text(encoding="utf-8")))
+            except UnicodeDecodeError:
+                continue  # docs/pareto.png
+    return surfaces
+
+
 def _documented_provider_commands() -> list[tuple[str, str]]:
     """`(file, command)` for every documented non-demo `sweep run`, with
     backslash continuations and `printf` wrappers flattened."""
     found = []
-    for rel in ("README.md", "docs/benchmarks.md", "scripts/capture_demo.sh"):
-        text = (_ROOT / rel).read_text(encoding="utf-8")
+    for rel, text in _documented_surfaces():
         text = re.sub(r"printf '([^']*)'", r"\1", text).replace("\\n", "\n")
         text = re.sub(r"\\\s*\n\s*", " ", text)
         for line in text.splitlines():
@@ -114,11 +152,23 @@ def _documented_provider_commands() -> list[tuple[str, str]]:
 
 def test_the_documented_commands_are_found() -> None:
     """A pass over no commands is not a pass: README carries two, the
-    benchmarks doc one, and the demo script prints one."""
+    benchmarks doc one, the demo script prints one, and the providers
+    package docstring one (#273)."""
     files = [f for f, _ in _documented_provider_commands()]
     assert files.count("README.md") >= 2
     assert "docs/benchmarks.md" in files
     assert "scripts/capture_demo.sh" in files
+    assert "emb_shootout/providers/__init__.py" in files
+
+
+def test_a_docstring_continuation_is_flattened_to_one_command() -> None:
+    """The docstring's options sit on the continuation line; reading the raw
+    source would leave a backslash behind and split them off the command."""
+    (command,) = [
+        c for f, c in _documented_provider_commands() if f == "emb_shootout/providers/__init__.py"
+    ]
+    assert "--provider openai" in command
+    assert "--output results/openai.json" in command
 
 
 @pytest.mark.parametrize(
