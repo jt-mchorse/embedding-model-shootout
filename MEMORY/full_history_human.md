@@ -2386,3 +2386,17 @@ outside `MEMORY/`, everything in `docs/` and `scripts/`, and every docstring
 in the package, read through `ast` so the source's escaped backslash
 flattens the way a reader sees it. It now checks five commands instead of
 four, and fails on the old docstring.
+
+## 2026-10-30 — A read-only output is no longer silently overwritten (#277)
+
+Every output the shootout writes goes through a helper that writes a
+temporary file and renames it over the target, so an interrupted write
+cannot leave a half-written file. A rename only needs permission on the
+directory, though, so a file made read-only with `chmod 444` was rewritten
+anyway by all three writers (text, bytes, and the multi-file chart writer),
+and the `check_writable` preflight approved it. A plain file write refuses
+in that case, and the CLI already documented a read-only path as `failed to
+write` with exit 2. The helpers now check that an existing target is
+writable before they start, and so does the preflight, so `sweep run --out`
+refuses before embedding anything and `sweep plot` leaves both charts as
+they were. New files and writable files behave as before. PR #278.

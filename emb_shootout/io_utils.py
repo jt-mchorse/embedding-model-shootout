@@ -36,6 +36,7 @@ standard `rag_kit/io_utils.atomic_write_text` from
 from __future__ import annotations
 
 import contextlib
+import errno
 import json
 import os
 import secrets
@@ -200,6 +201,9 @@ def _stage(path: Path, payload: str | bytes, mode: str, encoding: str | None) ->
     (#251). On failure the temp file is removed and nothing is returned.
     """
     target = _resolve_symlinked_target(path)
+    # A read-only existing target is refused, as `Path.write_text` refuses it,
+    # instead of being renamed over (#277). See `_refuse_unwritable_target`.
+    _refuse_unwritable_target(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_path = _create_temp(target)
     try:
@@ -237,6 +241,9 @@ def check_writable(path: str | Path) -> None:
     `os.replace`, after `sweep run` had embedded the whole sweep. Linux keeps
     `chattr +i` out of `stat` (it takes an `FS_IOC_GETFLAGS` ioctl), so that
     one is still only found by the write.
+
+    A read-only existing target (`chmod 444`) is refused with the `EACCES` the
+    writer now raises for it (#277), see `_refuse_unwritable_target`.
     """
     target = _resolve_symlinked_target(Path(path))
     if target.is_dir():
@@ -247,10 +254,41 @@ def check_writable(path: str | Path) -> None:
         st = None
     target.parent.mkdir(parents=True, exist_ok=True)
     if st is not None:
+        _refuse_unwritable_target(target)
         _check_replaceable(target, st)
     fd, tmp_path = _create_temp(target)
     os.close(fd)
     tmp_path.unlink()
+
+
+def _refuse_unwritable_target(target: Path) -> None:
+    """Raise `PermissionError` if *target* exists and cannot be written (#277).
+
+    `os.replace` swaps the directory ENTRY, so only the directory's write bit
+    is checked and the target's own is never consulted: a `chmod 444` file
+    was silently rewritten by all three writers, mode still 0444, while
+    `Path.write_text`, the call they replaced, opens the file for writing and
+    fails with `EACCES`. Raising the same error here, before the temp file
+    exists, keeps that contract and leaves nothing behind; the CLI's
+    `except OSError` write seams turn it into `failed to write` + exit 2, as
+    their comments already said they did for a "read-only path". In
+    `atomic_write_bytes_many` it fires while staging, so no target has been
+    renamed yet. `check_writable` runs it too, so the preflight does not
+    approve a path the writer then refuses.
+
+    `os.access` asks the kernel the same question the open would, so root
+    (which `Path.write_text` lets through) still writes. The `os.stat` first
+    keeps a missing target -- the create case -- out of the check, and lets a
+    link loop raise its own ELOOP rather than a misleading `EACCES`. Like
+    `Path.write_text`, this is a check at open time, not a lock: a `chmod`
+    racing the write is not covered. prompt-regression-suite#318's helper.
+    """
+    try:
+        os.stat(target)
+    except FileNotFoundError:
+        return
+    if not os.access(target, os.W_OK):
+        raise PermissionError(errno.EACCES, os.strerror(errno.EACCES), str(target))
 
 
 # The `st_flags` bits that make `rename(2)` onto a file fail with EPERM (#251).

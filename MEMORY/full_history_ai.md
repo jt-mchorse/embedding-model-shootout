@@ -2808,3 +2808,22 @@ context_for_next_session:
   - "NOTEBOOKS_AND_NON_DOCSTRING_PY_COMMENTS_ARE_NOT_SCANNED_NEITHER_DOCUMENTS_A_RESULTS_PATH_SWEEP_RUN_TODAY"
 followups: []
 ---
+
+---
+session: 2026-10-30T07:44Z
+issue: 277
+branch: session/2026-10-30-0732-issue-277
+focus: ATOMIC_WRITERS_RENAMED_OVER_A_READ_ONLY_0444_TARGET_AND_CHECK_WRITABLE_APPROVED_IT_NOW_EACCES_LIKE_PATH_WRITE_TEXT
+phase: shipped
+delta:
+  files_changed: 2
+  tests_added: 21
+  suite: "3.12 CI-shaped (.[dev]) 1519 passed / 49 skipped; 3.11 .[dev] 1519 / 49; ruff check + format clean"
+decisions_made: []
+measured: "main 74198a4 (macOS uid 502): atomic_write_text/_bytes/_bytes_many on a 0444 file -> no error, contents 'new', mode still 0444; check_writable passed; Path.write_text -> PermissionError(13). After: all four EACCES, file unchanged, no .tmp. Revert probe (io_utils.py, pycache cleared): 14 red / 7 green; green = 2 write_text parity arms + 5 writable/missing controls. Reverting only the check_writable call: 3 red (check_writable, sweep run nothing embedded, sweep plot png untouched). PR #278."
+context_for_next_session:
+  - "_refuse_unwritable_target_RUNS_IN__stage_AFTER_THE_SYMLINK_RESOLVE_BEFORE_THE_TEMP_COVERS_ALL_THREE_WRITERS_AND_IN_check_writable_BEFORE__check_replaceable"
+  - "READ_ONLY_TESTS_SKIP_AS_ROOT_AND_ON_WINDOWS_github_ubuntu_runners_are_non_root_runner_so_CI_runs_them"
+  - "sweep_py_splice_markdown_table_NOT_TOUCHED_275_IS_A_JT_DECISION_REVISIT"
+followups: []
+---
